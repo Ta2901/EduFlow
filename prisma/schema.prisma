@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  fullName  String
+  role      String
+  phone     String?
+  school    String?
+  createdAt DateTime @default(now())
+
+  taughtClasses Class[]             @relation("TeacherClasses")
+  enrollments   ClassEnrollment[]
+  notifications Notification[]
+  submissions   Submission[]
+  attendances   AttendanceRecord[]
+  sessionMessages SessionMessage[]
+  hostedSessions  OnlineSession[]  @relation("HostedSessions")
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  classCode   String   @unique
+  teacherId   String
+  createdAt   DateTime @default(now())
+
+  teacher        User               @relation("TeacherClasses", fields: [teacherId], references: [id])
+  enrollments    ClassEnrollment[]
+  tasks          Task[]
+  scheduleSlots  ScheduleSlot[]
+  attendances    AttendanceRecord[]
+  onlineSessions OnlineSession[]
+}
+
+model OnlineSession {
+  id             String    @id @default(cuid())
+  classId        String
+  scheduleSlotId String?
+  title          String
+  roomCode       String    @unique
+  status         String    @default("scheduled")
+  teacherId      String
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime  @default(now())
+
+  class        Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  scheduleSlot ScheduleSlot?       @relation(fields: [scheduleSlotId], references: [id], onDelete: SetNull)
+  teacher      User                @relation("HostedSessions", fields: [teacherId], references: [id])
+  messages     SessionMessage[]
+  recordings   SessionRecording[]
+}
+
+model SessionMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  userName  String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  session OnlineSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SessionRecording {
+  id         String   @id @default(cuid())
+  sessionId  String
+  title      String
+  fileUrl    String
+  fileSize   Int
+  duration   Int?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  session OnlineSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model ScheduleSlot {
+  id        String @id @default(cuid())
+  classId   String
+  dayOfWeek Int
+  period    Int
+  subject   String
+  startTime String
+  endTime   String
+  room      String @default("")
+
+  class       Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  attendances AttendanceRecord[]
+  onlineSessions OnlineSession[]
+
+  @@unique([classId, dayOfWeek, period])
+}
+
+model AttendanceRecord {
+  id             String   @id @default(cuid())
+  classId        String
+  scheduleSlotId String
+  studentId      String
+  sessionDate    String
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  scheduleSlot ScheduleSlot @relation(fields: [scheduleSlotId], references: [id], onDelete: Cascade)
+  student      User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleSlotId, sessionDate, studentId])
+}
+
+model ClassEnrollment {
+  id        String   @id @default(cuid())
+  classId   String
+  studentId String
+  joinedAt  DateTime @default(now())
+
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  classId     String
+  title       String
+  description String   @default("")
+  dueDate     String
+  teacherId   String
+  createdAt   DateTime @default(now())
+
+  class       Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  attachments TaskAttachment[]
+  submissions Submission[]
+}
+
+model TaskAttachment {
+  id     String @id @default(cuid())
+  taskId String
+  name   String
+  size   Int
+  type   String
+  url    String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Submission {
+  id          String    @id @default(cuid())
+  taskId      String
+  studentId   String
+  status      String    @default("not_submitted")
+  content     String?
+  submittedAt DateTime?
+  grade       Float?
+  maxGrade    Float?
+  feedback    String?
+  gradedAt    DateTime?
+
+  task    Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  student User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  files   SubmissionFile[]
+
+  @@unique([taskId, studentId])
+}
+
+model SubmissionFile {
+  id           String @id @default(cuid())
+  submissionId String
+  name         String
+  size         Int
+  url          String
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  href      String?
+  read      Boolean  @default(false)
+  dedupeKey String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+}
+
+model StoredFile {
+  id        String   @id @default(cuid())
+  name      String
+  size      Int
+  type      String
+  url       String
+  createdAt DateTime @default(now())
+}
