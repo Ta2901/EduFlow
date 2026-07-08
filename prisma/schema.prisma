@@ -8,14 +8,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  fullName  String
-  role      String
-  phone     String?
-  school    String?
-  createdAt DateTime @default(now())
+  id            String    @id @default(cuid())
+  memberCode    String?   @unique
+  email         String    @unique
+  password      String
+  fullName      String
+  role          String
+  accountStatus String    @default("pending")
+  statusNote    String    @default("")
+  approvedAt    DateTime?
+  phone         String?
+  school        String?
+  createdAt     DateTime  @default(now())
 
   taughtClasses Class[]             @relation("TeacherClasses")
   enrollments   ClassEnrollment[]

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import Link from 'next/link'
@@ -16,13 +16,8 @@ export default function LoginForm() {
   const router = useRouter()
   const login = useAuthStore((s) => s.login)
   const logout = useAuthStore((s) => s.logout)
-  const hydrate = useAuthStore((s) => s.hydrate)
   const currentUser = useAuthStore((s) => s.currentUser)
   const isReady = useAuthStore((s) => s.isReady)
-
-  useEffect(() => {
-    hydrate()
-  }, [hydrate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,21 +43,18 @@ export default function LoginForm() {
     toast.success('Đã đăng xuất. Bạn có thể đăng nhập tài khoản khác.')
   }
 
-  if (!isReady) {
-    return (
-      <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600" />
-      </div>
-    )
-  }
-
   return (
     <>
-      {currentUser && (
+      {isReady && currentUser && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-medium">
             Bạn đang đăng nhập là <strong>{currentUser.fullName}</strong> (
-            {currentUser.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}).
+            {currentUser.role === 'admin'
+              ? 'Quản trị viên'
+              : currentUser.role === 'teacher'
+                ? 'Giáo viên'
+                : 'Học sinh'}
+            ).
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <button
@@ -90,7 +82,7 @@ export default function LoginForm() {
       >
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Email
+            Email hoặc mã tài khoản
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -99,12 +91,13 @@ export default function LoginForm() {
             <input
               id="email"
               name="email"
-              type="email"
+              type="text"
+              autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Nhập email của bạn"
+              placeholder="Email hoặc mã tài khoản (vd: 100001)"
             />
           </div>
         </div>

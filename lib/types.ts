@@ -1,4 +1,6 @@
-export type UserRole = 'student' | 'teacher'
+export type UserRole = 'student' | 'teacher' | 'admin'
+
+export type AccountStatus = 'pending' | 'active' | 'restricted' | 'suspended'
 
 export interface User {
   id: string
@@ -6,11 +8,18 @@ export interface User {
   password: string
   fullName: string
   role: UserRole
+  accountStatus: AccountStatus
+  statusNote?: string
+  approvedAt?: string
   phone?: string
   school?: string
+  memberCode?: string
 }
 
-export type SessionUser = Omit<User, 'password'>
+export type SessionUser = Omit<User, 'password'> & {
+  accountStatus: AccountStatus
+  statusNote?: string
+}
 
 export interface ClassStudent {
   id: string

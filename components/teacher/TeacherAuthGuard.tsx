@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
+import AccountStatusBanner from '@/components/layout/AccountStatusBanner'
 
 export default function TeacherAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -43,5 +44,10 @@ export default function TeacherAuthGuard({ children }: { children: React.ReactNo
     )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <AccountStatusBanner />
+      {children}
+    </>
+  )
 }

@@ -1,4 +1,5 @@
 import type {
+  AccountStatus,
   AppNotification,
   AttendanceRecord,
   AttendanceStatus,
@@ -45,13 +46,22 @@ export const api = {
       fullName: string
       email: string
       password: string
-      role: UserRole
+      role: 'student' | 'teacher'
       phone?: string
       school?: string
-    }) => request<{ user: SessionUser }>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+    }) =>
+      request<{ pending?: boolean; message?: string; memberCode?: string; user: SessionUser }>(
+        '/api/auth/register',
+        { method: 'POST', body: JSON.stringify(body) }
+      ),
     login: (body: { email: string; password: string }) =>
       request<{ user: SessionUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
     logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+    changePassword: (body: { currentPassword: string; newPassword: string }) =>
+      request<{ ok: boolean; message: string }>('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
   },
 
   edu: {
@@ -181,6 +191,98 @@ export const api = {
         body: JSON.stringify({ all: true }),
       }),
   },
+
+  admin: {
+    overview: () =>
+      request<{
+        overview: {
+          pending: number
+          active: number
+          restricted: number
+          suspended: number
+          teachers: number
+          students: number
+          classes: number
+        }
+      }>('/api/admin/overview'),
+    listUsers: (params?: { role?: string; status?: string; q?: string }) => {
+      const sp = new URLSearchParams()
+      if (params?.role) sp.set('role', params.role)
+      if (params?.status) sp.set('status', params.status)
+      if (params?.q) sp.set('q', params.q)
+      const qs = sp.toString()
+      return request<{
+        users: {
+          id: string
+          memberCode?: string
+          email: string
+          fullName: string
+          role: UserRole
+          accountStatus: AccountStatus
+          statusNote?: string
+          school?: string
+          createdAt: string
+        }[]
+      }>(`/api/admin/users${qs ? `?${qs}` : ''}`)
+    },
+    updateUser: (
+      userId: string,
+      body: {
+        action: 'approve' | 'setStatus' | 'resetPassword'
+        status?: AccountStatus
+        statusNote?: string
+        newPassword?: string
+      }
+    ) =>
+      request<{ user: unknown; temporaryPassword?: string }>(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
+    importStudents: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return request<{
+        created: { studentCode: string; fullName: string; email: string }[]
+        skipped: { studentCode: string; reason: string }[]
+        parseErrors: { line: number; message: string }[]
+      }>('/api/admin/users/import', { method: 'POST', body: form })
+    },
+    listClasses: () =>
+      request<{
+        classes: AdminClassRow[]
+      }>('/api/admin/classes'),
+    listTeachers: () =>
+      request<{ teachers: { id: string; fullName: string; email: string }[] }>(
+        '/api/admin/classes?meta=teachers'
+      ),
+    listStudents: () =>
+      request<{
+        students: { id: string; fullName: string; email: string; accountStatus: AccountStatus }[]
+      }>('/api/admin/classes?meta=students'),
+    createClass: (body: { title: string; description: string; teacherId: string }) =>
+      request<{ classroom: unknown }>('/api/admin/classes', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    updateClassRoster: (classId: string, studentIds: string[]) =>
+      request<{ roster: unknown }>(`/api/admin/classes/${classId}/roster`, {
+        method: 'PUT',
+        body: JSON.stringify({ studentIds }),
+      }),
+  },
+}
+
+export interface AdminClassRow {
+  id: string
+  title: string
+  description: string
+  classCode: string
+  teacherId: string
+  teacherName: string
+  teacherEmail: string
+  studentCount: number
+  createdAt: string
+  students: { id: string; name: string; email: string; accountStatus: AccountStatus }[]
 }
 
 export { ApiError }

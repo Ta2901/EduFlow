@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import NotificationBell from '@/components/notifications/NotificationBell'
+import RoleUserBadge, { RoleUserBadgeCompact } from '@/components/layout/RoleUserBadge'
+import { useAuthStore } from '@/lib/stores/authStore'
 
 interface PageHeaderProps {
   title: string
@@ -11,6 +15,10 @@ interface PageHeaderProps {
 }
 
 export default function PageHeader({ title, subtitle, backHref, action, userId }: PageHeaderProps) {
+  const currentUser = useAuthStore((s) => s.currentUser)
+  const roleShort =
+    currentUser?.role === 'teacher' ? 'GV' : currentUser?.role === 'student' ? 'HS' : null
+
   return (
     <header className="sticky top-0 z-20 border-b bg-white shadow-sm">
       <div className="mx-auto w-full max-w-5xl px-3 py-3 sm:px-4 sm:py-4">
@@ -27,6 +35,12 @@ export default function PageHeader({ title, subtitle, backHref, action, userId }
               <p className="truncate text-xs text-gray-500 sm:text-sm">{subtitle}</p>
             )}
           </div>
+          {userId && roleShort && currentUser && (
+            <>
+              <RoleUserBadgeCompact roleShort={roleShort} userName={currentUser.fullName} />
+              <RoleUserBadge roleShort={roleShort} userName={currentUser.fullName} />
+            </>
+          )}
           {userId && <NotificationBell userId={userId} />}
           {action && (
             <div className="hidden shrink-0 sm:block">{action}</div>

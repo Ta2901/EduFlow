@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { BookOpen, LogOut, Menu, User, X, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import NotificationBell from '@/components/notifications/NotificationBell'
+import RoleUserBadge, { RoleUserBadgeCompact } from '@/components/layout/RoleUserBadge'
 
 export interface SidebarItem {
   id: string
@@ -13,6 +14,7 @@ export interface SidebarItem {
 
 interface DashboardShellProps {
   userId: string
+  roleShort: 'GV' | 'HS'
   roleLabel: string
   userName: string
   sidebarItems: SidebarItem[]
@@ -27,6 +29,7 @@ interface DashboardShellProps {
 
 export default function DashboardShell({
   userId,
+  roleShort,
   roleLabel,
   userName,
   sidebarItems,
@@ -140,7 +143,10 @@ export default function DashboardShell({
               <p className="truncate text-xs text-gray-500">{headerSubtitle}</p>
             )}
           </div>
-          <NotificationBell userId={userId} />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <RoleUserBadgeCompact roleShort={roleShort} userName={userName} />
+            <NotificationBell userId={userId} />
+          </div>
         </div>
         {headerAction && (
           <div className="border-t px-3 py-2 sm:px-4">
@@ -180,6 +186,7 @@ export default function DashboardShell({
                 {headerSubtitle && <p className="text-sm text-gray-600">{headerSubtitle}</p>}
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                <RoleUserBadge roleShort={roleShort} userName={userName} />
                 <NotificationBell userId={userId} />
                 {headerAction}
               </div>

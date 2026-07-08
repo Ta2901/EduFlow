@@ -1,3 +1,5 @@
+import type { UserRole } from './types'
+
 export function formatDate(dateStr: string): string {
   try {
     return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -75,4 +77,21 @@ export const SUBMISSION_STATUS_COLORS: Record<string, string> = {
   not_submitted: 'bg-gray-100 text-gray-800',
   submitted: 'bg-green-100 text-green-800',
   late: 'bg-orange-100 text-orange-800',
+}
+
+export const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  pending: 'Chờ duyệt',
+  active: 'Hoạt động',
+  restricted: 'Hạn chế',
+  suspended: 'Đình chỉ',
+}
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  student: 'Học sinh',
+  teacher: 'Giáo viên',
+  admin: 'Quản trị viên',
+}
+
+export function roleDashboardPath(role: UserRole): string {
+  return `/${role}/dashboard`
 }

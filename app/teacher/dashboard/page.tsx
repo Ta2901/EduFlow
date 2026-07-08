@@ -11,7 +11,9 @@ import {
   ClipboardList,
   Eye,
   GraduationCap,
+  KeyRound,
 } from 'lucide-react'
+import ChangePasswordForm from '@/components/account/ChangePasswordForm'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -27,6 +29,7 @@ const sidebarItems = [
   { id: 'overview', label: 'Tổng quan', icon: TrendingUp },
   { id: 'courses', label: 'Lớp học', icon: GraduationCap },
   { id: 'assignments', label: 'Bài tập', icon: CheckCircle },
+  { id: 'password', label: 'Mật khẩu', icon: KeyRound },
 ]
 
 export default function TeacherDashboard() {
@@ -121,6 +124,7 @@ export default function TeacherDashboard() {
     overview: 'Tổng quan',
     courses: 'Lớp học',
     assignments: 'Bài tập',
+    password: 'Đổi mật khẩu',
   }
 
   const handleLogout = async () => {
@@ -148,6 +152,7 @@ export default function TeacherDashboard() {
   return (
     <DashboardShell
       userId={currentUser.id}
+      roleShort="GV"
       roleLabel="Giáo viên"
       userName={currentUser.fullName}
       sidebarItems={sidebarItems}
@@ -428,6 +433,8 @@ export default function TeacherDashboard() {
           )}
         </div>
       )}
+
+      {activeTab === 'password' && <ChangePasswordForm />}
     </DashboardShell>
   )
 }

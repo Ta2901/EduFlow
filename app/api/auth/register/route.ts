@@ -1,7 +1,8 @@
+import { assignUniqueMemberCode } from '@/lib/server/memberCode'
 import { prisma } from '@/lib/prisma'
 import { jsonError, jsonOk } from '@/lib/server/http'
 import { hashPassword } from '@/lib/server/password'
-import { setSessionCookie, toSessionUser } from '@/lib/server/session'
+import { toSessionUser } from '@/lib/server/session'
 
 export async function POST(req: Request) {
   try {
@@ -23,19 +24,30 @@ export async function POST(req: Request) {
     const exists = await prisma.user.findUnique({ where: { email } })
     if (exists) return jsonError('Email đã được sử dụng', 409)
 
+    const memberCode = await assignUniqueMemberCode()
+
     const user = await prisma.user.create({
       data: {
+        memberCode,
         email,
         password: await hashPassword(password),
         fullName,
         role,
+        accountStatus: 'pending',
         phone: body.phone?.trim() || null,
         school: body.school?.trim() || null,
       },
     })
 
-    await setSessionCookie({ userId: user.id, email: user.email, role: user.role as 'student' | 'teacher' })
-    return jsonOk({ user: toSessionUser(user) }, 201)
+    return jsonOk(
+      {
+        pending: true,
+        message: 'Đăng ký thành công. Tài khoản đang chờ quản trị viên phê duyệt.',
+        memberCode,
+        user: toSessionUser(user),
+      },
+      201
+    )
   } catch {
     return jsonError('Đăng ký thất bại', 500)
   }

@@ -21,39 +21,60 @@ async function main() {
 
   const passwordHash = await bcrypt.hash('password123', 10)
 
+  await prisma.user.create({
+    data: {
+      email: 'admin@eduflow.com',
+      password: passwordHash,
+      fullName: 'Quản trị viên EduFlow',
+      role: 'admin',
+      accountStatus: 'active',
+      approvedAt: new Date(),
+      school: 'THPT EduFlow',
+    },
+  })
+
   const teacher = await prisma.user.create({
     data: {
+      memberCode: '100001',
       email: 'teacher@eduflow.com',
       password: passwordHash,
       fullName: 'Cô Nguyễn Thị Lan',
       role: 'teacher',
+      accountStatus: 'active',
+      approvedAt: new Date(),
       school: 'THPT EduFlow',
     },
   })
 
   const student = await prisma.user.create({
     data: {
+      memberCode: '100002',
       email: 'student@eduflow.com',
       password: passwordHash,
       fullName: 'Nguyễn Văn An',
       role: 'student',
+      accountStatus: 'active',
+      approvedAt: new Date(),
       school: 'THPT EduFlow',
     },
   })
 
   const extraStudents = await Promise.all(
     [
-      { fullName: 'Trần Thị Bình', email: 'binh.tran@student.edu' },
-      { fullName: 'Lê Văn Cường', email: 'cuong.le@student.edu' },
-      { fullName: 'Phạm Thị Dung', email: 'dung.pham@student.edu' },
-      { fullName: 'Hoàng Văn Em', email: 'em.hoang@student.edu' },
+      { fullName: 'Trần Thị Bình', email: 'binh.tran@student.edu', memberCode: '100003' },
+      { fullName: 'Lê Văn Cường', email: 'cuong.le@student.edu', memberCode: '100004' },
+      { fullName: 'Phạm Thị Dung', email: 'dung.pham@student.edu', memberCode: '100005' },
+      { fullName: 'Hoàng Văn Em', email: 'em.hoang@student.edu', memberCode: '100006' },
     ].map((s) =>
       prisma.user.create({
         data: {
+          memberCode: s.memberCode,
           email: s.email,
           password: passwordHash,
           fullName: s.fullName,
           role: 'student',
+          accountStatus: 'active',
+          approvedAt: new Date(),
         },
       })
     )
@@ -201,7 +222,7 @@ async function main() {
     },
   })
 
-  console.log('Seed OK — teacher@eduflow.com / student@eduflow.com — password: password123')
+  console.log('Seed OK — admin@eduflow.com / teacher@eduflow.com / student@eduflow.com — password: password123')
 }
 
 main()

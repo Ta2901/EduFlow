@@ -1,4 +1,5 @@
 import { createTaskForClass } from '@/lib/server/edu'
+import { assertCanWrite } from '@/lib/server/account'
 import { jsonError, jsonOk } from '@/lib/server/http'
 import { getSession } from '@/lib/server/session'
 import { saveUploadedFile } from '@/lib/server/upload'
@@ -10,6 +11,12 @@ export async function POST(
   const session = await getSession()
   if (!session) return jsonError('Chưa đăng nhập', 401)
   if (session.role !== 'teacher') return jsonError('Không có quyền', 403)
+
+  try {
+    await assertCanWrite(session)
+  } catch (e) {
+    return jsonError(e instanceof Error ? e.message : 'Không có quyền', 403)
+  }
 
   const form = await req.formData()
   const title = String(form.get('title') || '').trim()

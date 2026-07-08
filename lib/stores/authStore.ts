@@ -6,7 +6,7 @@ interface RegisterInput {
   fullName: string
   email: string
   password: string
-  role: UserRole
+  role: 'student' | 'teacher'
   phone?: string
   school?: string
 }
@@ -15,7 +15,13 @@ interface AuthState {
   currentUser: SessionUser | null
   isReady: boolean
   hydrate: () => Promise<void>
-  register: (input: RegisterInput) => Promise<{ ok: boolean; error?: string }>
+  register: (input: RegisterInput) => Promise<{
+    ok: boolean
+    pending?: boolean
+    message?: string
+    memberCode?: string
+    error?: string
+  }>
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
 }
@@ -35,8 +41,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   register: async (input) => {
     try {
-      const { user } = await api.auth.register(input)
-      set({ currentUser: user })
+      const data = await api.auth.register(input)
+      if (data.pending) {
+        return {
+          ok: true,
+          pending: true,
+          message: data.message,
+          memberCode: data.memberCode,
+        }
+      }
+      set({ currentUser: data.user })
       return { ok: true }
     } catch (e) {
       return { ok: false, error: e instanceof ApiError ? e.message : 'Đăng ký thất bại' }

@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import type { SessionUser, UserRole } from '../types'
+import type { SessionUser, UserRole, AccountStatus } from '../types'
 
 const COOKIE_NAME = 'eduflow_session'
 
@@ -62,17 +62,23 @@ export async function getSession(): Promise<SessionPayload | null> {
 
 export function toSessionUser(user: {
   id: string
+  memberCode?: string | null
   email: string
   fullName: string
   role: string
+  accountStatus: string
+  statusNote?: string | null
   phone: string | null
   school: string | null
 }): SessionUser {
   return {
     id: user.id,
+    memberCode: user.memberCode ?? undefined,
     email: user.email,
     fullName: user.fullName,
     role: user.role as UserRole,
+    accountStatus: user.accountStatus as AccountStatus,
+    statusNote: user.statusNote || undefined,
     phone: user.phone ?? undefined,
     school: user.school ?? undefined,
   }

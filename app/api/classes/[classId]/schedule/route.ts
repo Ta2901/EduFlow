@@ -3,6 +3,7 @@ import {
   deleteScheduleSlot,
   listScheduleSlots,
 } from '@/lib/server/schedule'
+import { assertCanWrite } from '@/lib/server/account'
 import { jsonError, jsonOk } from '@/lib/server/http'
 import { getSession } from '@/lib/server/session'
 
@@ -29,6 +30,12 @@ export async function POST(
   if (!session) return jsonError('Chưa đăng nhập', 401)
   if (session.role !== 'teacher') return jsonError('Không có quyền', 403)
 
+  try {
+    await assertCanWrite(session)
+  } catch (e) {
+    return jsonError(e instanceof Error ? e.message : 'Không có quyền', 403)
+  }
+
   const body = await req.json().catch(() => ({}))
   try {
     const slot = await createScheduleSlot(params.classId, session.userId, {
@@ -52,6 +59,12 @@ export async function DELETE(
   const session = await getSession()
   if (!session) return jsonError('Chưa đăng nhập', 401)
   if (session.role !== 'teacher') return jsonError('Không có quyền', 403)
+
+  try {
+    await assertCanWrite(session)
+  } catch (e) {
+    return jsonError(e instanceof Error ? e.message : 'Không có quyền', 403)
+  }
 
   const { searchParams } = new URL(req.url)
   const slotId = searchParams.get('slotId')

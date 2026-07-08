@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import StudentNotificationBootstrap from '@/components/notifications/StudentNotificationBootstrap'
+import AccountStatusBanner from '@/components/layout/AccountStatusBanner'
 
 export default function StudentAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -47,6 +48,7 @@ export default function StudentAuthGuard({ children }: { children: React.ReactNo
   return (
     <>
       <StudentNotificationBootstrap />
+      <AccountStatusBanner />
       {children}
     </>
   )

@@ -2,11 +2,25 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { BookOpen, Users, Award, Smartphone, Monitor, Globe, Menu, X } from 'lucide-react'
+import { BookOpen, Users, Award, Smartphone, Monitor, Globe, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
+import { useAuthStore } from '@/lib/stores/authStore'
+import { ROLE_LABELS, roleDashboardPath } from '@/lib/format'
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const logout = useAuthStore((s) => s.logout)
+  const currentUser = useAuthStore((s) => s.currentUser)
+  const isReady = useAuthStore((s) => s.isReady)
+
+  const handleLogout = async () => {
+    await logout()
+    setMobileMenuOpen(false)
+    toast.success('Đã đăng xuất')
+  }
+
+  const dashboardPath = currentUser ? roleDashboardPath(currentUser.role) : '/login'
 
   const features = [
     {
@@ -56,15 +70,43 @@ export default function HomePage() {
             <nav className="hidden items-center gap-6 md:flex">
               <a href="#features" className="text-sm text-gray-600 hover:text-primary-600">Tính năng</a>
               <a href="#responsive" className="text-sm text-gray-600 hover:text-primary-600">Responsive</a>
-              <Link href="/register" className="text-sm font-medium text-gray-600 hover:text-primary-600">
-                Đăng ký
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-              >
-                Đăng nhập
-              </Link>
+              {!isReady ? (
+                <div className="h-9 w-40 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+              ) : currentUser ? (
+                <>
+                  <span className="text-sm text-gray-700">
+                    Xin chào, <strong>{currentUser.fullName}</strong>
+                    <span className="ml-1 text-gray-500">({ROLE_LABELS[currentUser.role]})</span>
+                  </span>
+                  <Link
+                    href={dashboardPath}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Bảng điều khiển
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/register" className="text-sm font-medium text-gray-600 hover:text-primary-600">
+                    Đăng ký
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                  >
+                    Đăng nhập
+                  </Link>
+                </>
+              )}
             </nav>
             <button
               type="button"
@@ -84,16 +126,45 @@ export default function HomePage() {
                 <a href="#responsive" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
                   Responsive
                 </a>
-                <Link href="/register" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
-                  Đăng ký
-                </Link>
-                <Link
-                  href="/login"
-                  className="mx-3 rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Đăng nhập
-                </Link>
+                {!isReady ? (
+                  <div className="mx-3 h-10 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+                ) : currentUser ? (
+                  <>
+                    <p className="px-3 py-2 text-sm text-gray-700">
+                      Xin chào, <strong>{currentUser.fullName}</strong>
+                      <span className="block text-xs text-gray-500">{ROLE_LABELS[currentUser.role]}</span>
+                    </p>
+                    <Link
+                      href={dashboardPath}
+                      className="mx-3 flex items-center justify-center gap-2 rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Bảng điều khiển
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="mx-3 flex items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Đăng xuất
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/register" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
+                      Đăng ký
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="mx-3 rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Đăng nhập
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           )}
@@ -124,18 +195,31 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link
-              href="/login"
-              className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
-            >
-              Đăng nhập
-            </Link>
-            <Link
-              href="/register"
-              className="w-full rounded-lg border-2 border-primary-600 px-6 py-3.5 text-center text-base font-semibold text-primary-600 hover:bg-primary-50 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
-            >
-              Đăng ký tài khoản
-            </Link>
+            {isReady && currentUser ? (
+              <Link
+                href={dashboardPath}
+                className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
+              >
+                Vào bảng điều khiển
+              </Link>
+            ) : isReady ? (
+              <>
+                <Link
+                  href="/login"
+                  className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  href="/register"
+                  className="w-full rounded-lg border-2 border-primary-600 px-6 py-3.5 text-center text-base font-semibold text-primary-600 hover:bg-primary-50 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
+                >
+                  Đăng ký tài khoản
+                </Link>
+              </>
+            ) : (
+              <div className="mx-auto h-12 w-56 animate-pulse rounded-lg bg-gray-200" aria-hidden />
+            )}
           </motion.div>
         </div>
       </section>

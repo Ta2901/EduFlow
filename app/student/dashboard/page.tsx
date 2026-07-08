@@ -11,7 +11,9 @@ import {
   Hash,
   GraduationCap,
   LayoutDashboard,
+  KeyRound,
 } from 'lucide-react'
+import ChangePasswordForm from '@/components/account/ChangePasswordForm'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -27,6 +29,7 @@ const sidebarItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
   { id: 'courses', label: 'Lớp học', icon: GraduationCap },
   { id: 'submissions', label: 'Nộp bài', icon: CheckCircle },
+  { id: 'password', label: 'Mật khẩu', icon: KeyRound },
 ]
 
 export default function StudentDashboard() {
@@ -77,6 +80,7 @@ export default function StudentDashboard() {
     overview: 'Tổng quan',
     courses: 'Lớp học',
     submissions: 'Nộp bài',
+    password: 'Đổi mật khẩu',
   }
 
   const handleLogout = async () => {
@@ -99,6 +103,7 @@ export default function StudentDashboard() {
   return (
     <DashboardShell
       userId={currentUser.id}
+      roleShort="HS"
       roleLabel="Học sinh"
       userName={currentUser.fullName}
       sidebarItems={sidebarItems}
@@ -409,6 +414,8 @@ export default function StudentDashboard() {
           )}
         </div>
       )}
+
+      {activeTab === 'password' && <ChangePasswordForm />}
     </DashboardShell>
   )
 }

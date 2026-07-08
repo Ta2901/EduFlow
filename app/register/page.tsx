@@ -20,6 +20,7 @@ export default function RegisterPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [registeredCode, setRegisteredCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const register = useAuthStore((s) => s.register)
@@ -53,6 +54,17 @@ export default function RegisterPage() {
       return
     }
 
+    if (result.pending) {
+      if (result.memberCode) {
+        setRegisteredCode(result.memberCode)
+        toast.success('Đăng ký thành công!')
+        return
+      }
+      toast.success(result.message || 'Đăng ký thành công. Vui lòng chờ quản trị viên phê duyệt.')
+      router.push('/login')
+      return
+    }
+
     toast.success('Đăng ký thành công!')
     router.push(formData.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard')
   }
@@ -80,9 +92,34 @@ export default function RegisterPage() {
             </div>
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Tạo tài khoản mới</h2>
-          <p className="mt-2 text-sm text-gray-600">Tham gia cộng đồng học tập EduFlow</p>
+          <p className="mt-2 text-sm text-gray-600">
+            Sau khi đăng ký, hệ thống tự cấp mã tài khoản số để đăng nhập
+          </p>
         </motion.div>
 
+        {registeredCode ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-green-200 bg-green-50 p-6 text-center shadow-lg"
+          >
+            <h3 className="text-lg font-semibold text-green-900">Tài khoản đã được tạo</h3>
+            <p className="mt-2 text-sm text-green-800">
+              Mã tài khoản của bạn (dùng để đăng nhập):
+            </p>
+            <p className="mt-3 font-mono text-2xl font-bold tracking-wider text-green-900">{registeredCode}</p>
+            <p className="mt-3 text-sm text-green-700">
+              Bạn có thể đăng nhập bằng <strong>mã tài khoản</strong> hoặc <strong>email</strong> sau khi quản trị viên phê duyệt.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push('/login')}
+              className="mt-5 w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
+            >
+              Đến trang đăng nhập
+            </button>
+          </motion.div>
+        ) : (
         <motion.form
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -289,6 +326,7 @@ export default function RegisterPage() {
             </p>
           </div>
         </motion.form>
+        )}
       </div>
     </div>
   )
