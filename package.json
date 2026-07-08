@@ -6,21 +6,26 @@
   "scripts": {
     "dev": "WATCHPACK_POLLING=true next dev",
     "dev:clean": "rm -rf .next && npm run dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && npm run db:migrate:deploy && next build",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/apply-migrations-pg.ts",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:seed:reset": "SEED_RESET=true prisma db seed",
+    "admin:reset-password": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/reset-admin-password.ts",
+    "setup:db": "bash scripts/setup-postgres.sh",
     "db:reset": "prisma migrate reset --force"
   },
   "prisma": {
-    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.19.3",
+    "pg": "^8.16.0",
     "@types/node": "20.8.0",
     "@types/react": "18.2.25",
     "@types/react-dom": "18.2.11",
@@ -43,6 +48,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/pg": "^8.15.4",
     "eslint": "8.51.0",
     "eslint-config-next": "14.0.0",
     "prisma": "^6.19.3",

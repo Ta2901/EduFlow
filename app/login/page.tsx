@@ -18,7 +18,7 @@ export default function LoginPage() {
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Đăng nhập</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Nhập email và mật khẩu — hệ thống tự chuyển đến khu vực học sinh hoặc giáo viên
+            Nhập tài khoản và mật khẩu — hệ thống tự chuyển đến Admin, giáo viên hoặc học sinh
           </p>
         </motion.div>
 

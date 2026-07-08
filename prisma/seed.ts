@@ -1,12 +1,10 @@
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import {
   ADMIN_DEFAULT_PASSWORD,
   ADMIN_LOGIN_ID,
-  LEGACY_ADMIN_LOGIN_ID,
+  LEGACY_ADMIN_LOGIN_IDS,
 } from '../lib/constants/accounts'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 async function hashPassword(password: string) {
   return bcrypt.hash(password, 10)
@@ -29,14 +27,19 @@ async function ensureAdmin() {
     })
   }
 
-  if (existing.email === LEGACY_ADMIN_LOGIN_ID) {
-    return prisma.user.update({
-      where: { id: existing.id },
-      data: {
-        email: ADMIN_LOGIN_ID,
-        password: await hashPassword(ADMIN_DEFAULT_PASSWORD),
-      },
-    })
+  if (existing.email !== ADMIN_LOGIN_ID) {
+    const isLegacy = (LEGACY_ADMIN_LOGIN_IDS as readonly string[]).includes(existing.email)
+    if (isLegacy) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          email: ADMIN_LOGIN_ID,
+          ...(existing.email === 'admin@eduflow.com'
+            ? { password: await hashPassword(ADMIN_DEFAULT_PASSWORD) }
+            : {}),
+        },
+      })
+    }
   }
 
   return existing
