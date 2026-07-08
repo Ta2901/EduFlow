@@ -1,62 +1,96 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import {
+  ADMIN_DEFAULT_PASSWORD,
+  ADMIN_LOGIN_ID,
+  LEGACY_ADMIN_LOGIN_ID,
+} from '../lib/constants/accounts'
 
 const prisma = new PrismaClient()
 
-async function main() {
-  await prisma.notification.deleteMany()
-  await prisma.sessionRecording.deleteMany()
-  await prisma.sessionMessage.deleteMany()
-  await prisma.onlineSession.deleteMany()
-  await prisma.attendanceRecord.deleteMany()
-  await prisma.scheduleSlot.deleteMany()
-  await prisma.submissionFile.deleteMany()
-  await prisma.submission.deleteMany()
-  await prisma.taskAttachment.deleteMany()
-  await prisma.task.deleteMany()
-  await prisma.classEnrollment.deleteMany()
-  await prisma.class.deleteMany()
-  await prisma.storedFile.deleteMany()
-  await prisma.user.deleteMany()
+async function hashPassword(password: string) {
+  return bcrypt.hash(password, 10)
+}
 
-  const passwordHash = await bcrypt.hash('password123', 10)
+async function ensureAdmin() {
+  const existing = await prisma.user.findFirst({ where: { role: 'admin' } })
 
-  await prisma.user.create({
+  if (!existing) {
+    return prisma.user.create({
+      data: {
+        email: ADMIN_LOGIN_ID,
+        password: await hashPassword(ADMIN_DEFAULT_PASSWORD),
+        fullName: 'Quản trị viên EduFlow',
+        role: 'admin',
+        accountStatus: 'active',
+        approvedAt: new Date(),
+        school: 'THPT EduFlow',
+      },
+    })
+  }
+
+  if (existing.email === LEGACY_ADMIN_LOGIN_ID) {
+    return prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        email: ADMIN_LOGIN_ID,
+        password: await hashPassword(ADMIN_DEFAULT_PASSWORD),
+      },
+    })
+  }
+
+  return existing
+}
+
+async function ensureUser(input: {
+  email: string
+  memberCode?: string
+  fullName: string
+  role: 'teacher' | 'student'
+  password: string
+  school?: string
+}) {
+  const found = await prisma.user.findUnique({ where: { email: input.email } })
+  if (found) return found
+
+  return prisma.user.create({
     data: {
-      email: 'admin@eduflow.com',
-      password: passwordHash,
-      fullName: 'Quản trị viên EduFlow',
-      role: 'admin',
+      email: input.email,
+      memberCode: input.memberCode,
+      password: await hashPassword(input.password),
+      fullName: input.fullName,
+      role: input.role,
       accountStatus: 'active',
       approvedAt: new Date(),
-      school: 'THPT EduFlow',
+      school: input.school,
     },
   })
+}
 
-  const teacher = await prisma.user.create({
-    data: {
-      memberCode: '100001',
-      email: 'teacher@eduflow.com',
-      password: passwordHash,
-      fullName: 'Cô Nguyễn Thị Lan',
-      role: 'teacher',
-      accountStatus: 'active',
-      approvedAt: new Date(),
-      school: 'THPT EduFlow',
-    },
+async function seedDemoContent() {
+  const classCount = await prisma.class.count()
+  if (classCount > 0) {
+    console.log('Demo classes already exist — skipping demo content seed.')
+    return
+  }
+
+  const demoPassword = 'password123'
+  const teacher = await ensureUser({
+    memberCode: '100001',
+    email: 'teacher@eduflow.com',
+    fullName: 'Cô Nguyễn Thị Lan',
+    role: 'teacher',
+    password: demoPassword,
+    school: 'THPT EduFlow',
   })
 
-  const student = await prisma.user.create({
-    data: {
-      memberCode: '100002',
-      email: 'student@eduflow.com',
-      password: passwordHash,
-      fullName: 'Nguyễn Văn An',
-      role: 'student',
-      accountStatus: 'active',
-      approvedAt: new Date(),
-      school: 'THPT EduFlow',
-    },
+  const student = await ensureUser({
+    memberCode: '100002',
+    email: 'student@eduflow.com',
+    fullName: 'Nguyễn Văn An',
+    role: 'student',
+    password: demoPassword,
+    school: 'THPT EduFlow',
   })
 
   const extraStudents = await Promise.all(
@@ -66,16 +100,12 @@ async function main() {
       { fullName: 'Phạm Thị Dung', email: 'dung.pham@student.edu', memberCode: '100005' },
       { fullName: 'Hoàng Văn Em', email: 'em.hoang@student.edu', memberCode: '100006' },
     ].map((s) =>
-      prisma.user.create({
-        data: {
-          memberCode: s.memberCode,
-          email: s.email,
-          password: passwordHash,
-          fullName: s.fullName,
-          role: 'student',
-          accountStatus: 'active',
-          approvedAt: new Date(),
-        },
+      ensureUser({
+        memberCode: s.memberCode,
+        email: s.email,
+        fullName: s.fullName,
+        role: 'student',
+        password: demoPassword,
       })
     )
   )
@@ -221,8 +251,45 @@ async function main() {
       content: 'Em đã nộp bài ạ.',
     },
   })
+}
 
-  console.log('Seed OK — admin@eduflow.com / teacher@eduflow.com / student@eduflow.com — password: password123')
+async function resetAllData() {
+  await prisma.notification.deleteMany()
+  await prisma.sessionRecording.deleteMany()
+  await prisma.sessionMessage.deleteMany()
+  await prisma.onlineSession.deleteMany()
+  await prisma.attendanceRecord.deleteMany()
+  await prisma.scheduleSlot.deleteMany()
+  await prisma.submissionFile.deleteMany()
+  await prisma.submission.deleteMany()
+  await prisma.taskAttachment.deleteMany()
+  await prisma.task.deleteMany()
+  await prisma.classEnrollment.deleteMany()
+  await prisma.class.deleteMany()
+  await prisma.storedFile.deleteMany()
+  await prisma.user.deleteMany()
+}
+
+async function main() {
+  const forceReset = process.env.SEED_RESET === 'true'
+
+  if (forceReset) {
+    console.log('SEED_RESET=true — wiping all data before seeding...')
+    await resetAllData()
+    await ensureAdmin()
+    await seedDemoContent()
+    console.log(
+      `Reset seed OK — admin: ${ADMIN_LOGIN_ID} / ${ADMIN_DEFAULT_PASSWORD} | demo GV/HS: password123`
+    )
+    return
+  }
+
+  await ensureAdmin()
+  await seedDemoContent()
+
+  console.log(
+    `Seed OK (non-destructive) — admin: ${ADMIN_LOGIN_ID} | existing user passwords preserved`
+  )
 }
 
 main()

@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast'
 import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 import BulkStudentImport from '@/components/admin/BulkStudentImport'
+import ChangePasswordForm from '@/components/account/ChangePasswordForm'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { api, ApiError, type AdminClassRow } from '@/lib/api/client'
 import type { AccountStatus } from '@/lib/types'
@@ -28,7 +29,7 @@ const STATUS_COLORS: Record<AccountStatus, string> = {
   suspended: 'bg-red-100 text-red-800 border-red-200',
 }
 
-type Tab = 'overview' | 'users' | 'classes'
+type Tab = 'overview' | 'users' | 'classes' | 'password'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -176,6 +177,7 @@ export default function AdminDashboardPage() {
     { id: 'overview' as const, label: 'Tổng quan', icon: LayoutDashboard },
     { id: 'users' as const, label: 'Tài khoản', icon: Users },
     { id: 'classes' as const, label: 'Lớp học', icon: BookOpen },
+    { id: 'password' as const, label: 'Mật khẩu', icon: KeyRound },
   ]
 
   return (
@@ -510,6 +512,8 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           )}
+
+          {tab === 'password' && <ChangePasswordForm />}
         </main>
       </div>
 

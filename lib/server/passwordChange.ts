@@ -9,7 +9,6 @@ export async function changeOwnPassword(
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } })
   if (!user) throw new Error('Không tìm thấy tài khoản')
-  if (user.role === 'admin') throw new Error('Admin đổi mật khẩu qua quản trị hệ thống')
 
   if (!(await verifyPassword(currentPassword, user.password))) {
     throw new Error('Mật khẩu hiện tại không đúng')

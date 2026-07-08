@@ -163,10 +163,13 @@ export default function LoginForm() {
         <h3 className="text-sm font-medium text-blue-800 mb-2">Tài khoản demo:</h3>
         <div className="text-xs text-blue-700 space-y-1">
           <p>
-            <strong>Học sinh:</strong> student@eduflow.com / password123
+            <strong>Admin:</strong> edufow.admin / firstedu.eduflow
           </p>
           <p>
-            <strong>Giáo viên:</strong> teacher@eduflow.com / password123
+            <strong>Học sinh:</strong> student@eduflow.com hoặc 100002 / password123
+          </p>
+          <p>
+            <strong>Giáo viên:</strong> teacher@eduflow.com hoặc 100001 / password123
           </p>
         </div>
       </div>
