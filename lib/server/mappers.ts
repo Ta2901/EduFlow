@@ -6,6 +6,7 @@ type ClassWithRelations = {
   description: string
   classCode: string
   teacherId: string
+  status?: string
   createdAt: Date
   enrollments: {
     student: { id: string; fullName: string; email: string }
@@ -53,6 +54,7 @@ export function mapClassRoom(row: ClassWithRelations): ClassRoom {
     description: row.description,
     classCode: row.classCode,
     teacherId: row.teacherId,
+    status: row.status === 'cancelled' ? 'cancelled' : 'active',
     students: row.enrollments.map(mapClassStudent),
     createdAt: row.createdAt.toISOString(),
   }

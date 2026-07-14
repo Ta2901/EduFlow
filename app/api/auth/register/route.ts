@@ -35,6 +35,7 @@ export async function POST(req: Request) {
         role,
         accountStatus: 'pending',
         phone: body.phone?.trim() || null,
+        recoveryEmail: body.recoveryEmail?.trim().toLowerCase() || null,
         school: body.school?.trim() || null,
       },
     })

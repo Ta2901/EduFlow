@@ -1,6 +1,8 @@
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
 import { generateTempPassword } from '../utils/generateTempPassword'
+import { logActivity } from './activityLog'
+import { ensureClassChat } from './classChat'
 import { hashPassword } from './password'
 import type { AccountStatus, UserRole } from '../types'
 import { requireAdmin } from './account'
@@ -205,6 +207,24 @@ export async function createAdminClass(
     include: classInclude,
   })
 
+  await ensureClassChat(row.id, row.title)
+
+  await logActivity({
+    userId: session.userId,
+    type: 'class_create',
+    title: 'Tạo lớp học (admin)',
+    message: `Đã tạo lớp "${row.title}" cho GV ${teacher.fullName}`,
+    meta: { classId: row.id, teacherId: teacher.id, classCode: row.classCode },
+  })
+  await logActivity({
+    userId: teacher.id,
+    type: 'class_create',
+    title: 'Tạo lớp học',
+    message: `Admin đã tạo lớp "${row.title}" (mã ${row.classCode}) cho bạn`,
+    href: `/teacher/courses/${row.id}`,
+    meta: { classId: row.id, classCode: row.classCode },
+  })
+
   return {
     id: row.id,
     title: row.title,
@@ -265,6 +285,8 @@ export async function updateAdminClassRoster(
     }
   }
 
+  await ensureClassChat(classroom.id, classroom.title)
+
   const updated = await prisma.class.findUniqueOrThrow({
     where: { id: classId },
     include: classInclude,
@@ -307,4 +329,284 @@ export async function listEligibleStudents(session: SessionPayload) {
     memberCode: r.memberCode ?? undefined,
     accountStatus: r.accountStatus as AccountStatus,
   }))
+}
+
+export type AdminWorkListItem = {
+  id: string
+  kind: 'student_submission' | 'teacher_grading' | 'teacher_summary' | 'student_summary' | 'class_summary'
+  title: string
+  subtitle: string
+  meta?: string
+  statusKey?: string
+  statusLabel?: string
+  teacherId?: string
+  studentId?: string
+  classId?: string
+}
+
+export async function getAdminWorkStats(session: SessionPayload) {
+  requireAdmin(session)
+
+  const [classes, tasks, submissions] = await Promise.all([
+    prisma.class.findMany({
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        teacherId: true,
+        teacher: { select: { id: true, fullName: true, email: true } },
+        enrollments: {
+          select: {
+            studentId: true,
+            student: { select: { id: true, fullName: true, email: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.task.findMany({
+      select: { id: true, title: true, classId: true, teacherId: true, dueDate: true },
+    }),
+    prisma.submission.findMany({
+      include: {
+        student: { select: { id: true, fullName: true, email: true } },
+        task: { select: { id: true, title: true, classId: true, teacherId: true } },
+      },
+    }),
+  ])
+
+  const activeClasses = classes.filter((c) => c.status !== 'cancelled')
+  const classById = new Map(activeClasses.map((c) => [c.id, c]))
+  const taskById = new Map(tasks.map((t) => [t.id, t]))
+
+  const studentSummary = {
+    not_submitted: 0,
+    submitted: 0,
+    late: 0,
+    graded: 0,
+    total: submissions.length,
+  }
+
+  const studentItems: AdminWorkListItem[] = []
+  for (const sub of submissions) {
+    const classroom = classById.get(sub.task.classId)
+    if (!classroom) continue
+    const statusKey =
+      sub.grade != null ? 'graded' : (sub.status as 'not_submitted' | 'submitted' | 'late')
+    if (statusKey === 'graded') studentSummary.graded += 1
+    else if (statusKey === 'not_submitted') studentSummary.not_submitted += 1
+    else if (statusKey === 'late') studentSummary.late += 1
+    else studentSummary.submitted += 1
+    const statusLabel =
+      statusKey === 'graded'
+        ? 'Đã chấm'
+        : statusKey === 'not_submitted'
+          ? 'Chưa nộp'
+          : statusKey === 'late'
+            ? 'Nộp muộn'
+            : 'Đã nộp'
+
+    studentItems.push({
+      id: sub.id,
+      kind: 'student_submission',
+      title: `${sub.student.fullName} · ${sub.task.title}`,
+      subtitle: `${classroom.title} · ${sub.student.email}`,
+      meta:
+        sub.grade != null
+          ? `Điểm ${sub.grade}/${sub.maxGrade ?? 10}`
+          : sub.submittedAt
+            ? `Nộp: ${sub.submittedAt.toISOString()}`
+            : undefined,
+      statusKey,
+      statusLabel,
+      studentId: sub.studentId,
+      classId: classroom.id,
+      teacherId: classroom.teacherId,
+    })
+  }
+
+  const teacherSummary = {
+    pending_grade: 0,
+    graded: 0,
+    total_actionable: 0,
+  }
+  const teacherGradingItems: AdminWorkListItem[] = []
+
+  for (const sub of submissions) {
+    if (sub.status === 'not_submitted') continue
+    const classroom = classById.get(sub.task.classId)
+    if (!classroom) continue
+    const isGraded = sub.grade != null
+    if (isGraded) teacherSummary.graded += 1
+    else teacherSummary.pending_grade += 1
+    teacherSummary.total_actionable += 1
+
+    teacherGradingItems.push({
+      id: `grade-${sub.id}`,
+      kind: 'teacher_grading',
+      title: `${classroom.teacher.fullName} · ${sub.task.title}`,
+      subtitle: `HS: ${sub.student.fullName} · ${classroom.title}`,
+      meta: isGraded
+        ? `Đã chấm ${sub.grade}/${sub.maxGrade ?? 10}`
+        : 'Chờ chấm điểm',
+      statusKey: isGraded ? 'graded' : 'pending_grade',
+      statusLabel: isGraded ? 'Đã chấm' : 'Chờ chấm',
+      teacherId: classroom.teacherId,
+      studentId: sub.studentId,
+      classId: classroom.id,
+    })
+  }
+
+  const teachersMap = new Map<
+    string,
+    {
+      teacherId: string
+      fullName: string
+      email: string
+      classIds: Set<string>
+      taskIds: Set<string>
+      pendingGrade: number
+      graded: number
+    }
+  >()
+
+  for (const c of activeClasses) {
+    const row =
+      teachersMap.get(c.teacherId) ||
+      {
+        teacherId: c.teacherId,
+        fullName: c.teacher.fullName,
+        email: c.teacher.email,
+        classIds: new Set<string>(),
+        taskIds: new Set<string>(),
+        pendingGrade: 0,
+        graded: 0,
+      }
+    row.classIds.add(c.id)
+    teachersMap.set(c.teacherId, row)
+  }
+  for (const t of tasks) {
+    if (!classById.has(t.classId)) continue
+    const row = teachersMap.get(t.teacherId)
+    if (row) row.taskIds.add(t.id)
+  }
+  for (const sub of submissions) {
+    if (sub.status === 'not_submitted') continue
+    if (!classById.has(sub.task.classId)) continue
+    const row = teachersMap.get(sub.task.teacherId)
+    if (!row) continue
+    if (sub.grade != null) row.graded += 1
+    else row.pendingGrade += 1
+  }
+
+  const teachersOverview = Array.from(teachersMap.values()).map((t) => {
+    const total = t.pendingGrade + t.graded
+    return {
+      teacherId: t.teacherId,
+      fullName: t.fullName,
+      email: t.email,
+      classes: t.classIds.size,
+      tasks: t.taskIds.size,
+      pendingGrade: t.pendingGrade,
+      graded: t.graded,
+      gradeRate: total === 0 ? 0 : Math.round((t.graded / total) * 100),
+    }
+  })
+
+  const studentsMap = new Map<
+    string,
+    {
+      studentId: string
+      fullName: string
+      email: string
+      classIds: Set<string>
+      notSubmitted: number
+      submitted: number
+      late: number
+      graded: number
+      total: number
+    }
+  >()
+
+  for (const c of activeClasses) {
+    for (const e of c.enrollments) {
+      const row =
+        studentsMap.get(e.studentId) ||
+        {
+          studentId: e.studentId,
+          fullName: e.student.fullName,
+          email: e.student.email,
+          classIds: new Set<string>(),
+          notSubmitted: 0,
+          submitted: 0,
+          late: 0,
+          graded: 0,
+          total: 0,
+        }
+      row.classIds.add(c.id)
+      studentsMap.set(e.studentId, row)
+    }
+  }
+  for (const sub of submissions) {
+    if (!classById.has(sub.task.classId)) continue
+    const row = studentsMap.get(sub.studentId)
+    if (!row) continue
+    row.total += 1
+    if (sub.grade != null) row.graded += 1
+    else if (sub.status === 'not_submitted') row.notSubmitted += 1
+    else if (sub.status === 'late') row.late += 1
+    else if (sub.status === 'submitted') row.submitted += 1
+  }
+
+  const studentsOverview = Array.from(studentsMap.values()).map((s) => ({
+    studentId: s.studentId,
+    fullName: s.fullName,
+    email: s.email,
+    classes: s.classIds.size,
+    total: s.total,
+    notSubmitted: s.notSubmitted,
+    submitted: s.submitted,
+    late: s.late,
+    graded: s.graded,
+    completionRate:
+      s.total === 0 ? 0 : Math.round(((s.total - s.notSubmitted) / s.total) * 100),
+  }))
+
+  const byClass = activeClasses.map((c) => {
+    const classTasks = tasks.filter((t) => t.classId === c.id)
+    const classSubs = submissions.filter((s) => s.task.classId === c.id)
+    const submitted = classSubs.filter((s) => s.status !== 'not_submitted').length
+    const graded = classSubs.filter((s) => s.grade != null).length
+    return {
+      classId: c.id,
+      title: c.title,
+      teacherName: c.teacher.fullName,
+      students: c.enrollments.length,
+      tasks: classTasks.length,
+      submitRate:
+        classSubs.length === 0 ? 0 : Math.round((submitted / classSubs.length) * 100),
+      gradeRate:
+        classSubs.length === 0 ? 0 : Math.round((graded / classSubs.length) * 100),
+      submitted,
+      pending: classSubs.filter((s) => s.status === 'not_submitted').length,
+      graded,
+      totalSubs: classSubs.length,
+    }
+  })
+
+  void taskById
+
+  return {
+    student: {
+      summary: studentSummary,
+      items: studentItems,
+    },
+    teacher: {
+      summary: teacherSummary,
+      items: teacherGradingItems,
+    },
+    teachersOverview,
+    studentsOverview,
+    byClass,
+  }
 }

@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import AuthHydrator from '@/components/auth/AuthHydrator'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import ThemeScript from '@/components/theme/ThemeScript'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,6 +19,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f9fafb' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
+  ],
 }
 
 export default function RootLayout({
@@ -25,22 +31,27 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi">
-      <body className={`${inter.className} text-gray-900 antialiased`}>
-        <AuthHydrator />
-        {children}
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-          }}
-        />
+    <html lang="vi" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className={`${inter.className} bg-[var(--background)] text-[var(--foreground)] antialiased`}>
+        <ThemeProvider>
+          <AuthHydrator />
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              className: 'dark:bg-gray-800 dark:text-gray-100',
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   )
 }
-

@@ -18,6 +18,7 @@ interface ClassSchedulePanelProps {
   students: ClassStudent[]
   isTeacher: boolean
   currentStudentId?: string
+  id?: string
 }
 
 const PERIOD_PRESETS = [
@@ -33,6 +34,7 @@ export default function ClassSchedulePanel({
   students,
   isTeacher,
   currentStudentId,
+  id = 'class-schedule',
 }: ClassSchedulePanelProps) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [loading, setLoading] = useState(true)
@@ -200,11 +202,15 @@ export default function ClassSchedulePanel({
   }
 
   if (loading) {
-    return <p className="py-8 text-center text-sm text-gray-500">Đang tải thời khóa biểu...</p>
+    return (
+      <p id={id} className="py-8 text-center text-sm text-gray-500">
+        Đang tải thời khóa biểu...
+      </p>
+    )
   }
 
   return (
-    <div className="space-y-6">
+    <div id={id} className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Thời khóa biểu</h3>
@@ -216,6 +222,7 @@ export default function ClassSchedulePanel({
         </div>
         {isTeacher && (
           <button
+            id={`${id}-add-toggle`}
             type="button"
             onClick={() => setShowAddForm((v) => !v)}
             className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
@@ -227,12 +234,17 @@ export default function ClassSchedulePanel({
       </div>
 
       {isTeacher && showAddForm && (
-        <form onSubmit={handleAddSlot} className="rounded-lg border border-primary-100 bg-primary-50/40 p-4">
+        <form
+          id={`${id}-add-form`}
+          onSubmit={handleAddSlot}
+          className="rounded-lg border border-primary-100 bg-primary-50/40 p-4"
+        >
           <p className="mb-3 text-sm font-medium text-gray-900">Thêm tiết học mới</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block text-sm">
               <span className="text-gray-600">Thứ</span>
               <select
+                id={`${id}-day`}
                 className="mt-1 w-full rounded-lg border px-3 py-2"
                 value={form.dayOfWeek}
                 onChange={(e) => setForm((f) => ({ ...f, dayOfWeek: Number(e.target.value) }))}
@@ -247,6 +259,7 @@ export default function ClassSchedulePanel({
             <label className="block text-sm">
               <span className="text-gray-600">Tiết</span>
               <select
+                id={`${id}-period`}
                 className="mt-1 w-full rounded-lg border px-3 py-2"
                 value={form.period}
                 onChange={(e) => applyPeriodPreset(Number(e.target.value))}
@@ -261,6 +274,7 @@ export default function ClassSchedulePanel({
             <label className="block text-sm sm:col-span-2 lg:col-span-1">
               <span className="text-gray-600">Môn học</span>
               <input
+                id={`${id}-subject`}
                 required
                 className="mt-1 w-full rounded-lg border px-3 py-2"
                 value={form.subject}
@@ -271,6 +285,7 @@ export default function ClassSchedulePanel({
             <label className="block text-sm">
               <span className="text-gray-600">Bắt đầu</span>
               <input
+                id={`${id}-start-time`}
                 type="time"
                 required
                 className="mt-1 w-full rounded-lg border px-3 py-2"
@@ -281,6 +296,7 @@ export default function ClassSchedulePanel({
             <label className="block text-sm">
               <span className="text-gray-600">Kết thúc</span>
               <input
+                id={`${id}-end-time`}
                 type="time"
                 required
                 className="mt-1 w-full rounded-lg border px-3 py-2"
@@ -291,6 +307,7 @@ export default function ClassSchedulePanel({
             <label className="block text-sm sm:col-span-2">
               <span className="text-gray-600">Phòng (tuỳ chọn)</span>
               <input
+                id={`${id}-room`}
                 className="mt-1 w-full rounded-lg border px-3 py-2"
                 value={form.room}
                 onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))}
@@ -299,10 +316,15 @@ export default function ClassSchedulePanel({
             </label>
           </div>
           <div className="mt-3 flex gap-2">
-            <button type="submit" className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700">
+            <button
+              id={`${id}-add-submit`}
+              type="submit"
+              className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700"
+            >
               Lưu tiết học
             </button>
             <button
+              id={`${id}-add-cancel`}
               type="button"
               onClick={() => setShowAddForm(false)}
               className="rounded-lg border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -340,6 +362,7 @@ export default function ClassSchedulePanel({
                         {slotsByDay[day].map((slot) => (
                           <div
                             key={slot.id}
+                            id={`${id}-slot-${slot.id}`}
                             className={`min-w-[140px] rounded-lg border p-2 ${
                               selectedSlotId === slot.id
                                 ? 'border-primary-500 bg-primary-50'
@@ -363,6 +386,7 @@ export default function ClassSchedulePanel({
                               {isTeacher && (
                                 <>
                                   <button
+                                    id={`${id}-slot-${slot.id}-attendance`}
                                     type="button"
                                     onClick={() => setSelectedSlotId(slot.id)}
                                     className="rounded bg-primary-600 px-2 py-0.5 text-xs text-white hover:bg-primary-700"
@@ -370,6 +394,7 @@ export default function ClassSchedulePanel({
                                     Điểm danh
                                   </button>
                                   <button
+                                    id={`${id}-slot-${slot.id}-delete`}
                                     type="button"
                                     onClick={() => handleDeleteSlot(slot.id)}
                                     className="rounded border border-red-200 p-1 text-red-600 hover:bg-red-50"
@@ -393,11 +418,12 @@ export default function ClassSchedulePanel({
       )}
 
       {isTeacher && slots.length > 0 && (
-        <div className="rounded-xl border bg-gray-50 p-4">
+        <div id={`${id}-attendance`} className="rounded-xl border bg-gray-50 p-4">
           <div className="mb-3 flex flex-wrap items-end gap-3">
             <label className="text-sm">
               <span className="font-medium text-gray-700">Ngày điểm danh</span>
               <input
+                id={`${id}-session-date`}
                 type="date"
                 className="mt-1 block rounded-lg border px-3 py-2"
                 value={sessionDate}
@@ -417,6 +443,7 @@ export default function ClassSchedulePanel({
               {todaySlots.map((s) => (
                 <button
                   key={s.id}
+                  id={`${id}-today-slot-${s.id}`}
                   type="button"
                   onClick={() => setSelectedSlotId(s.id)}
                   className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
@@ -446,6 +473,7 @@ export default function ClassSchedulePanel({
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <button
+                    id={`${id}-mark-all-present`}
                     type="button"
                     onClick={() => markAll('present')}
                     className="rounded border border-green-300 bg-green-50 px-2 py-1 text-xs text-green-800"
@@ -453,6 +481,7 @@ export default function ClassSchedulePanel({
                     Tất cả có mặt
                   </button>
                   <button
+                    id={`${id}-mark-all-absent`}
                     type="button"
                     onClick={() => markAll('absent')}
                     className="rounded border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-800"
@@ -471,6 +500,7 @@ export default function ClassSchedulePanel({
                     return (
                       <li
                         key={student.id}
+                        id={`${id}-student-${student.id}`}
                         className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
                       >
                         <div>
@@ -481,6 +511,7 @@ export default function ClassSchedulePanel({
                           {(['present', 'late', 'absent'] as AttendanceStatus[]).map((st) => (
                             <button
                               key={st}
+                              id={`${id}-student-${student.id}-${st}`}
                               type="button"
                               onClick={() => setStudentStatus(student.id, st)}
                               className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
@@ -500,6 +531,7 @@ export default function ClassSchedulePanel({
               )}
 
               <button
+                id={`${id}-save-attendance`}
                 type="button"
                 disabled={saving || students.length === 0}
                 onClick={handleSaveAttendance}
@@ -517,11 +549,15 @@ export default function ClassSchedulePanel({
       )}
 
       {!isTeacher && studentHistory.length > 0 && (
-        <div className="rounded-xl border bg-white p-4">
+        <div id={`${id}-history`} className="rounded-xl border bg-white p-4">
           <h4 className="mb-3 font-semibold text-gray-900">Lịch sử điểm danh của bạn</h4>
           <ul className="divide-y">
             {studentHistory.slice(0, 20).map((h) => (
-              <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+              <li
+                key={h.id}
+                id={`${id}-history-item-${h.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+              >
                 <div>
                   <p className="font-medium text-gray-900">
                     {h.subject} — Tiết {h.period}

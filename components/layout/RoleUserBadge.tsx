@@ -1,4 +1,5 @@
 interface RoleUserBadgeProps {
+  id?: string
   roleShort: 'GV' | 'HS'
   userName: string
 }
@@ -8,9 +9,14 @@ const styles = {
   HS: 'bg-violet-100 text-violet-800 border-violet-200',
 }
 
-export default function RoleUserBadge({ roleShort, userName }: RoleUserBadgeProps) {
+export default function RoleUserBadge({
+  id = 'role-user-badge',
+  roleShort,
+  userName,
+}: RoleUserBadgeProps) {
   return (
     <div
+      id={id}
       className={`hidden max-w-[min(40vw,220px)] items-center gap-1.5 rounded-full border px-2.5 py-1 sm:flex sm:max-w-xs ${styles[roleShort]}`}
       title={`${roleShort} ${userName}`}
     >
@@ -22,9 +28,14 @@ export default function RoleUserBadge({ roleShort, userName }: RoleUserBadgeProp
 
 interface RoleUserBadgeCompactProps extends RoleUserBadgeProps {}
 
-export function RoleUserBadgeCompact({ roleShort, userName }: RoleUserBadgeCompactProps) {
+export function RoleUserBadgeCompact({
+  id = 'role-user-badge-compact',
+  roleShort,
+  userName,
+}: RoleUserBadgeCompactProps) {
   return (
     <div
+      id={id}
       className={`flex max-w-[42vw] items-center gap-1 rounded-full border px-2 py-0.5 sm:hidden ${styles[roleShort]}`}
       title={`${roleShort} ${userName}`}
     >

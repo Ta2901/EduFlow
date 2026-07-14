@@ -82,21 +82,28 @@ export const useEduStore = create<EduState>((set, get) => ({
 
   getClassesByStudent: (studentId, studentEmail) => {
     const email = studentEmail.toLowerCase()
-    return get().classes.filter((c) =>
-      c.students.some((s) => s.id === studentId || s.email.toLowerCase() === email)
-    )
+    return get().classes.filter((c) => {
+      if (c.students.length === 0) return true
+      return c.students.some((s) => s.id === studentId || s.email.toLowerCase() === email)
+    })
   },
 
   createClass: async (input) => {
     const { classroom } = await api.edu.createClass(input)
-    await get().refresh()
+    set((state) => ({ classes: [classroom, ...state.classes] }))
     return classroom
   },
 
   joinClassByCode: async (code) => {
     try {
-      const { classId } = await api.edu.joinClass(code)
-      await get().refresh()
+      const { classId, classroom } = await api.edu.joinClass(code)
+      set((state) => ({
+        classes: state.classes.some((c) => c.id === classroom.id)
+          ? state.classes.map((c) => (c.id === classroom.id ? classroom : c))
+          : [classroom, ...state.classes],
+      }))
+      // Tasks/submissions for the new class — one targeted refresh is cheaper than full wait before navigate
+      void get().refresh()
       return { ok: true, classId }
     } catch (e) {
       return { ok: false, error: e instanceof ApiError ? e.message : 'Không thể tham gia lớp' }
@@ -112,7 +119,8 @@ export const useEduStore = create<EduState>((set, get) => ({
       input.files.forEach((f) => form.append('files', f))
     }
     const { task } = await api.edu.createTask(input.classId, form)
-    await get().refresh()
+    set((state) => ({ tasks: [task, ...state.tasks] }))
+    void get().refresh()
     return task
   },
 
@@ -144,8 +152,12 @@ export const useEduStore = create<EduState>((set, get) => ({
       if (input.files) {
         input.files.forEach((f) => form.append('files', f))
       }
-      await api.edu.submitWork(input.taskId, form)
-      await get().refresh()
+      const { submission } = await api.edu.submitWork(input.taskId, form)
+      set((state) => ({
+        submissions: state.submissions.some((s) => s.id === submission.id)
+          ? state.submissions.map((s) => (s.id === submission.id ? submission : s))
+          : [...state.submissions, submission],
+      }))
       return { ok: true }
     } catch (e) {
       return { ok: false, error: e instanceof ApiError ? e.message : 'Nộp bài thất bại' }
@@ -153,7 +165,13 @@ export const useEduStore = create<EduState>((set, get) => ({
   },
 
   gradeSubmission: async (submissionId, grade, maxGrade, feedback) => {
-    await api.edu.gradeSubmission(submissionId, { grade, maxGrade, feedback })
-    await get().refresh()
+    const { submission } = await api.edu.gradeSubmission(submissionId, {
+      grade,
+      maxGrade,
+      feedback,
+    })
+    set((state) => ({
+      submissions: state.submissions.map((s) => (s.id === submission.id ? submission : s)),
+    }))
   },
 }))

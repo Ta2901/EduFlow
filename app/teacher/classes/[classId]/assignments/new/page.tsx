@@ -28,7 +28,7 @@ export default function CreateAssignmentPage() {
 
   if (!classroom) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div id="teacher-assignment-new-not-found" className="min-h-screen flex items-center justify-center">
         <p className="text-gray-600">Không tìm thấy lớp học</p>
       </div>
     )
@@ -79,10 +79,11 @@ export default function CreateAssignmentPage() {
   const minDate = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div id="teacher-assignment-new" className="min-h-screen bg-gray-50">
+      <div id="teacher-assignment-new-header" className="bg-white shadow-sm border-b">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center">
           <Link
+            id="teacher-assignment-new-back"
             href={`/teacher/courses/${classId}`}
             className="p-2 text-gray-600 hover:text-gray-900 mr-2"
           >
@@ -96,6 +97,7 @@ export default function CreateAssignmentPage() {
       </div>
 
       <motion.form
+        id="teacher-assignment-new-form"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
@@ -103,11 +105,11 @@ export default function CreateAssignmentPage() {
       >
         <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher-assignment-new-title" className="block text-sm font-medium text-gray-700 mb-2">
               Tiêu đề <span className="text-red-500">*</span>
             </label>
             <input
-              id="title"
+              id="teacher-assignment-new-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -117,11 +119,11 @@ export default function CreateAssignmentPage() {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher-assignment-new-description" className="block text-sm font-medium text-gray-700 mb-2">
               Mô tả bài tập
             </label>
             <textarea
-              id="description"
+              id="teacher-assignment-new-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
@@ -131,11 +133,11 @@ export default function CreateAssignmentPage() {
           </div>
 
           <div>
-            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher-assignment-new-due-date" className="block text-sm font-medium text-gray-700 mb-2">
               Hạn nộp <span className="text-red-500">*</span>
             </label>
             <input
-              id="dueDate"
+              id="teacher-assignment-new-due-date"
               type="date"
               value={dueDate}
               min={minDate}
@@ -153,6 +155,7 @@ export default function CreateAssignmentPage() {
               <Paperclip className="h-8 w-8 text-gray-400 mb-2" />
               <span className="text-sm text-gray-600">Nhấn để chọn tệp (PDF, DOC, ảnh...)</span>
               <input
+                id="teacher-assignment-new-files"
                 type="file"
                 multiple
                 className="hidden"
@@ -176,6 +179,7 @@ export default function CreateAssignmentPage() {
                       </div>
                     </div>
                     <button
+                      id={`teacher-assignment-new-remove-file-${index}`}
                       type="button"
                       onClick={() => removeFile(index)}
                       className="p-1 text-gray-400 hover:text-red-600"
@@ -190,12 +194,14 @@ export default function CreateAssignmentPage() {
 
           <div className="flex gap-3 pt-2">
             <Link
+              id="teacher-assignment-new-cancel"
               href={`/teacher/courses/${classId}`}
               className="flex-1 text-center py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Hủy
             </Link>
             <button
+              id="teacher-assignment-new-submit"
               type="submit"
               disabled={isLoading}
               className="flex-1 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"

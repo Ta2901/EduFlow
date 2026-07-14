@@ -1,5 +1,7 @@
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
+import { logActivitiesManyLater, logActivityLater } from './activityLog'
+import { ensureClassChat } from './classChat'
 import { mapClassRoom, mapSubmission, mapTask } from './mappers'
 import {
   notifyStudentGraded,
@@ -15,6 +17,17 @@ const classInclude = {
     },
   },
 } as const
+
+/** Student dashboard only needs self on the roster — avoids loading full class lists. */
+const classIncludeSelf = (studentId: string) =>
+  ({
+    enrollments: {
+      where: { studentId },
+      include: {
+        student: { select: { id: true, fullName: true, email: true } },
+      },
+    },
+  }) as const
 
 const taskInclude = {
   attachments: true,
@@ -33,22 +46,22 @@ function isLate(dueDate: string): boolean {
 
 export async function getEduContext(session: SessionPayload) {
   if (session.role === 'teacher') {
-    const classes = await prisma.class.findMany({
-      where: { teacherId: session.userId },
-      include: classInclude,
-      orderBy: { createdAt: 'desc' },
-    })
-    const classIds = classes.map((c) => c.id)
-    const tasks = await prisma.task.findMany({
-      where: { classId: { in: classIds } },
-      include: taskInclude,
-      orderBy: { createdAt: 'desc' },
-    })
-    const taskIds = tasks.map((t) => t.id)
-    const submissions = await prisma.submission.findMany({
-      where: { taskId: { in: taskIds } },
-      include: submissionInclude,
-    })
+    const [classes, tasks, submissions] = await Promise.all([
+      prisma.class.findMany({
+        where: { teacherId: session.userId },
+        include: classInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.task.findMany({
+        where: { class: { teacherId: session.userId } },
+        include: taskInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.submission.findMany({
+        where: { task: { class: { teacherId: session.userId } } },
+        include: submissionInclude,
+      }),
+    ])
 
     return {
       classes: classes.map(mapClassRoom),
@@ -57,26 +70,24 @@ export async function getEduContext(session: SessionPayload) {
     }
   }
 
-  const enrollments = await prisma.classEnrollment.findMany({
-    where: { studentId: session.userId },
-    include: { class: { include: classInclude } },
-  })
-  const classes = enrollments.map((e) => mapClassRoom(e.class))
-  const classIds = classes.map((c) => c.id)
-
-  const tasks = await prisma.task.findMany({
-    where: { classId: { in: classIds } },
-    include: taskInclude,
-    orderBy: { createdAt: 'desc' },
-  })
-
-  const submissions = await prisma.submission.findMany({
-    where: { studentId: session.userId },
-    include: submissionInclude,
-  })
+  const [enrollments, tasks, submissions] = await Promise.all([
+    prisma.classEnrollment.findMany({
+      where: { studentId: session.userId },
+      include: { class: { include: classIncludeSelf(session.userId) } },
+    }),
+    prisma.task.findMany({
+      where: { class: { enrollments: { some: { studentId: session.userId } } } },
+      include: taskInclude,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.submission.findMany({
+      where: { studentId: session.userId },
+      include: submissionInclude,
+    }),
+  ])
 
   return {
-    classes,
+    classes: enrollments.map((e) => mapClassRoom(e.class)),
     tasks: tasks.map(mapTask),
     submissions: submissions.map(mapSubmission),
   }
@@ -100,26 +111,44 @@ export async function createClassForTeacher(
     include: classInclude,
   })
 
+  await ensureClassChat(row.id, row.title)
+
+  logActivityLater({
+    userId: teacherId,
+    type: 'class_create',
+    title: 'Tạo lớp học',
+    message: `Đã tạo lớp "${row.title}" (mã ${row.classCode})`,
+    href: `/teacher/courses/${row.id}`,
+    meta: { classId: row.id, classCode: row.classCode },
+  })
+
   return mapClassRoom(row)
 }
 
-export async function joinClassByCode(
-  studentId: string,
-  studentName: string,
-  studentEmail: string,
-  code: string
-) {
+export async function joinClassByCode(studentId: string, _studentName: string, _studentEmail: string, code: string) {
   const classroom = await prisma.class.findFirst({
     where: { classCode: code.trim().toUpperCase() },
-    include: classInclude,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      classCode: true,
+      teacherId: true,
+      status: true,
+      createdAt: true,
+      enrollments: { select: { studentId: true } },
+    },
   })
 
   if (!classroom) {
     return { ok: false as const, error: 'Mã lớp không tồn tại. Vui lòng kiểm tra lại.' }
   }
 
-  const exists = classroom.enrollments.some((e) => e.studentId === studentId)
-  if (exists) {
+  if (classroom.status === 'cancelled') {
+    return { ok: false as const, error: 'Lớp học này đã bị huỷ, không thể tham gia.' }
+  }
+
+  if (classroom.enrollments.some((e) => e.studentId === studentId)) {
     return { ok: false as const, error: 'Bạn đã tham gia lớp này rồi.' }
   }
 
@@ -127,25 +156,116 @@ export async function joinClassByCode(
     data: { classId: classroom.id, studentId },
   })
 
-  const tasks = await prisma.task.findMany({ where: { classId: classroom.id } })
-  for (const task of tasks) {
-    await prisma.submission.upsert({
-      where: { taskId_studentId: { taskId: task.id, studentId } },
-      create: {
+  const [, tasks] = await Promise.all([
+    ensureClassChat(classroom.id, classroom.title),
+    prisma.task.findMany({
+      where: { classId: classroom.id },
+      select: { id: true },
+    }),
+  ])
+
+  if (tasks.length > 0) {
+    await prisma.submission.createMany({
+      data: tasks.map((task) => ({
         taskId: task.id,
         studentId,
         status: 'not_submitted',
-      },
-      update: {},
+      })),
+      skipDuplicates: true,
     })
   }
 
   const updated = await prisma.class.findUniqueOrThrow({
     where: { id: classroom.id },
-    include: classInclude,
+    include: classIncludeSelf(studentId),
+  })
+
+  logActivityLater({
+    userId: studentId,
+    type: 'class_join',
+    title: 'Tham gia lớp học',
+    message: `Đã tham gia lớp "${classroom.title}" (mã ${classroom.classCode})`,
+    href: `/student/courses/${classroom.id}`,
+    meta: { classId: classroom.id, classCode: classroom.classCode },
   })
 
   return { ok: true as const, classId: classroom.id, classroom: mapClassRoom(updated) }
+}
+
+export async function updateClassForTeacher(
+  teacherId: string,
+  classId: string,
+  input: { title: string; description: string }
+) {
+  const classroom = await prisma.class.findFirst({
+    where: { id: classId, teacherId },
+    include: classInclude,
+  })
+  if (!classroom) throw new Error('Không tìm thấy lớp học')
+  if (classroom.status === 'cancelled') throw new Error('Lớp đã bị huỷ, không thể chỉnh sửa')
+
+  const title = input.title.trim()
+  if (!title) throw new Error('Vui lòng nhập tên lớp')
+
+  const updated = await prisma.class.update({
+    where: { id: classId },
+    data: {
+      title,
+      description: input.description.trim(),
+    },
+    include: classInclude,
+  })
+
+  logActivityLater({
+    userId: teacherId,
+    type: 'class_update',
+    title: 'Thay đổi lớp học',
+    message: `Đã cập nhật lớp "${classroom.title}" → "${updated.title}"`,
+    href: `/teacher/courses/${classId}`,
+    meta: {
+      classId,
+      before: { title: classroom.title, description: classroom.description },
+      after: { title: updated.title, description: updated.description },
+    },
+  })
+
+  return mapClassRoom(updated)
+}
+
+export async function cancelClassForTeacher(teacherId: string, classId: string) {
+  const classroom = await prisma.class.findFirst({
+    where: { id: classId, teacherId },
+    include: classInclude,
+  })
+  if (!classroom) throw new Error('Không tìm thấy lớp học')
+  if (classroom.status === 'cancelled') throw new Error('Lớp đã được huỷ trước đó')
+
+  const updated = await prisma.class.update({
+    where: { id: classId },
+    data: { status: 'cancelled' },
+    include: classInclude,
+  })
+
+  logActivitiesManyLater([
+    {
+      userId: teacherId,
+      type: 'class_cancel',
+      title: 'Huỷ lớp học',
+      message: `Đã huỷ lớp "${classroom.title}" (mã ${classroom.classCode})`,
+      href: `/teacher/courses/${classId}`,
+      meta: { classId, classCode: classroom.classCode },
+    },
+    ...classroom.enrollments.map((enrollment) => ({
+      userId: enrollment.studentId,
+      type: 'class_cancel' as const,
+      title: 'Lớp học bị huỷ',
+      message: `Lớp "${classroom.title}" đã bị giáo viên huỷ`,
+      href: `/student/dashboard?tab=courses`,
+      meta: { classId, classCode: classroom.classCode },
+    })),
+  ])
+
+  return mapClassRoom(updated)
 }
 
 export async function createTaskForClass(
@@ -183,23 +303,21 @@ export async function createTaskForClass(
     include: taskInclude,
   })
 
-  for (const enrollment of classroom.enrollments) {
-    await prisma.submission.upsert({
-      where: {
-        taskId_studentId: { taskId: task.id, studentId: enrollment.studentId },
-      },
-      create: {
+  if (classroom.enrollments.length > 0) {
+    await prisma.submission.createMany({
+      data: classroom.enrollments.map((enrollment) => ({
         taskId: task.id,
         studentId: enrollment.studentId,
         status: 'not_submitted',
-      },
-      update: {},
+      })),
+      skipDuplicates: true,
     })
   }
 
   const studentIds = classroom.enrollments.map((e) => e.studentId)
   if (studentIds.length > 0) {
-    await notifyStudentsNewAssignment(studentIds, task.title, classroom.title, task.id)
+    // Don't block the teacher response on fan-out notifications
+    void notifyStudentsNewAssignment(studentIds, task.title, classroom.title, task.id)
   }
 
   return mapTask(task)
@@ -212,13 +330,13 @@ export async function submitWorkForTask(
 ) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { class: { include: { teacher: true } } },
+    include: { class: { select: { teacherId: true, id: true } } },
   })
   if (!task) return { ok: false as const, error: 'Không tìm thấy bài tập' }
 
   const submission = await prisma.submission.findUnique({
     where: { taskId_studentId: { taskId, studentId } },
-    include: { student: true },
+    include: { student: { select: { fullName: true } } },
   })
   if (!submission) {
     return { ok: false as const, error: 'Bạn chưa tham gia lớp học này' }
@@ -247,12 +365,26 @@ export async function submitWorkForTask(
     include: submissionInclude,
   })
 
-  await notifyTeacherSubmission(
+  void notifyTeacherSubmission(
     task.class.teacherId,
     updated.student.fullName,
     task.title,
     task.id
   )
+
+  logActivityLater({
+    userId: studentId,
+    type: 'assignment_submit',
+    title: 'Nộp bài tập',
+    message: `Đã nộp bài "${task.title}"${late ? ' (muộn)' : ''}`,
+    href: `/student/assignments/${taskId}`,
+    meta: {
+      taskId,
+      classId: task.classId,
+      status: late ? 'late' : 'submitted',
+      fileCount: input.files.length,
+    },
+  })
 
   return { ok: true as const, submission: mapSubmission(updated) }
 }
@@ -287,7 +419,7 @@ export async function gradeSubmissionById(
     include: submissionInclude,
   })
 
-  await notifyStudentGraded(
+  void notifyStudentGraded(
     submission.studentId,
     submission.task.title,
     grade,

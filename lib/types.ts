@@ -74,6 +74,38 @@ export interface SessionMessage {
   createdAt: string
 }
 
+export interface ClassChatMember {
+  id: string
+  name: string
+  memberCode?: string
+  role: 'student' | 'teacher'
+}
+
+export interface ClassChatRoom {
+  id: string
+  classId: string
+  name: string
+  classTitle: string
+  teacherId: string
+  teacherName: string
+  memberCount: number
+  messageCount: number
+  members: ClassChatMember[]
+  createdAt: string
+}
+
+export interface ClassChatMessage {
+  id: string
+  chatId: string
+  /** Sender User.id (student/teacher account id) */
+  userId: string
+  userName: string
+  memberCode?: string
+  role: UserRole
+  content: string
+  createdAt: string
+}
+
 export interface SessionRecording {
   id: string
   sessionId: string
@@ -85,13 +117,37 @@ export interface SessionRecording {
   createdAt: string
 }
 
+export type ClassStatus = 'active' | 'cancelled'
+
 export interface ClassRoom {
   id: string
   title: string
   description: string
   classCode: string
   teacherId: string
+  status: ClassStatus
   students: ClassStudent[]
+  createdAt: string
+}
+
+export type ActivityLogType =
+  | 'theme_change'
+  | 'password_change'
+  | 'class_join'
+  | 'class_create'
+  | 'class_update'
+  | 'class_cancel'
+  | 'assignment_submit'
+  | 'other'
+
+export interface ActivityLogItem {
+  id: string
+  userId: string
+  type: ActivityLogType
+  title: string
+  message: string
+  href?: string
+  meta?: Record<string, unknown>
   createdAt: string
 }
 
@@ -139,12 +195,61 @@ export interface Submission {
   gradedAt?: string
 }
 
+export interface StudentClassProgress {
+  student: {
+    id: string
+    fullName: string
+    email: string
+    memberCode?: string
+    phone?: string
+  }
+  classroom: {
+    id: string
+    title: string
+    classCode: string
+  }
+  joinedAt?: string
+  summary: {
+    totalTasks: number
+    submitted: number
+    notSubmitted: number
+    late: number
+    graded: number
+    completionRate: number
+    averageScore: number | null
+    attendance: {
+      present: number
+      late: number
+      absent: number
+      total: number
+      presentRate: number
+    }
+  }
+  tasks: {
+    task: Task
+    submission: Submission | null
+  }[]
+  attendanceHistory: {
+    id: string
+    sessionDate: string
+    status: AttendanceStatus
+    period: number
+    subject: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+  }[]
+}
+
 export type NotificationType =
   | 'new_assignment'
   | 'deadline_reminder'
   | 'feedback'
   | 'submission_received'
   | 'online_class'
+  | 'admin_reminder'
+  | 'session_eval'
+  | 'course_eval'
 
 export interface AppNotification {
   id: string

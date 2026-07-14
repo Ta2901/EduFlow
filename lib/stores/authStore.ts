@@ -8,6 +8,7 @@ interface RegisterInput {
   password: string
   role: 'student' | 'teacher'
   phone?: string
+  recoveryEmail?: string
   school?: string
 }
 
@@ -22,7 +23,16 @@ interface AuthState {
     memberCode?: string
     error?: string
   }>
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  login: (
+    email: string,
+    password: string,
+    options?: { enableQuickLogin?: boolean }
+  ) => Promise<{
+    ok: boolean
+    error?: string
+    quickLogin?: { tokenId: string; token: string; expiresAt: string }
+  }>
+  quickLogin: (token: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
 }
 
@@ -57,13 +67,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  login: async (email, password) => {
+  login: async (email, password, options) => {
     try {
-      const { user } = await api.auth.login({ email, password })
+      const data = await api.auth.login({
+        email,
+        password,
+        enableQuickLogin: options?.enableQuickLogin,
+      })
+      set({ currentUser: data.user })
+      return { ok: true, quickLogin: data.quickLogin }
+    } catch (e) {
+      return { ok: false, error: e instanceof ApiError ? e.message : 'Đăng nhập thất bại' }
+    }
+  },
+
+  quickLogin: async (token) => {
+    try {
+      const { user } = await api.auth.quickLogin({ token })
       set({ currentUser: user })
       return { ok: true }
     } catch (e) {
-      return { ok: false, error: e instanceof ApiError ? e.message : 'Đăng nhập thất bại' }
+      return { ok: false, error: e instanceof ApiError ? e.message : 'Đăng nhập nhanh thất bại' }
     }
   },
 

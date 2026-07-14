@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { BookOpen, Users, Award, Smartphone, Monitor, Globe, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { ROLE_LABELS, roleDashboardPath } from '@/lib/format'
 
@@ -59,17 +60,17 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-clip bg-gradient-to-br from-primary-50 to-secondary-50">
-      <header className="sticky top-0 z-30 bg-white shadow-sm">
+    <div id="landing" className="min-h-screen w-full max-w-[100vw] overflow-x-clip bg-gradient-to-br from-primary-50 to-secondary-50">
+      <header id="landing-header" className="sticky top-0 z-30 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between sm:h-16">
-            <Link href="/" className="flex items-center">
+            <Link id="landing-logo" href="/" className="flex items-center">
               <BookOpen className="h-7 w-7 text-primary-600 sm:h-8 sm:w-8" />
               <span className="ml-2 text-lg font-bold text-gray-900 sm:text-xl">EduFlow</span>
             </Link>
-            <nav className="hidden items-center gap-6 md:flex">
-              <a href="#features" className="text-sm text-gray-600 hover:text-primary-600">Tính năng</a>
-              <a href="#responsive" className="text-sm text-gray-600 hover:text-primary-600">Responsive</a>
+            <nav id="landing-nav" className="hidden items-center gap-6 md:flex">
+              <a id="landing-nav-features" href="#features" className="text-sm text-gray-600 hover:text-primary-600">Tính năng</a>
+              <a id="landing-nav-responsive" href="#responsive" className="text-sm text-gray-600 hover:text-primary-600">Responsive</a>
               {!isReady ? (
                 <div className="h-9 w-40 animate-pulse rounded-lg bg-gray-100" aria-hidden />
               ) : currentUser ? (
@@ -79,6 +80,7 @@ export default function HomePage() {
                     <span className="ml-1 text-gray-500">({ROLE_LABELS[currentUser.role]})</span>
                   </span>
                   <Link
+                    id="landing-nav-dashboard"
                     href={dashboardPath}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                   >
@@ -86,6 +88,7 @@ export default function HomePage() {
                     Bảng điều khiển
                   </Link>
                   <button
+                    id="landing-nav-logout"
                     type="button"
                     onClick={handleLogout}
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600"
@@ -96,10 +99,11 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <Link href="/register" className="text-sm font-medium text-gray-600 hover:text-primary-600">
+                  <Link id="landing-nav-register" href="/register" className="text-sm font-medium text-gray-600 hover:text-primary-600">
                     Đăng ký
                   </Link>
                   <Link
+                    id="landing-nav-login"
                     href="/login"
                     className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                   >
@@ -107,23 +111,28 @@ export default function HomePage() {
                   </Link>
                 </>
               )}
+              <ThemeToggle id="landing-theme-toggle" />
             </nav>
-            <button
-              type="button"
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            <div className="flex items-center gap-1 md:hidden">
+              <button
+                id="landing-menu-toggle"
+                type="button"
+                className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+              <ThemeToggle id="landing-theme-toggle-mobile" />
+            </div>
           </div>
           {mobileMenuOpen && (
-            <nav className="border-t py-3 md:hidden">
+            <nav id="landing-nav-mobile" className="border-t py-3 md:hidden">
               <div className="flex flex-col gap-2">
-                <a href="#features" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
+                <a id="landing-nav-mobile-features" href="#features" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
                   Tính năng
                 </a>
-                <a href="#responsive" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
+                <a id="landing-nav-mobile-responsive" href="#responsive" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
                   Responsive
                 </a>
                 {!isReady ? (
@@ -135,6 +144,7 @@ export default function HomePage() {
                       <span className="block text-xs text-gray-500">{ROLE_LABELS[currentUser.role]}</span>
                     </p>
                     <Link
+                      id="landing-nav-mobile-dashboard"
                       href={dashboardPath}
                       className="mx-3 flex items-center justify-center gap-2 rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white"
                       onClick={() => setMobileMenuOpen(false)}
@@ -143,6 +153,7 @@ export default function HomePage() {
                       Bảng điều khiển
                     </Link>
                     <button
+                      id="landing-nav-mobile-logout"
                       type="button"
                       onClick={handleLogout}
                       className="mx-3 flex items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700"
@@ -153,10 +164,11 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <Link href="/register" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
+                    <Link id="landing-nav-mobile-register" href="/register" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
                       Đăng ký
                     </Link>
                     <Link
+                      id="landing-nav-mobile-login"
                       href="/login"
                       className="mx-3 rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white"
                       onClick={() => setMobileMenuOpen(false)}
@@ -172,7 +184,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+      <section id="landing-hero" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         <div className="mx-auto max-w-7xl text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -190,6 +202,7 @@ export default function HomePage() {
 
           {/* CTA Buttons */}
           <motion.div
+            id="landing-cta"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -197,6 +210,7 @@ export default function HomePage() {
           >
             {isReady && currentUser ? (
               <Link
+                id="landing-cta-dashboard"
                 href={dashboardPath}
                 className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
               >
@@ -205,12 +219,14 @@ export default function HomePage() {
             ) : isReady ? (
               <>
                 <Link
+                  id="landing-cta-login"
                   href="/login"
                   className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
                 >
                   Đăng nhập
                 </Link>
                 <Link
+                  id="landing-cta-register"
                   href="/register"
                   className="w-full rounded-lg border-2 border-primary-600 px-6 py-3.5 text-center text-base font-semibold text-primary-600 hover:bg-primary-50 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
                 >

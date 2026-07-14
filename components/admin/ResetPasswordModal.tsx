@@ -56,8 +56,8 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+    <div id="admin-reset-password-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div id="admin-reset-password" className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-start justify-between">
           <div>
             <h3 className="flex items-center gap-2 font-semibold text-gray-900">
@@ -68,7 +68,12 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
               {user.fullName} — {user.email}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100">
+          <button
+            id="admin-reset-password-close"
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -77,9 +82,15 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
           <div className="space-y-4">
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
               <p className="text-sm text-green-800">Mật khẩu mới (gửi cho người dùng):</p>
-              <p className="mt-2 font-mono text-lg font-bold tracking-wide text-green-900">{resultPassword}</p>
+              <p
+                id="admin-reset-password-result"
+                className="mt-2 font-mono text-lg font-bold tracking-wide text-green-900"
+              >
+                {resultPassword}
+              </p>
             </div>
             <button
+              id="admin-reset-password-copy"
               type="button"
               onClick={copyPassword}
               className="inline-flex w-full items-center justify-center rounded-lg border py-2 text-sm font-medium"
@@ -88,6 +99,7 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
               Sao chép mật khẩu
             </button>
             <button
+              id="admin-reset-password-done"
               type="button"
               onClick={onClose}
               className="w-full rounded-lg bg-slate-900 py-2.5 text-sm text-white"
@@ -96,8 +108,9 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form id="admin-reset-password-form" onSubmit={handleSubmit} className="space-y-3">
             <button
+              id="admin-reset-password-generate"
               type="button"
               onClick={handleGenerate}
               className="w-full rounded-lg border border-dashed border-sky-300 bg-sky-50 py-2 text-sm text-sky-800"
@@ -105,6 +118,7 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
               Tạo mật khẩu tạm tự động
             </button>
             <input
+              id="admin-reset-password-new"
               type="text"
               required
               minLength={6}
@@ -114,6 +128,7 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
               className="w-full rounded-lg border px-3 py-2 text-sm"
             />
             <input
+              id="admin-reset-password-confirm"
               type="text"
               required
               minLength={6}
@@ -124,6 +139,7 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
             />
             <div className="flex gap-2 pt-2">
               <button
+                id="admin-reset-password-cancel"
                 type="button"
                 onClick={onClose}
                 className="flex-1 rounded-lg border py-2.5 text-sm"
@@ -131,6 +147,7 @@ export default function ResetPasswordModal({ user, onClose }: ResetPasswordModal
                 Huỷ
               </button>
               <button
+                id="admin-reset-password-submit"
                 type="submit"
                 disabled={loading}
                 className="flex-1 rounded-lg bg-sky-600 py-2.5 text-sm font-medium text-white disabled:opacity-50"

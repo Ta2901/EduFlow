@@ -8,14 +8,19 @@ import {
   Plus,
   FileText,
   Award,
-  Hash,
   GraduationCap,
   LayoutDashboard,
-  KeyRound,
+  MessageCircle,
+  Settings,
 } from 'lucide-react'
-import ChangePasswordForm from '@/components/account/ChangePasswordForm'
+import ClassChatPanel from '@/components/chat/ClassChatPanel'
+import SettingsPanel from '@/components/settings/SettingsPanel'
+import DashboardScheduleTable from '@/components/dashboard/DashboardScheduleTable'
+import EnterClassButton from '@/components/dashboard/EnterClassButton'
+import QuickAccess from '@/components/dashboard/QuickAccess'
+import StudentLearningCharts from '@/components/dashboard/StudentLearningCharts'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import DashboardShell from '@/components/layout/DashboardShell'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -28,23 +33,35 @@ type StudentStatKey = 'classes' | 'pending' | 'graded' | 'all'
 const sidebarItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
   { id: 'courses', label: 'Lớp học', icon: GraduationCap },
+  { id: 'chat', label: 'Chat lớp', icon: MessageCircle },
   { id: 'submissions', label: 'Nộp bài', icon: CheckCircle },
-  { id: 'password', label: 'Mật khẩu', icon: KeyRound },
+  { id: 'settings', label: 'Cài đặt', icon: Settings },
 ]
 
 export default function StudentDashboard() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const currentUser = useAuthStore((s) => s.currentUser)!
   const logout = useAuthStore((s) => s.logout)
   const getClassesByStudent = useEduStore((s) => s.getClassesByStudent)
   const getStudentSubmissions = useEduStore((s) => s.getStudentSubmissions)
   const getTaskById = useEduStore((s) => s.getTaskById)
+  const tasks = useEduStore((s) => s.tasks)
 
-  const [activeTab, setActiveTab] = useState('overview')
+  const tabParam = searchParams.get('tab')
+  const initialTab =
+    tabParam === 'chat' || tabParam === 'settings' || tabParam === 'courses' || tabParam === 'submissions'
+      ? tabParam
+      : 'overview'
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [activeStat, setActiveStat] = useState<StudentStatKey | null>(null)
 
   const classes = getClassesByStudent(currentUser.id, currentUser.email)
   const submissions = getStudentSubmissions(currentUser.id)
+  const studentTasks = useMemo(
+    () => tasks.filter((t) => classes.some((c) => c.id === t.classId)),
+    [tasks, classes]
+  )
 
   const gradedCount = submissions.filter((s) => s.grade != null).length
   const pendingCount = submissions.filter((s) => s.status === 'not_submitted').length
@@ -79,8 +96,9 @@ export default function StudentDashboard() {
   const tabTitles: Record<string, string> = {
     overview: 'Tổng quan',
     courses: 'Lớp học',
+    chat: 'Chat lớp',
     submissions: 'Nộp bài',
-    password: 'Đổi mật khẩu',
+    settings: 'Cài đặt',
   }
 
   const handleLogout = async () => {
@@ -89,19 +107,11 @@ export default function StudentDashboard() {
     router.push('/login')
   }
 
-  const joinButton = (
-    <Link
-      href="/student/join"
-      className="inline-flex w-full items-center justify-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 sm:w-auto"
-    >
-      <Hash className="mr-1.5 h-4 w-4" />
-      <span className="hidden sm:inline">Nhập mã lớp</span>
-      <span className="sm:hidden">Mã lớp</span>
-    </Link>
-  )
+  const enterClassButton = <EnterClassButton classes={classes} />
 
   return (
     <DashboardShell
+      idPrefix="student-dashboard"
       userId={currentUser.id}
       roleShort="HS"
       roleLabel="Học sinh"
@@ -112,16 +122,22 @@ export default function StudentDashboard() {
       onLogout={handleLogout}
       headerTitle={tabTitles[activeTab]}
       headerSubtitle="Chào mừng bạn quay trở lại!"
-      headerAction={joinButton}
+      headerAction={enterClassButton}
     >
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div id="student-dashboard-overview" className="space-y-6">
+          <QuickAccess
+            onOpenChat={() => setActiveTab('chat')}
+            onOpenSubmissions={() => setActiveTab('submissions')}
+          />
+
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {stats.map((stat) => {
               const selected = activeStat === stat.key
               return (
                 <button
                   key={stat.key}
+                  id={`student-dashboard-stat-${stat.key}`}
                   type="button"
                   onClick={() => toggleStat(stat.key)}
                   className={`rounded-xl border bg-white p-4 text-left shadow-sm transition-all hover:shadow-md sm:p-6 ${
@@ -145,6 +161,7 @@ export default function StudentDashboard() {
 
           {activeStat === 'classes' && (
             <StatDetailPanel
+              id="student-dashboard-stat-detail-classes"
               title="Lớp đang học"
               count={classes.length}
               onClose={() => setActiveStat(null)}
@@ -154,6 +171,7 @@ export default function StudentDashboard() {
                 {classes.map((c) => (
                   <li key={c.id}>
                     <Link
+                      id={`student-dashboard-class-item-${c.id}`}
                       href={`/student/courses/${c.id}`}
                       className="block rounded-lg border p-3 hover:border-primary-200 hover:bg-primary-50/50"
                     >
@@ -168,6 +186,7 @@ export default function StudentDashboard() {
 
           {activeStat === 'pending' && (
             <StatDetailPanel
+              id="student-dashboard-stat-detail-pending"
               title="Bài chưa nộp"
               count={pendingSubmissions.length}
               onClose={() => setActiveStat(null)}
@@ -179,6 +198,7 @@ export default function StudentDashboard() {
                   return (
                     <li key={sub.id}>
                       <Link
+                        id={`student-dashboard-pending-item-${sub.id}`}
                         href={`/student/assignments/${sub.taskId}`}
                         className="block rounded-lg border border-amber-200 bg-amber-50/40 p-3 hover:bg-amber-50"
                       >
@@ -196,6 +216,7 @@ export default function StudentDashboard() {
 
           {activeStat === 'graded' && (
             <StatDetailPanel
+              id="student-dashboard-stat-detail-graded"
               title="Bài đã có điểm"
               count={gradedSubmissions.length}
               onClose={() => setActiveStat(null)}
@@ -207,6 +228,7 @@ export default function StudentDashboard() {
                   return (
                     <li key={sub.id}>
                       <Link
+                        id={`student-dashboard-graded-item-${sub.id}`}
                         href={`/student/assignments/${sub.taskId}`}
                         className="flex items-center justify-between gap-2 rounded-lg border p-3 hover:bg-gray-50"
                       >
@@ -231,6 +253,7 @@ export default function StudentDashboard() {
 
           {activeStat === 'all' && (
             <StatDetailPanel
+              id="student-dashboard-stat-detail-all"
               title="Tất cả bài tập"
               count={submissions.length}
               onClose={() => setActiveStat(null)}
@@ -242,6 +265,7 @@ export default function StudentDashboard() {
                   return (
                     <li key={sub.id}>
                       <Link
+                        id={`student-dashboard-all-item-${sub.id}`}
                         href={`/student/assignments/${sub.taskId}`}
                         className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-gray-50"
                       >
@@ -264,20 +288,40 @@ export default function StudentDashboard() {
             </StatDetailPanel>
           )}
 
+          <DashboardScheduleTable
+            id="student-dashboard-schedule"
+            classes={classes}
+            tasks={studentTasks}
+            assignmentHref={(taskId) => `/student/assignments/${taskId}`}
+            classHref={(classId) => `/student/courses/${classId}`}
+          />
+
+          <StudentLearningCharts
+            id="student-dashboard-charts"
+            classes={classes}
+            submissions={submissions}
+            tasks={studentTasks}
+          />
+
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+            <div id="student-dashboard-classes-preview" className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-900">Lớp học của bạn</h2>
-                <Link href="/student/join" className="text-sm font-medium text-primary-600 hover:text-primary-700">
-                  + Tham gia
-                </Link>
+                <button
+                  id="student-dashboard-classes-view-all"
+                  type="button"
+                  onClick={() => setActiveTab('courses')}
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                >
+                  Xem tất cả
+                </button>
               </div>
               {classes.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-300 py-8 text-center">
                   <GraduationCap className="mx-auto h-10 w-10 text-gray-300" />
                   <p className="mt-2 text-sm text-gray-500">Chưa có lớp nào</p>
-                  <Link href="/student/join" className="mt-3 inline-block text-sm font-medium text-primary-600">
-                    Nhập mã lớp để tham gia
+                  <Link id="student-dashboard-join-link" href="/student/join" className="mt-3 inline-block text-sm font-medium text-primary-600">
+                    Nhập mã lớp trong Truy cập nhanh
                   </Link>
                 </div>
               ) : (
@@ -285,6 +329,7 @@ export default function StudentDashboard() {
                   {classes.map((c) => (
                     <Link
                       key={c.id}
+                      id={`student-dashboard-preview-class-${c.id}`}
                       href={`/student/courses/${c.id}`}
                       className="block rounded-lg border p-4 transition-shadow hover:shadow-md"
                     >
@@ -296,10 +341,11 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            <div className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+            <div id="student-dashboard-assignments-preview" className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-900">Bài tập gần đây</h2>
                 <button
+                  id="student-dashboard-assignments-view-all"
                   type="button"
                   onClick={() => setActiveTab('submissions')}
                   className="text-sm font-medium text-primary-600"
@@ -314,6 +360,7 @@ export default function StudentDashboard() {
                   {recentSubmissions.map(({ sub, task }) => (
                     <Link
                       key={sub.id}
+                      id={`student-dashboard-recent-item-${sub.id}`}
                       href={`/student/assignments/${sub.taskId}`}
                       className="block rounded-lg border p-3 hover:bg-gray-50"
                     >
@@ -333,8 +380,9 @@ export default function StudentDashboard() {
       )}
 
       {activeTab === 'courses' && (
-        <div className="space-y-4">
+        <div id="student-dashboard-courses" className="space-y-4">
           <Link
+            id="student-dashboard-join-class"
             href="/student/join"
             className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
           >
@@ -345,6 +393,7 @@ export default function StudentDashboard() {
             {classes.map((c) => (
               <Link
                 key={c.id}
+                id={`student-dashboard-course-card-${c.id}`}
                 href={`/student/courses/${c.id}`}
                 className="rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
               >
@@ -352,6 +401,11 @@ export default function StudentDashboard() {
                   <GraduationCap className="h-6 w-6 text-primary-600" />
                 </div>
                 <h3 className="font-semibold text-gray-900">{c.title}</h3>
+                {c.status === 'cancelled' && (
+                  <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    Đã huỷ
+                  </span>
+                )}
                 <p className="mt-2 font-mono text-sm text-primary-600">{c.classCode}</p>
               </Link>
             ))}
@@ -365,7 +419,7 @@ export default function StudentDashboard() {
       )}
 
       {activeTab === 'submissions' && (
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+        <div id="student-dashboard-submissions" className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -388,6 +442,7 @@ export default function StudentDashboard() {
                     <tr key={sub.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 sm:px-6">
                         <Link
+                          id={`student-dashboard-submission-item-${sub.id}`}
                           href={`/student/assignments/${sub.taskId}`}
                           className="text-sm font-medium text-primary-600 hover:underline"
                         >
@@ -415,7 +470,9 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {activeTab === 'password' && <ChangePasswordForm />}
+      {activeTab === 'chat' && <ClassChatPanel id="student-dashboard-chat" userId={currentUser.id} />}
+
+      {activeTab === 'settings' && <SettingsPanel id="student-dashboard-settings" />}
     </DashboardShell>
   )
 }

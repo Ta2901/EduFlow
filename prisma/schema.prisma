@@ -18,6 +18,8 @@ model User {
   statusNote    String    @default("")
   approvedAt    DateTime?
   phone         String?
+  /// Email khôi phục (Gmail, iCloud, …) — dùng khi quên mật khẩu
+  recoveryEmail String?
   school        String?
   createdAt     DateTime  @default(now())
 
@@ -27,7 +29,58 @@ model User {
   submissions   Submission[]
   attendances   AttendanceRecord[]
   sessionMessages SessionMessage[]
+  classChatMessages ClassChatMessage[]
   hostedSessions  OnlineSession[]  @relation("HostedSessions")
+  passwordResets PasswordResetToken[]
+  activityLogs  ActivityLog[]
+  quickLogins   QuickLoginToken[]
+  sessionEvals  SessionTeacherEval[]
+  courseEvalResponses CourseEvaluationResponse[]
+}
+
+model QuickLoginToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  label      String    @default("")
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  href      String?
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  channel   String
+  target    String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Class {
@@ -36,6 +89,10 @@ model Class {
   description String   @default("")
   classCode   String   @unique
   teacherId   String
+  status      String   @default("active")
+  /// YYYY-MM-DD — đầu / cuối khoá (dùng mở đánh giá giữa kỳ & cuối kỳ)
+  termStart   String?
+  termEnd     String?
   createdAt   DateTime @default(now())
 
   teacher        User               @relation("TeacherClasses", fields: [teacherId], references: [id])
@@ -44,6 +101,122 @@ model Class {
   scheduleSlots  ScheduleSlot[]
   attendances    AttendanceRecord[]
   onlineSessions OnlineSession[]
+  chat           ClassChat?
+  teachingPlan   TeachingPlanItem[]
+  sessionEvals   SessionTeacherEval[]
+  courseEvals    CourseEvaluation[]
+
+  @@index([teacherId])
+  @@index([status])
+}
+
+/// Kế hoạch giảng dạy từng buổi — so sánh với tiến độ thực tế (admin theo dõi / nhắc GV)
+model TeachingPlanItem {
+  id           String    @id @default(cuid())
+  classId      String
+  sessionIndex Int
+  title        String
+  description  String    @default("")
+  /// YYYY-MM-DD theo kế hoạch
+  plannedDate  String?
+  /// planned | done | skipped
+  status       String    @default("planned")
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, sessionIndex])
+  @@index([classId])
+  @@index([plannedDate, status])
+}
+
+/// Đánh giá giáo viên đơn giản sau mỗi buổi học (online hoặc buổi có sessionKey)
+model SessionTeacherEval {
+  id              String   @id @default(cuid())
+  classId         String
+  /// khoá duy nhất buổi học, vd online-{sessionId} hoặc slot-{slotId}-{date}
+  sessionKey      String
+  onlineSessionId  String?
+  studentId       String
+  /// 1–5
+  rating          Int
+  comment         String   @default("")
+  createdAt       DateTime @default(now())
+
+  class          Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  onlineSession   OnlineSession? @relation(fields: [onlineSessionId], references: [id], onDelete: SetNull)
+  student        User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionKey, studentId])
+  @@index([classId, createdAt])
+  @@index([onlineSessionId])
+}
+
+/// Đánh giá định kỳ khoá học: giữa kỳ + cuối kỳ (2 lần / khoá)
+model CourseEvaluation {
+  id        String    @id @default(cuid())
+  classId   String
+  /// midterm | final
+  kind      String
+  /// draft | open | closed
+  status    String    @default("draft")
+  openAt    DateTime?
+  closeAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  class     Class                      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  responses CourseEvaluationResponse[]
+
+  @@unique([classId, kind])
+  @@index([status])
+}
+
+model CourseEvaluationResponse {
+  id               String   @id @default(cuid())
+  evaluationId     String
+  studentId        String
+  teachingQuality  Int
+  contentClarity   Int
+  pacing           Int
+  comment          String   @default("")
+  createdAt        DateTime @default(now())
+
+  evaluation CourseEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  student    User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, studentId])
+  @@index([studentId])
+}
+
+/// Group chat for a class — auto-created when the class is created.
+/// Message sender identity uses User.id (student/teacher account id / member identity).
+model ClassChat {
+  id        String   @id @default(cuid())
+  classId   String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  class    Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  messages ClassChatMessage[]
+}
+
+model ClassChatMessage {
+  id         String   @id @default(cuid())
+  chatId     String
+  /// Sender account id (student/teacher User.id)
+  userId     String
+  userName   String
+  memberCode String?
+  role       String
+  content    String
+  createdAt  DateTime @default(now())
+
+  chat ClassChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt])
 }
 
 model OnlineSession {
@@ -63,6 +236,9 @@ model OnlineSession {
   teacher      User                @relation("HostedSessions", fields: [teacherId], references: [id])
   messages     SessionMessage[]
   recordings   SessionRecording[]
+  teacherEvals SessionTeacherEval[]
+
+  @@index([classId, status])
 }
 
 model SessionMessage {
@@ -135,6 +311,7 @@ model ClassEnrollment {
   student User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
+  @@index([studentId])
 }
 
 model Task {
@@ -149,6 +326,9 @@ model Task {
   class       Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
   attachments TaskAttachment[]
   submissions Submission[]
+
+  @@index([classId])
+  @@index([teacherId])
 }
 
 model TaskAttachment {
@@ -179,6 +359,8 @@ model Submission {
   files   SubmissionFile[]
 
   @@unique([taskId, studentId])
+  @@index([studentId])
+  @@index([taskId])
 }
 
 model SubmissionFile {
@@ -205,6 +387,7 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
 }
 
 model StoredFile {

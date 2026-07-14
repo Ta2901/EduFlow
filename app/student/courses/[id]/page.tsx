@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { Paperclip } from 'lucide-react'
 import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -9,9 +9,11 @@ import { useEduStore } from '@/lib/stores/eduStore'
 import { formatDate, SUBMISSION_STATUS_COLORS, SUBMISSION_STATUS_LABELS } from '@/lib/format'
 import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
+import StudentEvalPanel from '@/components/class/StudentEvalPanel'
 
 export default function StudentCoursePage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const courseId = params.id as string
   const currentUser = useAuthStore((s) => s.currentUser)!
   const getClassById = useEduStore((s) => s.getClassById)
@@ -20,37 +22,50 @@ export default function StudentCoursePage() {
 
   const classroom = getClassById(courseId)
   const tasks = getTasksByClass(courseId)
+  const evalSession = searchParams.get('eval')
+  const courseEvalParam = searchParams.get('courseEval')
+  const courseEvalKind =
+    courseEvalParam === 'midterm' || courseEvalParam === 'final' ? courseEvalParam : null
 
   if (!classroom) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600">
+      <div id="student-course-not-found" className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600">
         Không tìm thấy lớp học
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div id="student-course" className="min-h-screen bg-gray-50 text-gray-900">
       <PageHeader
+        id="student-course-header"
         userId={currentUser.id}
         title={classroom.title}
         subtitle={`Mã lớp: ${classroom.classCode}`}
         backHref="/student/dashboard"
       />
 
-      <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div id="student-course-content" className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
         {classroom.description && (
           <div className="rounded-xl border bg-white p-5 shadow-sm">
             <p className="text-gray-600">{classroom.description}</p>
           </div>
         )}
 
+        <StudentEvalPanel
+          id="student-course-eval"
+          classId={courseId}
+          highlightSessionKey={evalSession}
+          highlightCourseKind={courseEvalKind}
+        />
+
         <div className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
-          <OnlineSessionPanel classId={courseId} isTeacher={false} />
+          <OnlineSessionPanel id="student-course-online" classId={courseId} isTeacher={false} />
         </div>
 
         <div className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
           <ClassSchedulePanel
+            id="student-course-schedule"
             classId={courseId}
             students={classroom.students}
             isTeacher={false}
@@ -58,7 +73,7 @@ export default function StudentCoursePage() {
           />
         </div>
 
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+        <div id="student-course-assignments" className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="border-b px-5 py-4">
             <h2 className="font-semibold text-gray-900">Bài tập ({tasks.length})</h2>
           </div>
@@ -71,6 +86,7 @@ export default function StudentCoursePage() {
                 return (
                   <Link
                     key={task.id}
+                    id={`student-course-assignment-${task.id}`}
                     href={`/student/assignments/${task.id}`}
                     className="block p-5 transition-colors hover:bg-gray-50"
                   >

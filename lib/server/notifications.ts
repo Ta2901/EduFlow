@@ -35,19 +35,19 @@ export async function notifyStudentsNewAssignment(
   classTitle: string,
   taskId: string
 ) {
+  if (studentIds.length === 0) return
   const href = `/student/assignments/${taskId}`
-  await Promise.all(
-    studentIds.map((studentId) =>
-      createNotification({
-        userId: studentId,
-        type: 'new_assignment',
-        title: 'Bài tập mới',
-        message: `「${taskTitle}」 trong lớp ${classTitle}`,
-        href,
-        dedupeKey: `new-task-${taskId}-${studentId}`,
-      })
-    )
-  )
+  await prisma.notification.createMany({
+    data: studentIds.map((studentId) => ({
+      userId: studentId,
+      type: 'new_assignment',
+      title: 'Bài tập mới',
+      message: `「${taskTitle}」 trong lớp ${classTitle}`,
+      href,
+      dedupeKey: `new-task-${taskId}-${studentId}`,
+    })),
+    skipDuplicates: true,
+  })
 }
 
 export async function notifyTeacherSubmission(

@@ -21,13 +21,17 @@ export async function POST(
   const form = await req.formData()
   const content = String(form.get('content') || '')
 
-  const files: { name: string; size: number; url: string }[] = []
-  for (const entry of form.getAll('files')) {
-    if (entry instanceof File && entry.size > 0) {
-      const stored = await saveUploadedFile(entry)
-      files.push({ name: stored.name, size: stored.size, url: stored.url })
-    }
-  }
+  const files = (
+    await Promise.all(
+      form.getAll('files').map(async (entry) => {
+        if (entry instanceof File && entry.size > 0) {
+          const stored = await saveUploadedFile(entry)
+          return { name: stored.name, size: stored.size, url: stored.url }
+        }
+        return null
+      })
+    )
+  ).filter((f): f is { name: string; size: number; url: string } => f != null)
 
   const result = await submitWorkForTask(session.userId, params.taskId, { content, files })
   if (!result.ok) return jsonError(result.error, 400)

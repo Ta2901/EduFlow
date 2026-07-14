@@ -82,7 +82,7 @@ export default function OnlineClassPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
+      <div id="online-session-loading" className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
         Đang tải phòng học...
       </div>
     )
@@ -90,9 +90,9 @@ export default function OnlineClassPage() {
 
   if (!onlineSession || !classroom) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50">
+      <div id="online-session-not-found" className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50">
         <p className="text-gray-600">Không tìm thấy buổi học online</p>
-        <Link href="/" className="text-primary-600 hover:underline">
+        <Link id="online-session-home" href="/" className="text-primary-600 hover:underline">
           Về trang chủ
         </Link>
       </div>
@@ -101,11 +101,11 @@ export default function OnlineClassPage() {
 
   if (!isTeacher && !isLive && onlineSession.status === 'scheduled') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 p-6 text-center">
+      <div id="online-session-waiting" className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 p-6 text-center">
         <Radio className="h-12 w-12 text-gray-300" />
         <h1 className="text-xl font-semibold text-gray-900">{onlineSession.title}</h1>
         <p className="text-gray-500">Giáo viên chưa bắt đầu buổi học. Vui lòng chờ thông báo.</p>
-        <Link href={backHref} className="text-primary-600 hover:underline">
+        <Link id="online-session-waiting-back" href={backHref} className="text-primary-600 hover:underline">
           Quay lại lớp
         </Link>
       </div>
@@ -113,10 +113,10 @@ export default function OnlineClassPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-100">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-white px-4 py-3 shadow-sm">
+    <div id="online-session" className="flex min-h-screen flex-col bg-gray-100">
+      <header id="online-session-header" className="flex flex-wrap items-center justify-between gap-3 border-b bg-white px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <Link href={backHref} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100">
+          <Link id="online-session-back" href={backHref} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
@@ -131,6 +131,7 @@ export default function OnlineClassPage() {
         <div className="flex flex-wrap gap-2">
           {isTeacher && onlineSession.status === 'scheduled' && (
             <button
+              id="online-session-start"
               type="button"
               onClick={handleStart}
               className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
@@ -140,6 +141,7 @@ export default function OnlineClassPage() {
           )}
           {isTeacher && isLive && (
             <button
+              id="online-session-end"
               type="button"
               onClick={handleEnd}
               className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -151,10 +153,11 @@ export default function OnlineClassPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 p-4 lg:flex-row">
+      <main id="online-session-main" className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 p-4 lg:flex-row">
         <div className="flex min-h-0 flex-1 flex-col gap-4 lg:w-[68%]">
           {!isEnded ? (
             <JitsiMeeting
+              id="online-session-jitsi"
               roomCode={onlineSession.roomCode}
               displayName={currentUser.fullName}
               isTeacher={isTeacher}
@@ -166,6 +169,7 @@ export default function OnlineClassPage() {
           )}
           {isTeacher && isLive && (
             <LessonRecorder
+              id="online-session-recorder"
               classId={onlineSession.classId}
               sessionId={onlineSession.id}
             />
@@ -174,6 +178,7 @@ export default function OnlineClassPage() {
 
         <div className="lg:w-[32%]">
           <SessionChat
+            id="online-session-chat"
             classId={onlineSession.classId}
             sessionId={onlineSession.id}
             userId={currentUser.id}

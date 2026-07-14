@@ -50,8 +50,8 @@ export default function CreateClassPage() {
 
   if (createdCode) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900">
-        <PageHeader userId={currentUser.id} title="Lớp đã được tạo" backHref="/teacher/dashboard" />
+      <div id="teacher-class-created" className="min-h-screen bg-gray-50 text-gray-900">
+        <PageHeader id="teacher-class-created-header" userId={currentUser.id} title="Lớp đã được tạo" backHref="/teacher/dashboard" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -72,6 +72,7 @@ export default function CreateClassPage() {
                 {createdCode}
               </p>
               <button
+                id="teacher-class-created-copy"
                 onClick={copyCode}
                 className="mt-4 inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
               >
@@ -89,12 +90,14 @@ export default function CreateClassPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
+                id="teacher-class-created-home"
                 onClick={() => router.push('/teacher/dashboard')}
                 className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 Về trang chủ
               </button>
               <button
+                id="teacher-class-created-another"
                 onClick={() => {
                   setCreatedCode(null)
                   setTitle('')
@@ -112,9 +115,10 @@ export default function CreateClassPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <PageHeader userId={currentUser.id} title="Tạo lớp học mới" backHref="/teacher/dashboard" />
+    <div id="teacher-class-new" className="min-h-screen bg-gray-50 text-gray-900">
+      <PageHeader id="teacher-class-new-header" userId={currentUser.id} title="Tạo lớp học mới" backHref="/teacher/dashboard" />
       <motion.form
+        id="teacher-class-new-form"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
@@ -129,11 +133,11 @@ export default function CreateClassPage() {
           </div>
 
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher-class-new-title" className="block text-sm font-medium text-gray-700 mb-2">
               Tên lớp <span className="text-red-500">*</span>
             </label>
             <input
-              id="title"
+              id="teacher-class-new-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -143,11 +147,11 @@ export default function CreateClassPage() {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher-class-new-description" className="block text-sm font-medium text-gray-700 mb-2">
               Mô tả
             </label>
             <textarea
-              id="description"
+              id="teacher-class-new-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -158,12 +162,14 @@ export default function CreateClassPage() {
 
           <div className="flex gap-3 pt-2">
             <Link
+              id="teacher-class-new-cancel"
               href="/teacher/dashboard"
               className="flex-1 text-center py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Hủy
             </Link>
             <button
+              id="teacher-class-new-submit"
               type="submit"
               disabled={isLoading}
               className="flex-1 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"

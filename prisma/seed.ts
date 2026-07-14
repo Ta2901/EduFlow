@@ -52,9 +52,22 @@ async function ensureUser(input: {
   role: 'teacher' | 'student'
   password: string
   school?: string
+  phone?: string
+  recoveryEmail?: string
 }) {
   const found = await prisma.user.findUnique({ where: { email: input.email } })
-  if (found) return found
+  if (found) {
+    if ((!found.phone && input.phone) || (!found.recoveryEmail && input.recoveryEmail)) {
+      return prisma.user.update({
+        where: { id: found.id },
+        data: {
+          phone: found.phone || input.phone || null,
+          recoveryEmail: found.recoveryEmail || input.recoveryEmail || null,
+        },
+      })
+    }
+    return found
+  }
 
   return prisma.user.create({
     data: {
@@ -66,6 +79,8 @@ async function ensureUser(input: {
       accountStatus: 'active',
       approvedAt: new Date(),
       school: input.school,
+      phone: input.phone,
+      recoveryEmail: input.recoveryEmail,
     },
   })
 }
@@ -85,6 +100,8 @@ async function seedDemoContent() {
     role: 'teacher',
     password: demoPassword,
     school: 'THPT EduFlow',
+    phone: '0901000001',
+    recoveryEmail: 'teacher.recovery@gmail.com',
   })
 
   const student = await ensureUser({
@@ -94,6 +111,8 @@ async function seedDemoContent() {
     role: 'student',
     password: demoPassword,
     school: 'THPT EduFlow',
+    phone: '0901000002',
+    recoveryEmail: 'student.recovery@icloud.com',
   })
 
   const extraStudents = await Promise.all(
@@ -256,10 +275,40 @@ async function seedDemoContent() {
   })
 }
 
+async function ensureDemoRecoveryContacts() {
+  const demos = [
+    {
+      email: 'teacher@eduflow.com',
+      phone: '0901000001',
+      recoveryEmail: 'teacher.recovery@gmail.com',
+    },
+    {
+      email: 'student@eduflow.com',
+      phone: '0901000002',
+      recoveryEmail: 'student.recovery@icloud.com',
+    },
+  ]
+  for (const d of demos) {
+    const user = await prisma.user.findUnique({ where: { email: d.email } })
+    if (!user) continue
+    if (user.phone && user.recoveryEmail) continue
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        phone: user.phone || d.phone,
+        recoveryEmail: user.recoveryEmail || d.recoveryEmail,
+      },
+    })
+  }
+}
+
 async function resetAllData() {
+  await prisma.passwordResetToken.deleteMany()
   await prisma.notification.deleteMany()
   await prisma.sessionRecording.deleteMany()
   await prisma.sessionMessage.deleteMany()
+  await prisma.classChatMessage.deleteMany()
+  await prisma.classChat.deleteMany()
   await prisma.onlineSession.deleteMany()
   await prisma.attendanceRecord.deleteMany()
   await prisma.scheduleSlot.deleteMany()
@@ -288,6 +337,7 @@ async function main() {
   }
 
   await ensureAdmin()
+  await ensureDemoRecoveryContacts()
   await seedDemoContent()
 
   console.log(

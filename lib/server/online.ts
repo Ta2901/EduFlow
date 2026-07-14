@@ -1,3 +1,4 @@
+import { notifySessionEvalOpen } from './evaluations'
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
 import type { OnlineSessionStatus, SessionMessage, SessionRecording, UserRole } from '../types'
@@ -211,6 +212,9 @@ export async function endOnlineSession(sessionId: string, classId: string, teach
     where: { id: sessionId },
     data: { status: 'ended', endedAt: new Date() },
   })
+
+  void notifySessionEvalOpen(sessionId).catch(() => {})
+
   return mapSession(row)
 }
 

@@ -2,7 +2,11 @@ import type {
   AccountStatus,
   AppNotification,
   AttendanceRecord,
+  ActivityLogItem,
+  ActivityLogType,
   AttendanceStatus,
+  ClassChatMessage,
+  ClassChatRoom,
   ClassRoom,
   OnlineSession,
   ScheduleSlot,
@@ -10,6 +14,7 @@ import type {
   SessionRecording,
   SessionUser,
   Submission,
+  StudentClassProgress,
   Task,
   UserRole,
 } from '../types'
@@ -48,17 +53,64 @@ export const api = {
       password: string
       role: 'student' | 'teacher'
       phone?: string
+      recoveryEmail?: string
       school?: string
     }) =>
       request<{ pending?: boolean; message?: string; memberCode?: string; user: SessionUser }>(
         '/api/auth/register',
         { method: 'POST', body: JSON.stringify(body) }
       ),
-    login: (body: { email: string; password: string }) =>
-      request<{ user: SessionUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+    login: (body: { email: string; password: string; enableQuickLogin?: boolean }) =>
+      request<{
+        user: SessionUser
+        quickLogin?: { tokenId: string; token: string; expiresAt: string }
+      }>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+    quickLogin: (body: { token: string }) =>
+      request<{ user: SessionUser }>('/api/auth/quick-login', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    revokeQuickLogin: (body: { tokenId?: string; token?: string }) =>
+      request<{ ok: boolean }>('/api/auth/quick-login/revoke', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
     logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
     changePassword: (body: { currentPassword: string; newPassword: string }) =>
       request<{ ok: boolean; message: string }>('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    forgotPasswordRequest: (body: {
+      loginId: string
+      channel: 'email' | 'phone'
+      contact: string
+    }) =>
+      request<{
+        ok: boolean
+        message: string
+        requestId: string | null
+        maskedTarget: string | null
+        devOtp?: string
+      }>('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify(body) }),
+    forgotPasswordReset: (body: { requestId: string; code: string; newPassword: string }) =>
+      request<{ ok: boolean; message: string }>('/api/auth/forgot-password/reset', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  },
+
+  activity: {
+    list: (limit = 100) =>
+      request<{ items: ActivityLogItem[] }>(`/api/activity?limit=${limit}`),
+    log: (body: {
+      type: ActivityLogType
+      title: string
+      message: string
+      href?: string
+      meta?: Record<string, unknown>
+    }) =>
+      request<{ item: ActivityLogItem | null }>('/api/activity', {
         method: 'POST',
         body: JSON.stringify(body),
       }),
@@ -69,6 +121,15 @@ export const api = {
       request<{ classes: ClassRoom[]; tasks: Task[]; submissions: Submission[] }>('/api/edu/context'),
     createClass: (body: { title: string; description: string }) =>
       request<{ classroom: ClassRoom }>('/api/classes', { method: 'POST', body: JSON.stringify(body) }),
+    updateClass: (classId: string, body: { title: string; description: string }) =>
+      request<{ classroom: ClassRoom }>(`/api/classes/${classId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
+    cancelClass: (classId: string) =>
+      request<{ classroom: ClassRoom; message: string }>(`/api/classes/${classId}`, {
+        method: 'DELETE',
+      }),
     joinClass: (code: string) =>
       request<{ classId: string; classroom: ClassRoom }>('/api/classes/join', {
         method: 'POST',
@@ -83,6 +144,12 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify(body),
       }),
+    scheduleOverview: () =>
+      request<{
+        slots: ScheduleSlot[]
+        liveSessions: { id: string; classId: string }[]
+        classes: { id: string; title: string }[]
+      }>('/api/schedule/overview'),
     listSchedule: (classId: string) =>
       request<{ slots: ScheduleSlot[] }>(`/api/classes/${classId}/schedule`),
     createScheduleSlot: (
@@ -162,11 +229,163 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(body),
       }),
+    listClassChats: () => request<{ chats: ClassChatRoom[] }>('/api/chats'),
+    getClassChat: (classId: string) =>
+      request<{ chat: ClassChatRoom; messages: ClassChatMessage[] }>(`/api/classes/${classId}/chat`),
+    postClassChatMessage: (classId: string, body: { content: string }) =>
+      request<{ message: ClassChatMessage }>(`/api/classes/${classId}/chat`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
     uploadSessionRecording: (classId: string, sessionId: string, form: FormData) =>
       request<{ recording: SessionRecording }>(
         `/api/classes/${classId}/sessions/${sessionId}/recordings`,
         { method: 'POST', body: form }
       ),
+    getStudentProgress: (classId: string, studentId: string) =>
+      request<{ progress: StudentClassProgress }>(
+        `/api/classes/${classId}/students/${studentId}/progress`
+      ),
+    getTeachingPlan: (classId: string) =>
+      request<{
+        plan: {
+          class: {
+            id: string
+            title: string
+            teacherId: string
+            teacherName: string
+            termStart?: string
+            termEnd?: string
+          }
+          items: {
+            id: string
+            classId: string
+            sessionIndex: number
+            title: string
+            description: string
+            plannedDate?: string
+            status: 'planned' | 'done' | 'skipped'
+            completedAt?: string
+          }[]
+          summary: {
+            total: number
+            done: number
+            skipped: number
+            planned: number
+            overdue: number
+            dueSoon: number
+            behind: boolean
+            progressRate: number
+          }
+        }
+      }>(`/api/classes/${classId}/teaching-plan`),
+    saveTeachingPlan: (
+      classId: string,
+      items: {
+        sessionIndex: number
+        title: string
+        description?: string
+        plannedDate?: string | null
+      }[]
+    ) =>
+      request<{ plan: unknown }>(`/api/classes/${classId}/teaching-plan`, {
+        method: 'PUT',
+        body: JSON.stringify({ items }),
+      }),
+    updateClassTerm: (classId: string, body: { termStart?: string | null; termEnd?: string | null }) =>
+      request<{ term: { id: string; termStart?: string; termEnd?: string } }>(
+        `/api/classes/${classId}/teaching-plan`,
+        { method: 'PUT', body: JSON.stringify(body) }
+      ),
+    updatePlanItemStatus: (
+      classId: string,
+      body: { itemId: string; status: 'planned' | 'done' | 'skipped' }
+    ) =>
+      request<{ item: unknown }>(`/api/classes/${classId}/teaching-plan`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
+    listPendingSessionEvals: (classId: string) =>
+      request<{
+        pending: {
+          sessionKey: string
+          onlineSessionId: string
+          title: string
+          endedAt?: string
+        }[]
+      }>(`/api/classes/${classId}/session-eval`),
+    getSessionEvalSummary: (classId: string) =>
+      request<{
+        summary: {
+          average: number
+          count: number
+          items: {
+            id: string
+            sessionKey: string
+            sessionTitle: string
+            studentName: string
+            rating: number
+            comment: string
+            createdAt: string
+          }[]
+        }
+      }>(`/api/classes/${classId}/session-eval?view=summary`),
+    submitSessionEval: (
+      classId: string,
+      body: {
+        sessionKey: string
+        onlineSessionId?: string
+        rating: number
+        comment?: string
+      }
+    ) =>
+      request<{ eval: unknown }>(`/api/classes/${classId}/session-eval`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    listCourseEvals: (classId: string) =>
+      request<{
+        enrollments: number
+        evaluations: {
+          id: string
+          kind: 'midterm' | 'final'
+          status: 'draft' | 'open' | 'closed'
+          openAt?: string
+          closeAt?: string
+          responseCount: number
+          averageTeachingQuality?: number
+          submitted: boolean
+          myResponse?: {
+            teachingQuality: number
+            contentClarity: number
+            pacing: number
+            comment: string
+            createdAt: string
+          }
+        }[]
+      }>(`/api/classes/${classId}/course-eval`),
+    setCourseEvalStatus: (
+      classId: string,
+      body: { kind: 'midterm' | 'final'; status: 'draft' | 'open' | 'closed' }
+    ) =>
+      request<{ evaluation: unknown }>(`/api/classes/${classId}/course-eval`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'setStatus', ...body }),
+      }),
+    submitCourseEval: (
+      classId: string,
+      body: {
+        evaluationId: string
+        teachingQuality: number
+        contentClarity: number
+        pacing: number
+        comment?: string
+      }
+    ) =>
+      request<{ response: unknown }>(`/api/classes/${classId}/course-eval`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'respond', ...body }),
+      }),
   },
 
   upload: (file: File) => {
@@ -205,6 +424,86 @@ export const api = {
           classes: number
         }
       }>('/api/admin/overview'),
+    workStats: () =>
+      request<{
+        stats: {
+          student: {
+            summary: {
+              not_submitted: number
+              submitted: number
+              late: number
+              graded: number
+              total: number
+            }
+            items: {
+              id: string
+              kind: string
+              title: string
+              subtitle: string
+              meta?: string
+              statusKey?: string
+              statusLabel?: string
+              teacherId?: string
+              studentId?: string
+              classId?: string
+            }[]
+          }
+          teacher: {
+            summary: {
+              pending_grade: number
+              graded: number
+              total_actionable: number
+            }
+            items: {
+              id: string
+              kind: string
+              title: string
+              subtitle: string
+              meta?: string
+              statusKey?: string
+              statusLabel?: string
+              teacherId?: string
+              studentId?: string
+              classId?: string
+            }[]
+          }
+          teachersOverview: {
+            teacherId: string
+            fullName: string
+            email: string
+            classes: number
+            tasks: number
+            pendingGrade: number
+            graded: number
+            gradeRate: number
+          }[]
+          studentsOverview: {
+            studentId: string
+            fullName: string
+            email: string
+            classes: number
+            total: number
+            notSubmitted: number
+            submitted: number
+            late: number
+            graded: number
+            completionRate: number
+          }[]
+          byClass: {
+            classId: string
+            title: string
+            teacherName: string
+            students: number
+            tasks: number
+            submitRate: number
+            gradeRate: number
+            submitted: number
+            pending: number
+            graded: number
+            totalSubs: number
+          }[]
+        }
+      }>('/api/admin/work-stats'),
     listUsers: (params?: { role?: string; status?: string; q?: string }) => {
       const sp = new URLSearchParams()
       if (params?.role) sp.set('role', params.role)
@@ -269,6 +568,63 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ studentIds }),
       }),
+    teachingProgress: () =>
+      request<{
+        progress: {
+          summary: {
+            classes: number
+            withPlan: number
+            behind: number
+            noPlan: number
+          }
+          classes: {
+            classId: string
+            title: string
+            classCode: string
+            teacherId: string
+            teacherName: string
+            teacherEmail: string
+            termStart?: string
+            termEnd?: string
+            total: number
+            done: number
+            skipped: number
+            planned: number
+            overdue: number
+            behind: boolean
+            progressRate: number
+            hasPlan: boolean
+          }[]
+        }
+      }>('/api/admin/teaching-progress'),
+    remindTeacher: (body: { teacherId: string; classId: string; message?: string }) =>
+      request<{ ok: boolean; message: string }>('/api/admin/teaching-progress', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    evalOverview: () =>
+      request<{
+        overview: {
+          sessionEvals: {
+            classId: string
+            title: string
+            teacherName: string
+            average: number
+            count: number
+          }[]
+          courseEvals: {
+            id: string
+            classId: string
+            title: string
+            teacherName: string
+            kind: 'midterm' | 'final'
+            status: string
+            responseCount: number
+            enrollmentCount: number
+            averageTeachingQuality: number
+          }[]
+        }
+      }>('/api/admin/eval-overview'),
   },
 }
 

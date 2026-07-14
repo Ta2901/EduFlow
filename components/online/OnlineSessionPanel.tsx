@@ -11,6 +11,7 @@ import { formatDateTime, formatFileSize } from '@/lib/format'
 interface OnlineSessionPanelProps {
   classId: string
   isTeacher: boolean
+  id?: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,7 +26,11 @@ const STATUS_COLORS: Record<string, string> = {
   ended: 'bg-slate-100 text-slate-600',
 }
 
-export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSessionPanelProps) {
+export default function OnlineSessionPanel({
+  classId,
+  isTeacher,
+  id = 'online-sessions',
+}: OnlineSessionPanelProps) {
   const [sessions, setSessions] = useState<OnlineSession[]>([])
   const [recordings, setRecordings] = useState<(SessionRecording & { sessionTitle: string })[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,11 +85,15 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
   const liveSession = sessions.find((s) => s.status === 'live')
 
   if (loading) {
-    return <p className="py-6 text-center text-sm text-gray-500">Đang tải...</p>
+    return (
+      <p id={id} className="py-6 text-center text-sm text-gray-500">
+        Đang tải...
+      </p>
+    )
   }
 
   return (
-    <div className="space-y-6">
+    <div id={id} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900">Lớp học online</h3>
         <p className="text-sm text-gray-500">
@@ -93,7 +102,10 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
       </div>
 
       {!isTeacher && liveSession && (
-        <div className="rounded-xl border-2 border-green-400 bg-green-50 p-4">
+        <div
+          id={`${id}-live-banner`}
+          className="rounded-xl border-2 border-green-400 bg-green-50 p-4"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Radio className="h-5 w-5 text-green-600" />
@@ -103,6 +115,7 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
               </div>
             </div>
             <Link
+              id={`${id}-join-live`}
               href={`/online/${liveSession.id}`}
               className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
@@ -114,10 +127,15 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
       )}
 
       {isTeacher && (
-        <form onSubmit={handleCreate} className="rounded-lg border bg-primary-50/40 p-4">
+        <form
+          id={`${id}-create-form`}
+          onSubmit={handleCreate}
+          className="rounded-lg border bg-primary-50/40 p-4"
+        >
           <p className="mb-2 text-sm font-medium text-gray-900">Tạo buổi học online mới</p>
           <div className="flex flex-wrap gap-2">
             <input
+              id={`${id}-title`}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ví dụ: Tiết 3 — Phương trình bậc hai"
@@ -125,6 +143,7 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
               required
             />
             <button
+              id={`${id}-create-submit`}
               type="submit"
               disabled={creating}
               className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
@@ -136,7 +155,7 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
         </form>
       )}
 
-      <div>
+      <div id={`${id}-list`}>
         <h4 className="mb-2 font-medium text-gray-900">Danh sách buổi học</h4>
         {sessions.length === 0 ? (
           <p className="rounded-lg border border-dashed py-8 text-center text-sm text-gray-500">
@@ -145,7 +164,11 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
         ) : (
           <ul className="space-y-2">
             {sessions.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+              <li
+                key={s.id}
+                id={`${id}-item-${s.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+              >
                 <div>
                   <p className="font-medium text-gray-900">{s.title}</p>
                   <p className="text-xs text-gray-500">
@@ -158,6 +181,7 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
                   </span>
                   {isTeacher && s.status === 'scheduled' && (
                     <button
+                      id={`${id}-start-${s.id}`}
                       type="button"
                       onClick={() => handleStart(s.id)}
                       className="inline-flex items-center rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800"
@@ -167,6 +191,7 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
                     </button>
                   )}
                   <Link
+                    id={`${id}-enter-${s.id}`}
                     href={`/online/${s.id}`}
                     className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
                   >
@@ -181,14 +206,18 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
       </div>
 
       {recordings.length > 0 && (
-        <div>
+        <div id={`${id}-recordings`}>
           <h4 className="mb-2 flex items-center font-medium text-gray-900">
             <Film className="mr-1.5 h-4 w-4" />
             Bản ghi bài giảng
           </h4>
           <ul className="space-y-2">
             {recordings.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50/50 px-3 py-2">
+              <li
+                key={r.id}
+                id={`${id}-recording-${r.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50/50 px-3 py-2"
+              >
                 <div>
                   <p className="text-sm font-medium text-gray-900">{r.title}</p>
                   <p className="text-xs text-gray-500">
@@ -197,6 +226,7 @@ export default function OnlineSessionPanel({ classId, isTeacher }: OnlineSession
                   </p>
                 </div>
                 <a
+                  id={`${id}-recording-${r.id}-link`}
                   href={r.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"

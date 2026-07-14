@@ -50,7 +50,7 @@ export default function SubmissionTrackingPage() {
 
   if (!task) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div id="teacher-submissions-not-found" className="min-h-screen flex items-center justify-center">
         <p className="text-gray-600">Không tìm thấy bài tập</p>
       </div>
     )
@@ -59,17 +59,18 @@ export default function SubmissionTrackingPage() {
   const notSubmitted = submissions.filter((s) => s.status === 'not_submitted').length
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div id="teacher-submissions" className="min-h-screen bg-gray-50 text-gray-900">
       <PageHeader
+        id="teacher-submissions-header"
         userId={currentUser.id}
         title={task.title}
         subtitle={`${classroom?.title ?? ''} · Hạn: ${formatDate(task.dueDate)}`}
         backHref={`/teacher/courses/${task.classId}`}
       />
 
-      <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+      <div id="teacher-submissions-content" className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div id="teacher-submissions-stats" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-xl border shadow-sm">
             <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
               <Users className="h-4 w-4" /> Tổng học sinh
@@ -157,6 +158,7 @@ export default function SubmissionTrackingPage() {
                 {sortedSubmissions.map((sub, index) => (
                   <Fragment key={sub.id}>
                     <motion.tr
+                        id={`teacher-submissions-row-${sub.id}`}
                         initial={false}
                       transition={{ delay: index * 0.03 }}
                       className="hover:bg-gray-50"
@@ -205,6 +207,7 @@ export default function SubmissionTrackingPage() {
                           </div>
                         ) : sub.status !== 'not_submitted' ? (
                           <button
+                            id={`teacher-submissions-grade-open-${sub.id}`}
                             type="button"
                             onClick={() => {
                               setGradingId(sub.id)
@@ -221,7 +224,7 @@ export default function SubmissionTrackingPage() {
                     </motion.tr>
                     {gradingId === sub.id && (
                       <tr key={`${sub.id}-grade`}>
-                        <td colSpan={4} className="px-6 py-4 bg-gray-50">
+                        <td id={`teacher-submissions-grade-panel-${sub.id}`} colSpan={4} className="px-6 py-4 bg-gray-50">
                           {sub.content && (
                             <p className="mb-2 text-sm text-gray-700 whitespace-pre-wrap rounded-lg bg-white border p-3">
                               <span className="font-medium">Nội dung:</span> {sub.content}
@@ -250,6 +253,7 @@ export default function SubmissionTrackingPage() {
                             <div>
                               <label className="text-xs text-gray-500">Điểm</label>
                               <input
+                                id={`teacher-submissions-grade-${sub.id}`}
                                 type="number"
                                 min={0}
                                 max={10}
@@ -261,6 +265,7 @@ export default function SubmissionTrackingPage() {
                             <div>
                               <label className="text-xs text-gray-500">Thang</label>
                               <input
+                                id={`teacher-submissions-max-grade-${sub.id}`}
                                 type="number"
                                 value={gradeForm.maxGrade}
                                 onChange={(e) => setGradeForm((f) => ({ ...f, maxGrade: e.target.value }))}
@@ -270,6 +275,7 @@ export default function SubmissionTrackingPage() {
                             <div className="flex-1 min-w-[200px]">
                               <label className="text-xs text-gray-500">Nhận xét</label>
                               <input
+                                id={`teacher-submissions-feedback-${sub.id}`}
                                 value={gradeForm.feedback}
                                 onChange={(e) => setGradeForm((f) => ({ ...f, feedback: e.target.value }))}
                                 className="w-full px-2 py-1 border rounded text-sm"
@@ -277,6 +283,7 @@ export default function SubmissionTrackingPage() {
                               />
                             </div>
                             <button
+                              id={`teacher-submissions-grade-save-${sub.id}`}
                               type="button"
                               onClick={async () => {
                                 const g = parseFloat(gradeForm.grade)
@@ -298,6 +305,7 @@ export default function SubmissionTrackingPage() {
                               Lưu
                             </button>
                             <button
+                              id={`teacher-submissions-grade-cancel-${sub.id}`}
                               type="button"
                               onClick={() => setGradingId(null)}
                               className="px-3 py-1 border rounded text-sm"

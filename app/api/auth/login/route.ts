@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma'
-import { assertCanLogin } from '@/lib/server/account'
+import { assertCanLoginUser } from '@/lib/server/account'
 import { jsonError, jsonOk } from '@/lib/server/http'
 import { verifyPassword } from '@/lib/server/password'
+import { issueQuickLoginToken } from '@/lib/server/quickLogin'
 import { setSessionCookie, toSessionUser } from '@/lib/server/session'
 import type { UserRole } from '@/lib/types'
 
@@ -10,6 +11,11 @@ export async function POST(req: Request) {
     const body = await req.json()
     const loginId = String(body.email || '').trim()
     const password = String(body.password || '')
+    const enableQuickLogin = Boolean(body.enableQuickLogin)
+
+    if (!loginId || !password) {
+      return jsonError('Vui lòng nhập tài khoản và mật khẩu', 400)
+    }
 
     const user = await prisma.user.findFirst({
       where: {
@@ -24,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      await assertCanLogin(user.id)
+      assertCanLoginUser(user)
     } catch (e) {
       return jsonError(e instanceof Error ? e.message : 'Không thể đăng nhập', 403)
     }
@@ -34,8 +40,23 @@ export async function POST(req: Request) {
       email: user.email,
       role: user.role as UserRole,
     })
-    return jsonOk({ user: toSessionUser(user) })
-  } catch {
-    return jsonError('Đăng nhập thất bại', 500)
+
+    let quickLogin: { tokenId: string; token: string; expiresAt: string } | undefined
+    if (enableQuickLogin) {
+      try {
+        quickLogin = await issueQuickLoginToken(user.id, loginId)
+      } catch (err) {
+        // Never fail the whole login just because quick-login token could not be issued
+        console.error('[login] issueQuickLoginToken failed', err)
+      }
+    }
+
+    return jsonOk({ user: toSessionUser(user), quickLogin })
+  } catch (err) {
+    console.error('[login] failed', err)
+    return jsonError(
+      err instanceof Error ? err.message : 'Đăng nhập thất bại',
+      500
+    )
   }
 }

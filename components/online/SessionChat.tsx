@@ -12,6 +12,7 @@ interface SessionChatProps {
   userId: string
   userName: string
   disabled?: boolean
+  id?: string
 }
 
 export default function SessionChat({
@@ -20,6 +21,7 @@ export default function SessionChat({
   userId,
   userName,
   disabled,
+  id = 'session-chat',
 }: SessionChatProps) {
   const [messages, setMessages] = useState<SessionMessage[]>([])
   const [text, setText] = useState('')
@@ -37,7 +39,7 @@ export default function SessionChat({
 
   useEffect(() => {
     loadMessages()
-    const id = setInterval(loadMessages, 2500)
+    const id = setInterval(loadMessages, 8000)
     return () => clearInterval(id)
   }, [loadMessages])
 
@@ -64,20 +66,24 @@ export default function SessionChat({
   }
 
   return (
-    <div className="flex h-full min-h-[360px] flex-col rounded-lg border bg-white">
+    <div id={id} className="flex h-full min-h-[360px] flex-col rounded-lg border bg-white">
       <div className="border-b px-4 py-3">
         <h3 className="font-semibold text-gray-900">Trao đổi trong lớp</h3>
         <p className="text-xs text-gray-500">Tin nhắn được lưu trong buổi học</p>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div id={`${id}-messages`} className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-gray-400">Chưa có tin nhắn. Hãy chào lớp!</p>
         ) : (
           messages.map((msg) => {
             const mine = msg.userId === userId
             return (
-              <div key={msg.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+              <div
+                key={msg.id}
+                id={`${id}-message-${msg.id}`}
+                className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
+              >
                 <div
                   className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                     mine ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-900'
@@ -101,9 +107,10 @@ export default function SessionChat({
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="border-t p-3">
+      <form id={`${id}-form`} onSubmit={handleSend} className="border-t p-3">
         <div className="flex gap-2">
           <input
+            id={`${id}-input`}
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={disabled || sending}
@@ -111,6 +118,7 @@ export default function SessionChat({
             className="flex-1 rounded-lg border px-3 py-2 text-sm disabled:bg-gray-50"
           />
           <button
+            id={`${id}-send`}
             type="submit"
             disabled={disabled || sending || !text.trim()}
             className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-white hover:bg-primary-700 disabled:opacity-50"

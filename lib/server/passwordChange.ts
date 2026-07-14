@@ -1,5 +1,7 @@
 import { prisma } from '../prisma'
+import { logActivityLater } from './activityLog'
 import { hashPassword, verifyPassword } from './password'
+import { revokeAllQuickLoginsForUser } from './quickLogin'
 import { getSession } from './session'
 
 export async function changeOwnPassword(
@@ -23,6 +25,17 @@ export async function changeOwnPassword(
   await prisma.user.update({
     where: { id: userId },
     data: { password: await hashPassword(newPassword) },
+  })
+
+  void revokeAllQuickLoginsForUser(userId)
+
+  logActivityLater({
+    userId,
+    type: 'password_change',
+    title: 'Đổi mật khẩu',
+    message: 'Bạn đã đổi mật khẩu đăng nhập thành công',
+    href: undefined,
+    meta: {},
   })
 }
 

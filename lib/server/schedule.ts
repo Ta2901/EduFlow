@@ -50,6 +50,46 @@ export async function listScheduleSlots(classId: string, session: SessionPayload
   return rows.map(mapSlot)
 }
 
+/** One round-trip for dashboard: all slots + live online sessions for accessible classes. */
+export async function listScheduleOverview(session: SessionPayload) {
+  let classes: { id: string; title: string }[] = []
+
+  if (session.role === 'teacher') {
+    classes = await prisma.class.findMany({
+      where: { teacherId: session.userId, status: { not: 'cancelled' } },
+      select: { id: true, title: true },
+    })
+  } else if (session.role === 'student') {
+    const enrollments = await prisma.classEnrollment.findMany({
+      where: { studentId: session.userId, class: { status: { not: 'cancelled' } } },
+      select: { class: { select: { id: true, title: true } } },
+    })
+    classes = enrollments.map((e) => e.class)
+  }
+
+  const classIds = classes.map((c) => c.id)
+  if (classIds.length === 0) {
+    return { slots: [] as ReturnType<typeof mapSlot>[], liveSessions: [] as { id: string; classId: string }[], classes }
+  }
+
+  const [rows, live] = await Promise.all([
+    prisma.scheduleSlot.findMany({
+      where: { classId: { in: classIds } },
+      orderBy: [{ dayOfWeek: 'asc' }, { period: 'asc' }],
+    }),
+    prisma.onlineSession.findMany({
+      where: { classId: { in: classIds }, status: 'live' },
+      select: { id: true, classId: true },
+    }),
+  ])
+
+  return {
+    slots: rows.map(mapSlot),
+    liveSessions: live,
+    classes,
+  }
+}
+
 export async function createScheduleSlot(
   classId: string,
   teacherId: string,

@@ -44,7 +44,7 @@ export default function StudentAssignmentPage() {
 
   if (!task) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div id="student-assignment-not-found" className="min-h-screen flex items-center justify-center">
         <p className="text-gray-600">Không tìm thấy bài tập</p>
       </div>
     )
@@ -52,9 +52,9 @@ export default function StudentAssignmentPage() {
 
   if (!submission) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
+      <div id="student-assignment-no-access" className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
         <p className="text-gray-600 text-center">Bạn chưa tham gia lớp học này.</p>
-        <Link href="/student/join" className="text-primary-600 font-medium">
+        <Link id="student-assignment-join" href="/student/join" className="text-primary-600 font-medium">
           Tham gia lớp bằng mã
         </Link>
       </div>
@@ -86,8 +86,9 @@ export default function StudentAssignmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div id="student-assignment" className="min-h-screen bg-gray-50 text-gray-900">
       <PageHeader
+        id="student-assignment-header"
         userId={currentUser.id}
         title={task.title}
         subtitle={classroom?.title}
@@ -216,14 +217,14 @@ export default function StudentAssignmentPage() {
 
         {/* Submit form */}
         {canSubmit && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl border p-6 space-y-4">
+          <form id="student-assignment-submit-form" onSubmit={handleSubmit} className="bg-white rounded-xl border p-6 space-y-4">
             <h2 className="font-semibold">Nộp bài tập</h2>
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="student-assignment-content" className="block text-sm font-medium text-gray-700 mb-2">
                 Nội dung bài làm
               </label>
               <textarea
-                id="content"
+                id="student-assignment-content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={6}
@@ -236,7 +237,7 @@ export default function StudentAssignmentPage() {
               <label className="flex items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
                 <Upload className="h-6 w-6 text-gray-400 mr-2" />
                 <span className="text-sm text-gray-600">Chọn tệp nộp bài</span>
-                <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                <input id="student-assignment-files" type="file" multiple className="hidden" onChange={handleFileChange} />
               </label>
               {pendingFiles.length > 0 && (
                 <ul className="mt-3 space-y-2">
@@ -244,6 +245,7 @@ export default function StudentAssignmentPage() {
                     <li key={`${f.name}-${index}`} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
                       <span>{f.name}</span>
                       <button
+                        id={`student-assignment-remove-file-${index}`}
                         type="button"
                         onClick={() => setPendingFiles((p) => p.filter((_, i) => i !== index))}
                       >
@@ -255,6 +257,7 @@ export default function StudentAssignmentPage() {
               )}
             </div>
             <button
+              id="student-assignment-submit"
               type="submit"
               disabled={isLoading}
               className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
@@ -264,7 +267,7 @@ export default function StudentAssignmentPage() {
           </form>
         )}
 
-        <Link href="/student/submissions" className="block text-center text-sm text-primary-600 hover:underline">
+        <Link id="student-assignment-all-submissions" href="/student/submissions" className="block text-center text-sm text-primary-600 hover:underline">
           Xem tất cả trạng thái nộp bài
         </Link>
       </div>

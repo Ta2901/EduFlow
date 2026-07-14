@@ -13,13 +13,20 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   feedback: 'Điểm & nhận xét',
   submission_received: 'Bài đã nộp',
   online_class: 'Lớp học online',
+  admin_reminder: 'Nhắc từ Admin',
+  session_eval: 'Đánh giá buổi học',
+  course_eval: 'Đánh giá khoá học',
 }
 
 interface NotificationBellProps {
   userId: string
+  id?: string
 }
 
-export default function NotificationBell({ userId }: NotificationBellProps) {
+export default function NotificationBell({
+  userId,
+  id = 'notification-bell',
+}: NotificationBellProps) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -44,27 +51,36 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   }, [open])
 
   return (
-    <div className="relative" ref={panelRef}>
+    <div id={id} className="relative" ref={panelRef}>
       <button
+        id={`${id}-toggle`}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg p-2 text-gray-600 hover:bg-gray-100"
         aria-label="Thông báo"
+        aria-expanded={open}
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span
+            id={`${id}-badge`}
+            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="fixed right-3 top-14 z-[100] w-[min(calc(100vw-1.5rem),360px)] rounded-xl border bg-white shadow-lg sm:absolute sm:right-0 sm:top-auto sm:mt-2">
-          <div className="flex items-center justify-between border-b px-4 py-3">
+        <div
+          id={`${id}-panel`}
+          className="fixed right-3 top-14 z-[100] w-[min(calc(100vw-1.5rem),360px)] rounded-xl border bg-white shadow-lg sm:absolute sm:right-0 sm:top-auto sm:mt-2"
+        >
+          <div id={`${id}-panel-header`} className="flex items-center justify-between border-b px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">Thông báo</h3>
             {unreadCount > 0 && (
               <button
+                id={`${id}-mark-all-read`}
                 type="button"
                 onClick={() => markAllAsRead(userId)}
                 className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700"
@@ -75,16 +91,17 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
             )}
           </div>
 
-          <ul className="max-h-80 overflow-y-auto">
+          <ul id={`${id}-list`} className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-gray-500">
+              <li id={`${id}-empty`} className="px-4 py-8 text-center text-sm text-gray-500">
                 Chưa có thông báo
               </li>
             ) : (
               notifications.slice(0, 30).map((n) => (
-                <li key={n.id} className="border-b last:border-b-0">
+                <li key={n.id} id={`${id}-item-${n.id}`} className="border-b last:border-b-0">
                   {n.href ? (
                     <Link
+                      id={`${id}-link-${n.id}`}
                       href={n.href}
                       onClick={() => {
                         markAsRead(n.id)
@@ -96,6 +113,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                     </Link>
                   ) : (
                     <button
+                      id={`${id}-btn-${n.id}`}
                       type="button"
                       onClick={() => markAsRead(n.id)}
                       className={`w-full px-4 py-3 text-left hover:bg-gray-50 ${!n.read ? 'bg-primary-50/50' : ''}`}

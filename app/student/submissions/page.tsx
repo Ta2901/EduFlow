@@ -15,14 +15,14 @@ export default function StudentSubmissionsPage() {
   const submissions = getStudentSubmissions(currentUser.id)
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <PageHeader userId={currentUser.id} title="Trạng thái nộp bài" backHref="/student/dashboard" />
+    <div id="student-submissions" className="min-h-screen bg-gray-50 text-gray-900">
+      <PageHeader id="student-submissions-header" userId={currentUser.id} title="Trạng thái nộp bài" backHref="/student/dashboard" />
 
-      <div className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
+      <div id="student-submissions-list" className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
         {submissions.length === 0 ? (
           <div className="rounded-xl border border-dashed bg-white py-12 text-center">
             <p className="text-gray-500">Chưa có bài tập.</p>
-            <Link href="/student/join" className="mt-2 inline-block text-sm font-medium text-primary-600">
+            <Link id="student-submissions-join" href="/student/join" className="mt-2 inline-block text-sm font-medium text-primary-600">
               Tham gia lớp
             </Link>
           </div>
@@ -33,6 +33,7 @@ export default function StudentSubmissionsPage() {
             return (
               <Link
                 key={sub.id}
+                id={`student-submissions-item-${sub.id}`}
                 href={`/student/assignments/${sub.taskId}`}
                 className="block rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
               >

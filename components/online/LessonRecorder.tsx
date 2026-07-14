@@ -10,9 +10,15 @@ interface LessonRecorderProps {
   classId: string
   sessionId: string
   disabled?: boolean
+  id?: string
 }
 
-export default function LessonRecorder({ classId, sessionId, disabled }: LessonRecorderProps) {
+export default function LessonRecorder({
+  classId,
+  sessionId,
+  disabled,
+  id = 'lesson-recorder',
+}: LessonRecorderProps) {
   const [recording, setRecording] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -121,7 +127,7 @@ export default function LessonRecorder({ classId, sessionId, disabled }: LessonR
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div id={id} className="rounded-lg border bg-white p-4">
       <h3 className="font-semibold text-gray-900">Ghi hình bài giảng</h3>
       <p className="mt-1 text-xs text-gray-500">
         Ghi lại màn hình + giọng giảng. File được lưu để học sinh xem lại sau buổi học.
@@ -129,6 +135,7 @@ export default function LessonRecorder({ classId, sessionId, disabled }: LessonR
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!recording ? (
           <button
+            id={`${id}-start`}
             type="button"
             disabled={disabled || uploading}
             onClick={startRecording}
@@ -139,6 +146,7 @@ export default function LessonRecorder({ classId, sessionId, disabled }: LessonR
           </button>
         ) : (
           <button
+            id={`${id}-stop`}
             type="button"
             onClick={stopRecording}
             className="inline-flex items-center rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
@@ -148,7 +156,7 @@ export default function LessonRecorder({ classId, sessionId, disabled }: LessonR
           </button>
         )}
         {uploading && (
-          <span className="inline-flex items-center text-sm text-gray-500">
+          <span id={`${id}-uploading`} className="inline-flex items-center text-sm text-gray-500">
             <Upload className="mr-1 h-4 w-4 animate-pulse" />
             Đang tải lên...
           </span>

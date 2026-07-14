@@ -20,11 +20,17 @@ interface JitsiMeetingProps {
   roomCode: string
   displayName: string
   isTeacher: boolean
+  id?: string
 }
 
 const JITSI_DOMAIN = process.env.NEXT_PUBLIC_JITSI_DOMAIN || 'meet.jit.si'
 
-export default function JitsiMeeting({ roomCode, displayName, isTeacher }: JitsiMeetingProps) {
+export default function JitsiMeeting({
+  roomCode,
+  displayName,
+  isTeacher,
+  id = 'jitsi-meeting',
+}: JitsiMeetingProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const apiRef = useRef<JitsiApi | null>(null)
 
@@ -92,7 +98,7 @@ export default function JitsiMeeting({ roomCode, displayName, isTeacher }: Jitsi
   }, [roomCode, displayName, isTeacher])
 
   return (
-    <div className="relative h-full min-h-[360px] w-full overflow-hidden rounded-lg border bg-gray-900">
+    <div id={id} className="relative h-full min-h-[360px] w-full overflow-hidden rounded-lg border bg-gray-900">
       <div ref={containerRef} className="h-full w-full min-h-[360px]" />
       <p className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-0.5 text-[10px] text-white">
         Video call · Chia sẻ màn hình qua nút Desktop trên thanh công cụ

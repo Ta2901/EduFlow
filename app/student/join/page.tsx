@@ -41,10 +41,11 @@ export default function JoinClassPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <PageHeader userId={currentUser.id} title="Tham gia lớp học" backHref="/student/dashboard" />
+    <div id="student-join" className="min-h-screen bg-gray-50 text-gray-900">
+      <PageHeader id="student-join-header" userId={currentUser.id} title="Tham gia lớp học" backHref="/student/dashboard" />
 
       <motion.form
+        id="student-join-form"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
@@ -59,13 +60,13 @@ export default function JoinClassPage() {
           </div>
 
           <div>
-            <label htmlFor="code" className="mb-2 block text-sm font-medium text-gray-700">
+            <label htmlFor="student-join-code" className="mb-2 block text-sm font-medium text-gray-700">
               Mã lớp <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
-                id="code"
+                id="student-join-code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 required
@@ -78,6 +79,7 @@ export default function JoinClassPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
+              id="student-join-cancel"
               type="button"
               onClick={() => router.push('/student/dashboard')}
               className="flex-1 rounded-lg border border-gray-300 py-3 text-center text-gray-700 hover:bg-gray-50"
@@ -85,6 +87,7 @@ export default function JoinClassPage() {
               Hủy
             </button>
             <button
+              id="student-join-submit"
               type="submit"
               disabled={isLoading}
               className="flex-1 rounded-lg bg-primary-600 py-3 font-medium text-white hover:bg-primary-700 disabled:opacity-50"

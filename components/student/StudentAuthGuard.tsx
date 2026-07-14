@@ -14,6 +14,7 @@ export default function StudentAuthGuard({ children }: { children: React.ReactNo
   const currentUser = useAuthStore((s) => s.currentUser)
   const isReady = useAuthStore((s) => s.isReady)
   const refreshEdu = useEduStore((s) => s.refresh)
+  const eduLoaded = useEduStore((s) => s.isLoaded)
   const refreshNotifications = useNotificationStore((s) => s.refresh)
   const [ready, setReady] = useState(false)
 
@@ -21,23 +22,30 @@ export default function StudentAuthGuard({ children }: { children: React.ReactNo
     let cancelled = false
 
     async function init() {
-      await hydrate()
+      if (!useAuthStore.getState().isReady) {
+        await hydrate()
+      }
       const user = useAuthStore.getState().currentUser
       if (!user || user.role !== 'student') {
         router.replace('/login')
         return
       }
-      await Promise.all([refreshEdu(), refreshNotifications()])
+
+      const jobs: Promise<unknown>[] = []
+      if (!useEduStore.getState().isLoaded) jobs.push(refreshEdu())
+      if (!useNotificationStore.getState().isLoaded) jobs.push(refreshNotifications())
+      if (jobs.length) await Promise.all(jobs)
+
       if (!cancelled) setReady(true)
     }
 
-    init()
+    void init()
     return () => {
       cancelled = true
     }
   }, [hydrate, refreshEdu, refreshNotifications, router])
 
-  if (!isReady || !ready || !currentUser) {
+  if (!isReady || !ready || !currentUser || !eduLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />

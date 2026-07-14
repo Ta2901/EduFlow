@@ -18,11 +18,18 @@ export async function getUserAccount(userId: string) {
   return prisma.user.findUnique({ where: { id: userId } })
 }
 
+/** Use when the user row is already loaded (avoids a second DB round-trip). */
+export function assertCanLoginUser(user: {
+  accountStatus: string
+}) {
+  const err = loginErrorForStatus(user.accountStatus as AccountStatus)
+  if (err) throw new Error(err)
+}
+
 export async function assertCanLogin(userId: string) {
   const user = await getUserAccount(userId)
   if (!user) throw new Error('Không tìm thấy tài khoản')
-  const err = loginErrorForStatus(user.accountStatus as AccountStatus)
-  if (err) throw new Error(err)
+  assertCanLoginUser(user)
   return user
 }
 
