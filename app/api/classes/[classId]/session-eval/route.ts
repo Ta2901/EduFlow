@@ -14,7 +14,7 @@ export async function GET(req: Request, { params }: Ctx) {
   try {
     const { searchParams } = new URL(req.url)
     const view = searchParams.get('view')
-    if (view === 'summary') {
+    if (view === 'summary' || session.role !== 'student') {
       const summary = await getSessionEvalSummary(params.classId, session)
       return jsonOk({ summary })
     }

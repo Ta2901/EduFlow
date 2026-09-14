@@ -4,11 +4,12 @@ import { createNotification } from './notifications'
 import type { SessionPayload } from './session'
 
 function todayYmd() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 }
 
 async function assertTeacherOwnsClass(classId: string, session: SessionPayload) {
@@ -74,7 +75,7 @@ export function summarizePlan(
     (i) => i.status === 'planned' && i.plannedDate && i.plannedDate < today
   ).length
   const dueSoon = items.filter(
-    (i) => i.status === 'planned' && i.plannedDate && i.plannedDate >= today && i.plannedDate <= today
+    (i) => i.status === 'planned' && i.plannedDate && i.plannedDate === today
   ).length
   const expectedByToday = items.filter(
     (i) => i.plannedDate && i.plannedDate <= today && i.status !== 'skipped'

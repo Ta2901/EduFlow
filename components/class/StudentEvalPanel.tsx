@@ -59,13 +59,9 @@ export default function StudentEvalPanel({
   const [sessionRating, setSessionRating] = useState(5)
   const [sessionComment, setSessionComment] = useState('')
   const [activeSession, setActiveSession] = useState<string | null>(null)
-  const [courseForm, setCourseForm] = useState({
-    evaluationId: '',
-    teachingQuality: 5,
-    contentClarity: 5,
-    pacing: 5,
-    comment: '',
-  })
+  const [courseForms, setCourseForms] = useState<
+    Record<string, { teachingQuality: number; contentClarity: number; pacing: number; comment: string }>
+  >({})
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -80,17 +76,20 @@ export default function StudentEvalPanel({
         ? pendingRes.pending.find((p) => p.sessionKey === highlightSessionKey)
         : undefined
       setActiveSession(highlighted?.sessionKey ?? pendingRes.pending[0]?.sessionKey ?? null)
-
-      const openCourse =
-        courseRes.evaluations.find(
-          (e) =>
-            e.status === 'open' &&
-            !e.submitted &&
-            (!highlightCourseKind || e.kind === highlightCourseKind)
-        ) ?? courseRes.evaluations.find((e) => e.status === 'open' && !e.submitted)
-      if (openCourse) {
-        setCourseForm((f) => ({ ...f, evaluationId: openCourse.id }))
-      }
+      setCourseForms((prev) => {
+        const next = { ...prev }
+        for (const ev of courseRes.evaluations) {
+          if (!next[ev.id]) {
+            next[ev.id] = {
+              teachingQuality: 5,
+              contentClarity: 5,
+              pacing: 5,
+              comment: '',
+            }
+          }
+        }
+        return next
+      })
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Không tải được đánh giá')
     } finally {
@@ -121,8 +120,14 @@ export default function StudentEvalPanel({
   }
 
   const submitCourse = async (evaluationId: string) => {
+    const form = courseForms[evaluationId] ?? {
+      teachingQuality: 5,
+      contentClarity: 5,
+      pacing: 5,
+      comment: '',
+    }
     try {
-      await api.edu.submitCourseEval(classId, { ...courseForm, evaluationId })
+      await api.edu.submitCourseEval(classId, { evaluationId, ...form })
       toast.success('Đã gửi đánh giá khoá học')
       await load()
     } catch (e) {
@@ -138,7 +143,13 @@ export default function StudentEvalPanel({
     )
   }
 
-  const openCourses = courseEvals.filter((e) => e.status === 'open' && !e.submitted)
+  const openCourses = courseEvals
+    .filter((e) => e.status === 'open' && !e.submitted)
+    .sort((a, b) => {
+      if (highlightCourseKind && a.kind === highlightCourseKind) return -1
+      if (highlightCourseKind && b.kind === highlightCourseKind) return 1
+      return a.kind === 'midterm' ? -1 : 1
+    })
   const active = pendingSessions.find((p) => p.sessionKey === activeSession)
 
   if (pendingSessions.length === 0 && openCourses.length === 0) {
@@ -214,7 +225,19 @@ export default function StudentEvalPanel({
         </div>
       )}
 
-      {openCourses.map((ev) => (
+      {openCourses.map((ev) => {
+        const form = courseForms[ev.id] ?? {
+          teachingQuality: 5,
+          contentClarity: 5,
+          pacing: 5,
+          comment: '',
+        }
+        const patch = (partial: Partial<typeof form>) =>
+          setCourseForms((prev) => ({
+            ...prev,
+            [ev.id]: { ...form, ...partial },
+          }))
+        return (
         <div key={ev.id} id={`${id}-course-${ev.kind}`} className="rounded-xl border bg-white p-5 shadow-sm">
           <h2 className="font-semibold text-gray-900">
             Đánh giá {ev.kind === 'midterm' ? 'giữa kỳ' : 'cuối kỳ'}
@@ -224,31 +247,25 @@ export default function StudentEvalPanel({
             <RatingRow
               id={`${id}-${ev.kind}-teaching`}
               label="Chất lượng giảng dạy"
-              value={courseForm.evaluationId === ev.id ? courseForm.teachingQuality : 5}
-              onChange={(n) =>
-                setCourseForm((f) => ({ ...f, evaluationId: ev.id, teachingQuality: n }))
-              }
+              value={form.teachingQuality}
+              onChange={(n) => patch({ teachingQuality: n })}
             />
             <RatingRow
               id={`${id}-${ev.kind}-clarity`}
               label="Độ rõ ràng nội dung"
-              value={courseForm.evaluationId === ev.id ? courseForm.contentClarity : 5}
-              onChange={(n) =>
-                setCourseForm((f) => ({ ...f, evaluationId: ev.id, contentClarity: n }))
-              }
+              value={form.contentClarity}
+              onChange={(n) => patch({ contentClarity: n })}
             />
             <RatingRow
               id={`${id}-${ev.kind}-pacing`}
               label="Nhịp độ học"
-              value={courseForm.evaluationId === ev.id ? courseForm.pacing : 5}
-              onChange={(n) => setCourseForm((f) => ({ ...f, evaluationId: ev.id, pacing: n }))}
+              value={form.pacing}
+              onChange={(n) => patch({ pacing: n })}
             />
             <textarea
               id={`${id}-${ev.kind}-comment`}
-              value={courseForm.evaluationId === ev.id ? courseForm.comment : ''}
-              onChange={(e) =>
-                setCourseForm((f) => ({ ...f, evaluationId: ev.id, comment: e.target.value }))
-              }
+              value={form.comment}
+              onChange={(e) => patch({ comment: e.target.value })}
               placeholder="Nhận xét thêm"
               rows={2}
               className="w-full rounded-lg border px-3 py-2 text-sm"
@@ -263,7 +280,8 @@ export default function StudentEvalPanel({
             </button>
           </div>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

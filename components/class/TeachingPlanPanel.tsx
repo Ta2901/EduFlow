@@ -57,8 +57,12 @@ export default function TeachingPlanPanel({
       )
       setSummary(plan.summary)
       if (isTeacher) {
-        const { summary: ev } = await api.edu.getSessionEvalSummary(classId)
-        setSessionAvg({ average: ev.average, count: ev.count })
+        try {
+          const { summary: ev } = await api.edu.getSessionEvalSummary(classId)
+          setSessionAvg({ average: ev.average, count: ev.count })
+        } catch {
+          setSessionAvg(null)
+        }
       }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Không tải được kế hoạch')

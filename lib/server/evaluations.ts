@@ -71,10 +71,13 @@ export async function listPendingSessionEvals(classId: string, session: SessionP
   })
 
   const keys = ended.map((s) => `online-${s.id}`)
-  const done = await prisma.sessionTeacherEval.findMany({
-    where: { studentId: session.userId, sessionKey: { in: keys } },
-    select: { sessionKey: true },
-  })
+  const done =
+    keys.length === 0
+      ? []
+      : await prisma.sessionTeacherEval.findMany({
+          where: { studentId: session.userId, sessionKey: { in: keys } },
+          select: { sessionKey: true },
+        })
   const doneSet = new Set(done.map((d) => d.sessionKey))
 
   return ended
@@ -103,13 +106,16 @@ export async function submitSessionEval(
   const rating = clampRating(input.rating)
   const comment = (input.comment ?? '').trim().slice(0, 1000)
 
-  if (input.onlineSessionId) {
-    const online = await prisma.onlineSession.findFirst({
-      where: { id: input.onlineSessionId, classId: input.classId, status: 'ended' },
-    })
-    if (!online) throw new Error('Buổi học chưa kết thúc hoặc không hợp lệ')
-    if (input.sessionKey !== `online-${online.id}`) throw new Error('sessionKey không khớp')
-  }
+  const onlineSessionId =
+    input.onlineSessionId ||
+    (input.sessionKey.startsWith('online-') ? input.sessionKey.slice('online-'.length) : undefined)
+  if (!onlineSessionId) throw new Error('Buổi học không hợp lệ')
+
+  const online = await prisma.onlineSession.findFirst({
+    where: { id: onlineSessionId, classId: input.classId, status: 'ended' },
+  })
+  if (!online) throw new Error('Buổi học chưa kết thúc hoặc không hợp lệ')
+  if (input.sessionKey !== `online-${online.id}`) throw new Error('sessionKey không khớp')
 
   const row = await prisma.sessionTeacherEval.upsert({
     where: {
@@ -121,7 +127,7 @@ export async function submitSessionEval(
     create: {
       classId: input.classId,
       sessionKey: input.sessionKey,
-      onlineSessionId: input.onlineSessionId,
+      onlineSessionId,
       studentId: session.userId,
       rating,
       comment,
@@ -186,7 +192,7 @@ export async function listCourseEvals(classId: string, session: SessionPayload) 
     classroom.enrollments.some((e) => e.studentId === session.userId)
   if (!isTeacher && !isStudent) throw new Error('Không có quyền')
 
-  const evals = await prisma.courseEvaluation.findMany({
+  let evals = await prisma.courseEvaluation.findMany({
     where: { classId },
     include: {
       responses: isTeacher
@@ -199,14 +205,25 @@ export async function listCourseEvals(classId: string, session: SessionPayload) 
 
   // Ensure midterm + final rows exist as draft placeholders for teacher/admin UI
   if (isTeacher) {
-    for (const kind of ['midterm', 'final'] as const) {
-      if (!evals.some((e) => e.kind === kind)) {
-        const created = await prisma.courseEvaluation.create({
-          data: { classId, kind, status: 'draft' },
-          include: { responses: true, _count: { select: { responses: true } } },
-        })
-        evals.push(created)
-      }
+    const missing = (['midterm', 'final'] as const).filter((kind) => !evals.some((e) => e.kind === kind))
+    if (missing.length > 0) {
+      await Promise.all(
+        missing.map((kind) =>
+          prisma.courseEvaluation.upsert({
+            where: { classId_kind: { classId, kind } },
+            create: { classId, kind, status: 'draft' },
+            update: {},
+          })
+        )
+      )
+      evals = await prisma.courseEvaluation.findMany({
+        where: { classId },
+        include: {
+          responses: true,
+          _count: { select: { responses: true } },
+        },
+        orderBy: { kind: 'asc' },
+      })
     }
   }
 
@@ -232,16 +249,17 @@ export async function listCourseEvals(classId: string, session: SessionPayload) 
           closeAt: e.closeAt?.toISOString(),
           responseCount: e._count.responses,
           averageTeachingQuality: isTeacher ? avgTeaching : undefined,
-          submitted: Boolean(my),
-          myResponse: my
-            ? {
-                teachingQuality: my.teachingQuality,
-                contentClarity: my.contentClarity,
-                pacing: my.pacing,
-                comment: my.comment,
-                createdAt: my.createdAt.toISOString(),
-              }
-            : undefined,
+          submitted: isStudent && Boolean(my),
+          myResponse:
+            isStudent && my
+              ? {
+                  teachingQuality: my.teachingQuality,
+                  contentClarity: my.contentClarity,
+                  pacing: my.pacing,
+                  comment: my.comment,
+                  createdAt: my.createdAt.toISOString(),
+                }
+              : undefined,
         }
       }),
   }
@@ -384,14 +402,17 @@ export async function getAdminEvalOverview(session: SessionPayload) {
   const classIds = Array.from(
     new Set([...sessionAgg.map((s) => s.classId), ...courseEvals.map((c) => c.classId)])
   )
-  const classes = await prisma.class.findMany({
-    where: { id: { in: classIds } },
-    select: {
-      id: true,
-      title: true,
-      teacher: { select: { fullName: true } },
-    },
-  })
+  const classes =
+    classIds.length === 0
+      ? []
+      : await prisma.class.findMany({
+          where: { id: { in: classIds } },
+          select: {
+            id: true,
+            title: true,
+            teacher: { select: { fullName: true } },
+          },
+        })
   const classMap = new Map(classes.map((c) => [c.id, c]))
 
   return {

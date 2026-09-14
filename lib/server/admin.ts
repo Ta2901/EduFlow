@@ -252,13 +252,16 @@ export async function updateAdminClassRoster(
   if (!classroom) throw new Error('Không tìm thấy lớp học')
 
   const uniqueIds = Array.from(new Set(studentIds))
-  const students = await prisma.user.findMany({
-    where: {
-      id: { in: uniqueIds },
-      role: 'student',
-      accountStatus: { in: ['active', 'restricted'] },
-    },
-  })
+  const students =
+    uniqueIds.length === 0
+      ? []
+      : await prisma.user.findMany({
+          where: {
+            id: { in: uniqueIds },
+            role: 'student',
+            accountStatus: { in: ['active', 'restricted'] },
+          },
+        })
   if (students.length !== uniqueIds.length) {
     throw new Error('Một số học sinh không hợp lệ')
   }

@@ -45,16 +45,20 @@ export async function getStudentProgressInClass(
     orderBy: { dueDate: 'asc' },
   })
 
-  const submissions = await prisma.submission.findMany({
-    where: {
-      studentId,
-      taskId: { in: tasks.map((t) => t.id) },
-    },
-    include: {
-      student: { select: { fullName: true, email: true } },
-      files: true,
-    },
-  })
+  const taskIds = tasks.map((t) => t.id)
+  const submissions =
+    taskIds.length === 0
+      ? []
+      : await prisma.submission.findMany({
+          where: {
+            studentId,
+            taskId: { in: taskIds },
+          },
+          include: {
+            student: { select: { fullName: true, email: true } },
+            files: true,
+          },
+        })
 
   const submissionByTask = new Map(submissions.map((s) => [s.taskId, mapSubmission(s)]))
   const mappedTasks = tasks.map(mapTask)
