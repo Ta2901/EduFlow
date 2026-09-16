@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import type { SessionUser, UserRole, AccountStatus } from '../types'
+import { getJwtSecretString } from './jwt-secret'
 
 const COOKIE_NAME = 'eduflow_session'
 
@@ -11,9 +12,15 @@ export interface SessionPayload {
 }
 
 function getSecret() {
-  const secret = process.env.JWT_SECRET
-  if (!secret) throw new Error('JWT_SECRET is not set')
-  return new TextEncoder().encode(secret)
+  return new TextEncoder().encode(getJwtSecretString())
+}
+
+function cookieSecure() {
+  if (process.env.COOKIE_SECURE === 'true') return true
+  if (process.env.COOKIE_SECURE === 'false') return false
+  const proto = headers().get('x-forwarded-proto') ?? headers().get('x-forwarded-protocol')
+  if (proto) return proto.split(',')[0].trim() === 'https'
+  return process.env.NODE_ENV === 'production'
 }
 
 export async function createSessionToken(payload: SessionPayload) {
@@ -38,7 +45,7 @@ export async function setSessionCookie(payload: SessionPayload) {
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookieSecure(),
     path: '/',
     maxAge: 60 * 60 * 24 * 7,
   })
@@ -48,7 +55,7 @@ export function clearSessionCookie() {
   cookies().set(COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookieSecure(),
     path: '/',
     maxAge: 0,
   })
