@@ -10,6 +10,7 @@ import { formatDate, SUBMISSION_STATUS_COLORS, SUBMISSION_STATUS_LABELS } from '
 import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
 import StudentEvalPanel from '@/components/class/StudentEvalPanel'
+import StudentPracticePanel from '@/components/class/StudentPracticePanel'
 
 export default function StudentCoursePage() {
   const params = useParams()
@@ -58,6 +59,8 @@ export default function StudentCoursePage() {
           highlightSessionKey={evalSession}
           highlightCourseKind={courseEvalKind}
         />
+
+        <StudentPracticePanel id="student-course-practice" classId={courseId} />
 
         <div className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
           <OnlineSessionPanel id="student-course-online" classId={courseId} isTeacher={false} />

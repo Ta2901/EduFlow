@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Calendar, FileText, Plus, Copy, Paperclip, GraduationCap, CalendarDays, Video, ClipboardList } from 'lucide-react'
+import { Users, Calendar, FileText, Plus, Copy, Paperclip, GraduationCap, CalendarDays, Video, ClipboardList, Timer } from 'lucide-react'
 import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import ClassSettingsActions from '@/components/class/ClassSettingsActions'
 import TeachingPlanPanel from '@/components/class/TeachingPlanPanel'
 import CourseEvalManagePanel from '@/components/class/CourseEvalManagePanel'
+import PracticeSetPanel from '@/components/class/PracticeSetPanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
 import Link from 'next/link'
 import PageHeader from '@/components/layout/PageHeader'
@@ -51,6 +52,7 @@ export default function CourseDetailPage() {
     { id: 'online', label: 'Học online', icon: Video },
     { id: 'students', label: 'Học sinh', icon: Users },
     { id: 'assignments', label: 'Bài tập', icon: FileText },
+    { id: 'practice', label: 'Luyện tập', icon: Timer },
   ]
 
   return (
@@ -282,6 +284,10 @@ export default function CourseDetailPage() {
                   </p>
                 )}
               </div>
+            )}
+
+            {activeTab === 'practice' && (
+              <PracticeSetPanel id="teacher-course-practice" classId={courseId} canEdit />
             )}
           </div>
         </div>

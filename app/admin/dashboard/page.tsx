@@ -19,6 +19,7 @@ import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 import BulkStudentImport from '@/components/admin/BulkStudentImport'
 import AdminWorkCharts from '@/components/dashboard/AdminWorkCharts'
 import AdminTeachingMonitor from '@/components/dashboard/AdminTeachingMonitor'
+import PracticeSetPanel from '@/components/class/PracticeSetPanel'
 import SettingsPanel from '@/components/settings/SettingsPanel'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -534,6 +535,13 @@ export default function AdminDashboardPage() {
                     >
                       Lưu danh sách ({rosterIds.length} học sinh)
                     </button>
+                    <div className="mt-6 border-t pt-4">
+                      <PracticeSetPanel
+                        id="admin-dashboard-class-practice"
+                        classId={selectedClass.id}
+                        canEdit
+                      />
+                    </div>
                   </>
                 )}
               </div>

@@ -38,6 +38,8 @@ function isClientCurrent(client: PrismaClient | undefined): client is PrismaClie
     teachingPlanItem?: { findMany?: unknown }
     sessionTeacherEval?: { findMany?: unknown }
     courseEvaluation?: { findMany?: unknown }
+    practiceSet?: { findMany?: unknown }
+    practiceCardState?: { findMany?: unknown }
   }
   return (
     typeof delegates?.classChat?.findUnique === 'function' &&
@@ -46,7 +48,9 @@ function isClientCurrent(client: PrismaClient | undefined): client is PrismaClie
     typeof delegates?.quickLoginToken?.create === 'function' &&
     typeof delegates?.teachingPlanItem?.findMany === 'function' &&
     typeof delegates?.sessionTeacherEval?.findMany === 'function' &&
-    typeof delegates?.courseEvaluation?.findMany === 'function'
+    typeof delegates?.courseEvaluation?.findMany === 'function' &&
+    typeof delegates?.practiceSet?.findMany === 'function' &&
+    typeof delegates?.practiceCardState?.findMany === 'function'
   )
 }
 

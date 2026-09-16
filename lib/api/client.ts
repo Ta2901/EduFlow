@@ -386,6 +386,178 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ action: 'respond', ...body }),
       }),
+    listPracticeSets: (classId: string) =>
+      request<{
+        sets: {
+          id: string
+          classId: string
+          title: string
+          description: string
+          source: string
+          pomodoroMinutes: number
+          questionCount: number
+          attemptCount: number
+          myAttempts?: number
+          lastScore?: number
+          lastTotal?: number
+          dueCount?: number
+          newCount?: number
+          masteredCount?: number
+        }[]
+      }>(`/api/classes/${classId}/practice`),
+    createPracticeSet: (
+      classId: string,
+      body: {
+        title: string
+        description?: string
+        source?: string
+        pomodoroMinutes?: number
+        questions?: { prompt: string; explanation?: string; options: { text: string; isCorrect: boolean }[] }[]
+      }
+    ) => request<{ set: unknown }>(`/api/classes/${classId}/practice`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+    getPracticeSet: (setId: string) =>
+      request<{
+        set: {
+          id: string
+          classId: string
+          title: string
+          description: string
+          source: string
+          pomodoroMinutes: number
+          questions: {
+            id: string
+            prompt: string
+            explanation?: string
+            options: { id: string; text: string; isCorrect?: boolean }[]
+          }[]
+        }
+      }>(`/api/practice/${setId}`),
+    updatePracticeSet: (setId: string, body: unknown) =>
+      request<{ set: unknown }>(`/api/practice/${setId}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    deletePracticeSet: (setId: string) =>
+      request<{ ok: boolean }>(`/api/practice/${setId}`, { method: 'DELETE' }),
+    importPracticeFile: (setId: string, file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return request<{ set: unknown }>(`/api/practice/${setId}`, { method: 'POST', body: form })
+    },
+    generatePractice: (setId: string, body: { topic: string; count?: number }) =>
+      request<{ set: unknown }>(`/api/practice/${setId}`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'generate', ...body }),
+      }),
+    startPractice: (setId: string) =>
+      request<{
+        attempt: {
+          id: string
+          setId: string
+          status: string
+          total: number
+          pomodoroMinutes: number
+          startedAt: string
+          title: string
+          score?: number
+          questions: {
+            id: string
+            prompt: string
+            explanation?: string
+            selectedOptionId?: string
+            isCorrect?: boolean
+            rating?: string
+            options: { id: string; text: string; isCorrect?: boolean }[]
+          }[]
+        }
+      }>(`/api/practice/${setId}`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'start' }),
+      }),
+    savePracticeAnswers: (
+      setId: string,
+      attemptId: string,
+      answers: { questionId: string; optionId: string | null }[]
+    ) =>
+      request<{
+        ok: boolean
+        revealed?: {
+          questionId: string
+          isCorrect: boolean
+          explanation?: string
+          correctOptionId?: string
+        }[]
+      }>(`/api/practice/${setId}/attempts/${attemptId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'save', answers }),
+      }),
+    ratePractice: (
+      setId: string,
+      attemptId: string,
+      body: { questionId: string; optionId?: string | null; timeSpentMs?: number }
+    ) =>
+      request<{
+        rating: string
+        ratingLabel: string
+        reason: string
+        box: number
+        nextLabel: string
+        nextReviewAt: string
+        isCorrect: boolean
+        sessionComplete: boolean
+        attempt: unknown
+      }>(`/api/practice/${setId}/attempts/${attemptId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'evaluate', ...body }),
+      }),
+    submitPractice: (
+      setId: string,
+      attemptId: string,
+      body: { answers?: { questionId: string; optionId: string | null }[]; expired?: boolean }
+    ) =>
+      request<{ attempt: unknown }>(`/api/practice/${setId}/attempts/${attemptId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'submit', ...body }),
+      }),
+    getPracticeStats: (setId: string) =>
+      request<{
+        stats: {
+          title: string
+          questionCount: number
+          attemptCount: number
+          averageScore: number
+          boxes?: { 1: number; 2: number; 3: number; 4: number; 5: number }
+          dueNow?: number
+          students: {
+            studentId: string
+            fullName: string
+            email: string
+            attempts: number
+            best: number
+            last: number
+            total: number
+          }[]
+          questions: {
+            id: string
+            prompt: string
+            timesAnswered: number
+            correct: number
+            accuracy: number
+          }[]
+          recent: {
+            id: string
+            studentName: string
+            score: number
+            total: number
+            durationSec: number
+            status: string
+            startedAt: string
+          }[]
+        }
+      }>(`/api/practice/${setId}?view=stats`),
   },
 
   upload: (file: File) => {

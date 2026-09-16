@@ -16,6 +16,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   admin_reminder: 'Nhắc từ Admin',
   session_eval: 'Đánh giá buổi học',
   course_eval: 'Đánh giá khoá học',
+  practice_set: 'Luyện tập',
 }
 
 interface NotificationBellProps {

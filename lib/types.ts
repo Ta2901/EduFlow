@@ -250,6 +250,7 @@ export type NotificationType =
   | 'admin_reminder'
   | 'session_eval'
   | 'course_eval'
+  | 'practice_set'
 
 export interface AppNotification {
   id: string

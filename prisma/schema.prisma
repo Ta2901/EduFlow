@@ -36,6 +36,9 @@ model User {
   quickLogins   QuickLoginToken[]
   sessionEvals  SessionTeacherEval[]
   courseEvalResponses CourseEvaluationResponse[]
+  authoredPracticeSets PracticeSet[] @relation("PracticeSetAuthor")
+  practiceAttempts PracticeAttempt[]
+  practiceCardStates PracticeCardState[]
 }
 
 model QuickLoginToken {
@@ -105,6 +108,7 @@ model Class {
   teachingPlan   TeachingPlanItem[]
   sessionEvals   SessionTeacherEval[]
   courseEvals    CourseEvaluation[]
+  practiceSets   PracticeSet[]
 
   @@index([teacherId])
   @@index([status])
@@ -388,6 +392,123 @@ model Notification {
 
   @@unique([userId, dedupeKey])
   @@index([userId, createdAt])
+}
+
+/// Bộ câu hỏi trắc nghiệm luyện tập (Pomodoro), làm nhiều lần
+model PracticeSet {
+  id               String   @id @default(cuid())
+  classId          String
+  teacherId        String
+  title            String
+  description      String   @default("")
+  /// manual | upload | ai
+  source           String   @default("manual")
+  pomodoroMinutes  Int      @default(25)
+  shuffleOptions   Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  class     Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   User                @relation("PracticeSetAuthor", fields: [teacherId], references: [id])
+  questions PracticeQuestion[]
+  attempts  PracticeAttempt[]
+  cardStates PracticeCardState[]
+
+  @@index([classId])
+  @@index([teacherId])
+}
+
+model PracticeQuestion {
+  id          String @id @default(cuid())
+  setId       String
+  prompt      String
+  explanation String @default("")
+  sortOrder   Int    @default(0)
+
+  set     PracticeSet              @relation(fields: [setId], references: [id], onDelete: Cascade)
+  options PracticeOption[]
+  answers PracticeAttemptAnswer[]
+  cardStates PracticeCardState[]
+
+  @@index([setId])
+}
+
+model PracticeOption {
+  id         String  @id @default(cuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  question PracticeQuestion        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  PracticeAttemptAnswer[]
+
+  @@index([questionId])
+}
+
+model PracticeAttempt {
+  id               String    @id @default(cuid())
+  setId            String
+  studentId        String
+  /// in_progress | submitted | expired
+  status           String    @default("in_progress")
+  /// JSON map questionId -> optionId[] (thứ tự đã xáo)
+  optionOrder      String    @default("{}")
+  score            Int       @default(0)
+  total            Int       @default(0)
+  durationSec      Int       @default(0)
+  pomodoroMinutes  Int       @default(25)
+  startedAt        DateTime  @default(now())
+  submittedAt      DateTime?
+
+  set     PracticeSet             @relation(fields: [setId], references: [id], onDelete: Cascade)
+  student User                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers PracticeAttemptAnswer[]
+
+  @@index([setId, studentId, startedAt])
+  @@index([studentId, startedAt])
+}
+
+model PracticeAttemptAnswer {
+  id         String @id @default(cuid())
+  attemptId  String
+  questionId String
+  optionId   String?
+  isCorrect  Boolean @default(false)
+  /// easy | good | hard | forgot
+  rating     String?
+
+  attempt  PracticeAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question PracticeQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  option   PracticeOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+}
+
+/// Spaced repetition / Leitner: một thẻ kiến thức cho mỗi HS × câu hỏi
+model PracticeCardState {
+  id             String    @id @default(cuid())
+  setId          String
+  questionId     String
+  studentId      String
+  /// Hộp 1–5 (Leitner)
+  box            Int       @default(1)
+  reps           Int       @default(0)
+  intervalDays   Float     @default(0)
+  nextReviewAt   DateTime  @default(now())
+  lastRating     String?
+  lastReviewedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  set      PracticeSet      @relation(fields: [setId], references: [id], onDelete: Cascade)
+  question PracticeQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  student  User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, questionId])
+  @@index([setId, studentId, nextReviewAt])
+  @@index([nextReviewAt])
 }
 
 model StoredFile {
