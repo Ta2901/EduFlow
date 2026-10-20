@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import type { ClassRoom, Task } from '@/lib/types'
 
 interface TeacherLearningChartsProps {
@@ -29,6 +30,7 @@ export default function TeacherLearningCharts({
   getSubmissionStats,
   id = 'teacher-learning-charts',
 }: TeacherLearningChartsProps) {
+  const { t } = useI18n()
   const classBars = useMemo(() => {
     return classes.map((c) => {
       const classTasks = tasks.filter((t) => t.classId === c.id)
@@ -64,11 +66,11 @@ export default function TeacherLearningCharts({
       missing += Math.max(0, s.total - s.submitted)
     }
     return [
-      { name: 'Đã nộp', value: submitted, color: '#22c55e' },
-      { name: 'Chưa nộp', value: missing, color: '#f59e0b' },
-      { name: 'Nộp muộn', value: late, color: '#ef4444' },
+      { name: t('charts.submitted'), value: submitted, color: '#22c55e' },
+      { name: t('charts.pending'), value: missing, color: '#f59e0b' },
+      { name: t('status.submission.late'), value: late, color: '#ef4444' },
     ].filter((d) => d.value > 0)
-  }, [tasks, getSubmissionStats])
+  }, [tasks, getSubmissionStats, t])
 
   const taskBars = useMemo(() => {
     return [...tasks]
@@ -100,15 +102,15 @@ export default function TeacherLearningCharts({
   return (
     <div id={id} className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Thống kê giảng dạy</h2>
-        <p className="text-sm text-gray-500">Tình trạng nộp bài và tiến độ theo lớp</p>
+        <h2 className="text-lg font-semibold text-gray-900">{t('charts.teacherTitle')}</h2>
+        <p className="text-sm text-gray-500">{t('charts.teacherSubtitle')}</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div id={`${id}-status`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-3 text-sm font-semibold text-gray-800">Tình trạng nộp bài (toàn bộ)</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.allSubmissions')}</h3>
           {submissionPie.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Chưa có bài tập</p>
+            <p className="py-10 text-center text-sm text-gray-400">{t('charts.noTasks')}</p>
           ) : (
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -136,7 +138,7 @@ export default function TeacherLearningCharts({
         </div>
 
         <div id={`${id}-by-class`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:col-span-2">
-          <h3 className="mb-3 text-sm font-semibold text-gray-800">Tiến độ theo lớp (%)</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.byClassRate')}</h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={classBars} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -145,16 +147,16 @@ export default function TeacherLearningCharts({
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                 <Tooltip
                   formatter={(value: number, name: string) => {
-                    if (name === 'submitRate') return [`${value}%`, 'Tỷ lệ nộp']
-                    if (name === 'students') return [value, 'Học sinh']
-                    if (name === 'tasks') return [value, 'Bài tập']
+                    if (name === 'submitRate') return [`${value}%`, t('charts.submitRate')]
+                    if (name === 'students') return [value, t('charts.students')]
+                    if (name === 'tasks') return [value, t('charts.tasks')]
                     return [value, name]
                   }}
                 />
                 <Legend />
-                <Bar dataKey="submitRate" name="Tỷ lệ nộp %" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="students" name="Học sinh" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="tasks" name="Bài tập" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="submitRate" name={t('charts.submitRate')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="students" name={t('charts.students')} fill="#22c55e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="tasks" name={t('charts.tasks')} fill="#a855f7" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -162,9 +164,9 @@ export default function TeacherLearningCharts({
       </div>
 
       <div id={`${id}-by-task`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <h3 className="mb-3 text-sm font-semibold text-gray-800">Nộp bài theo từng bài tập</h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.perTask')}</h3>
         {taskBars.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-400">Chưa giao bài tập</p>
+          <p className="py-8 text-center text-sm text-gray-400">{t('charts.noAssigned')}</p>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -174,9 +176,9 @@ export default function TeacherLearningCharts({
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="submitted" name="Đã nộp" stackId="a" fill="#22c55e" />
-                <Bar dataKey="missing" name="Chưa nộp" stackId="a" fill="#f59e0b" />
-                <Bar dataKey="late" name="Muộn" fill="#ef4444" />
+                <Bar dataKey="submitted" name={t('charts.submitted')} stackId="a" fill="#22c55e" />
+                <Bar dataKey="missing" name={t('charts.pending')} stackId="a" fill="#f59e0b" />
+                <Bar dataKey="late" name={t('charts.lateShort')} fill="#ef4444" />
               </BarChart>
             </ResponsiveContainer>
           </div>

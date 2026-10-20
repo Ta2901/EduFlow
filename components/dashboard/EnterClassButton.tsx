@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Video } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { WEEKDAY_LABELS } from '@/lib/format'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import {
   findNextClassOccurrence,
   type NextClassOccurrence,
@@ -22,6 +22,7 @@ export default function EnterClassButton({
   classes,
   id = 'student-enter-class',
 }: EnterClassButtonProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const load = useScheduleOverviewStore((s) => s.load)
   const slots = useScheduleOverviewStore((s) => s.slots)
@@ -53,17 +54,17 @@ export default function EnterClassButton({
       : `/student/courses/${next.classId}`
     : null
 
-  const label = nextLabel(next, Boolean(next && liveByClass[next.classId]))
+  const label = nextLabel(next, Boolean(next && liveByClass[next.classId]), t)
 
   const handleClick = (e: React.MouseEvent) => {
     if (href) return
     e.preventDefault()
     if (activeClasses.length === 0) {
-      toast.error('Bạn chưa tham gia lớp nào')
+      toast.error(t('student.noClassYet'))
       return
     }
     if (!next) {
-      toast.error('Chưa có tiết học sắp tới trên thời khóa biểu')
+      toast.error(t('student.noUpcoming'))
       router.push('/student/dashboard?tab=courses')
     }
   }
@@ -75,7 +76,7 @@ export default function EnterClassButton({
     return (
       <button id={id} type="button" disabled className={className}>
         <Video className="mr-1.5 h-4 w-4" />
-        Đang tìm lớp…
+        {t('student.findingClass')}
       </button>
     )
   }
@@ -84,8 +85,8 @@ export default function EnterClassButton({
     return (
       <button id={id} type="button" onClick={handleClick} className={className} title={label}>
         <Video className="mr-1.5 h-4 w-4" />
-        <span className="hidden sm:inline">Vào lớp học</span>
-        <span className="sm:hidden">Vào học</span>
+        <span className="hidden sm:inline">{t('student.enterClass')}</span>
+        <span className="sm:hidden">{t('student.enterStudy')}</span>
       </button>
     )
   }
@@ -94,20 +95,24 @@ export default function EnterClassButton({
     <Link id={id} href={href} className={className} title={label} onClick={handleClick}>
       <Video className="mr-1.5 h-4 w-4" />
       <span className="hidden max-w-[220px] truncate sm:inline">
-        {next?.isOngoing ? 'Vào lớp đang học' : 'Vào lớp học'}
+        {next?.isOngoing ? t('student.enterOngoing') : t('student.enterClass')}
       </span>
-      <span className="sm:hidden">Vào học</span>
+      <span className="sm:hidden">{t('student.enterStudy')}</span>
     </Link>
   )
 }
 
-function nextLabel(next: NextClassOccurrence | null, hasLive: boolean): string {
-  if (!next) return 'Chưa có tiết sắp tới'
-  const day = WEEKDAY_LABELS[next.dayOfWeek] || ''
+function nextLabel(
+  next: NextClassOccurrence | null,
+  hasLive: boolean,
+  t: (path: string, vars?: Record<string, string | number>) => string
+): string {
+  if (!next) return t('student.noUpcomingShort')
+  const day = t(`weekday.${next.dayOfWeek}`)
   const room = next.room ? ` · ${next.room}` : ''
-  const live = hasLive ? ' · Đang live' : ''
+  const live = hasLive ? ` · ${t('student.live')}` : ''
   if (next.isOngoing) {
-    return `${next.subject} · đang diễn ra${room}${live}`
+    return `${next.subject} · ${t('student.ongoing')}${room}${live}`
   }
   return `${next.subject} · ${day} ${next.startTime}${room}${live}`
 }

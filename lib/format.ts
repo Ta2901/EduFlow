@@ -1,8 +1,13 @@
+import { localeOption, type Locale } from './i18n/catalog'
 import type { UserRole } from './types'
 
-export function formatDate(dateStr: string): string {
+export function intlTag(locale: Locale = 'vi'): string {
+  return localeOption(locale).intl
+}
+
+export function formatDate(dateStr: string, locale: Locale = 'vi'): string {
   try {
-    return new Date(dateStr).toLocaleDateString('vi-VN', {
+    return new Date(dateStr).toLocaleDateString(intlTag(locale), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -12,9 +17,9 @@ export function formatDate(dateStr: string): string {
   }
 }
 
-export function formatDateTime(dateStr: string): string {
+export function formatDateTime(dateStr: string, locale: Locale = 'vi'): string {
   try {
-    return new Date(dateStr).toLocaleString('vi-VN', {
+    return new Date(dateStr).toLocaleString(intlTag(locale), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

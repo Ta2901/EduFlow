@@ -4,7 +4,8 @@ import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { CalendarClock, ClipboardList } from 'lucide-react'
 import type { ClassRoom, Task } from '@/lib/types'
-import { formatDate, WEEKDAY_LABELS } from '@/lib/format'
+import { useI18n } from '@/components/i18n/LanguageProvider'
+import { formatDate } from '@/lib/format'
 import { useScheduleOverviewStore } from '@/lib/stores/scheduleOverviewStore'
 
 interface DashboardScheduleTableProps {
@@ -22,6 +23,7 @@ export default function DashboardScheduleTable({
   classHref,
   id = 'dashboard-schedule',
 }: DashboardScheduleTableProps) {
+  const { t, locale } = useI18n()
   const load = useScheduleOverviewStore((s) => s.load)
   const slots = useScheduleOverviewStore((s) => s.slots)
   const loading = useScheduleOverviewStore((s) => s.isLoading && !s.isLoaded)
@@ -78,31 +80,29 @@ export default function DashboardScheduleTable({
   return (
     <div id={id} className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Lịch trình học tập</h2>
-        <p className="text-sm text-gray-500">Thời khóa biểu theo môn và hạn nộp bài tập</p>
+        <h2 className="text-lg font-semibold text-gray-900">{t('schedule.title')}</h2>
+        <p className="text-sm text-gray-500">{t('schedule.subtitle')}</p>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
         <div id={`${id}-timetable`} className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b px-4 py-3">
             <CalendarClock className="h-4 w-4 text-primary-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Thời khóa biểu</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('schedule.timetable')}</h3>
           </div>
           {loading ? (
-            <p className="p-6 text-sm text-gray-500">Đang tải thời khóa biểu...</p>
+            <p className="p-6 text-sm text-gray-500">{t('schedule.loading')}</p>
           ) : slots.length === 0 ? (
-            <p className="p-6 text-sm text-gray-500">
-              Chưa có tiết học nào. Giáo viên có thể thêm thời khóa biểu trong trang lớp học.
-            </p>
+            <p className="p-6 text-sm text-gray-500">{t('schedule.empty')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-gray-600">
-                    <th className="sticky left-0 z-10 border-b bg-gray-50 px-3 py-2 font-medium">Tiết</th>
+                    <th className="sticky left-0 z-10 border-b bg-gray-50 px-3 py-2 font-medium">{t('common.period')}</th>
                     {days.map((d) => (
                       <th key={d} className="border-b px-3 py-2 font-medium whitespace-nowrap">
-                        {WEEKDAY_LABELS[d]}
+                        {t(`weekday.${d}`)}
                       </th>
                     ))}
                   </tr>
@@ -111,7 +111,7 @@ export default function DashboardScheduleTable({
                   {periods.map((period) => (
                     <tr key={period} className="align-top">
                       <td className="sticky left-0 z-10 border-b bg-white px-3 py-2 font-medium text-gray-700">
-                        Tiết {period}
+                        {t('common.periodN', { n: period })}
                       </td>
                       {days.map((day) => {
                         const cell = cellMap.get(`${day}-${period}`) || []
@@ -152,19 +152,19 @@ export default function DashboardScheduleTable({
         <div id={`${id}-deadlines`} className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b px-4 py-3">
             <ClipboardList className="h-4 w-4 text-amber-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Deadline bài tập theo môn/lớp</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('schedule.deadlines')}</h3>
           </div>
           {upcomingDeadlines.length === 0 ? (
-            <p className="p-6 text-sm text-gray-500">Chưa có deadline bài tập.</p>
+            <p className="p-6 text-sm text-gray-500">{t('schedule.noDeadlines')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-xs text-gray-600">
-                    <th className="px-4 py-2 font-medium">Bài tập</th>
-                    <th className="px-4 py-2 font-medium">Lớp / môn</th>
-                    <th className="px-4 py-2 font-medium">Hạn nộp</th>
-                    <th className="px-4 py-2 font-medium">Còn</th>
+                    <th className="px-4 py-2 font-medium">{t('schedule.task')}</th>
+                    <th className="px-4 py-2 font-medium">{t('schedule.classOrSubject')}</th>
+                    <th className="px-4 py-2 font-medium">{t('schedule.due')}</th>
+                    <th className="px-4 py-2 font-medium">{t('schedule.remaining')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -181,7 +181,7 @@ export default function DashboardScheduleTable({
                       </td>
                       <td className="px-4 py-2.5 text-gray-600">{classTitle}</td>
                       <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">
-                        {formatDate(task.dueDate)}
+                        {formatDate(task.dueDate, locale)}
                       </td>
                       <td className="px-4 py-2.5">
                         <span
@@ -194,10 +194,10 @@ export default function DashboardScheduleTable({
                           }`}
                         >
                           {daysLeft < 0
-                            ? `Quá ${Math.abs(daysLeft)} ngày`
+                            ? t('common.overdue', { count: Math.abs(daysLeft) })
                             : daysLeft === 0
-                              ? 'Hôm nay'
-                              : `${daysLeft} ngày`}
+                              ? t('common.today')
+                              : t('common.daysLeft', { count: daysLeft })}
                         </span>
                       </td>
                     </tr>

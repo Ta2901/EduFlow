@@ -22,23 +22,17 @@ import StudentLearningCharts from '@/components/dashboard/StudentLearningCharts'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import DashboardShell from '@/components/layout/DashboardShell'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
-import { formatDate, SUBMISSION_STATUS_COLORS, SUBMISSION_STATUS_LABELS } from '@/lib/format'
+import { formatDate, SUBMISSION_STATUS_COLORS } from '@/lib/format'
 import StatDetailPanel from '@/components/dashboard/StatDetailPanel'
 
 type StudentStatKey = 'classes' | 'pending' | 'graded' | 'all'
 
-const sidebarItems = [
-  { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
-  { id: 'courses', label: 'Lớp học', icon: GraduationCap },
-  { id: 'chat', label: 'Chat lớp', icon: MessageCircle },
-  { id: 'submissions', label: 'Nộp bài', icon: CheckCircle },
-  { id: 'settings', label: 'Cài đặt', icon: Settings },
-]
-
 export default function StudentDashboard() {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentUser = useAuthStore((s) => s.currentUser)!
@@ -80,10 +74,10 @@ export default function StudentDashboard() {
     icon: typeof BookOpen
     color: string
   }[] = [
-    { key: 'classes', title: 'Lớp đang học', value: String(classes.length), icon: BookOpen, color: 'bg-blue-500' },
-    { key: 'pending', title: 'Bài chưa nộp', value: String(pendingCount), icon: Clock, color: 'bg-amber-500' },
-    { key: 'graded', title: 'Đã có điểm', value: String(gradedCount), icon: Award, color: 'bg-green-500' },
-    { key: 'all', title: 'Tổng bài tập', value: String(submissions.length), icon: FileText, color: 'bg-violet-500' },
+    { key: 'classes', title: t('student.classes'), value: String(classes.length), icon: BookOpen, color: 'bg-blue-500' },
+    { key: 'pending', title: t('student.pending'), value: String(pendingCount), icon: Clock, color: 'bg-amber-500' },
+    { key: 'graded', title: t('student.graded'), value: String(gradedCount), icon: Award, color: 'bg-green-500' },
+    { key: 'all', title: t('student.allTasks'), value: String(submissions.length), icon: FileText, color: 'bg-violet-500' },
   ]
 
   const recentSubmissions = useMemo(() => {
@@ -93,17 +87,25 @@ export default function StudentDashboard() {
       .slice(0, 5)
   }, [submissions, getTaskById])
 
+  const sidebarItems = [
+    { id: 'overview', label: t('nav.overview'), icon: LayoutDashboard },
+    { id: 'courses', label: t('nav.classes'), icon: GraduationCap },
+    { id: 'chat', label: t('nav.classChat'), icon: MessageCircle },
+    { id: 'submissions', label: t('nav.submissions'), icon: CheckCircle },
+    { id: 'settings', label: t('common.settings'), icon: Settings },
+  ]
+
   const tabTitles: Record<string, string> = {
-    overview: 'Tổng quan',
-    courses: 'Lớp học',
-    chat: 'Chat lớp',
-    submissions: 'Nộp bài',
-    settings: 'Cài đặt',
+    overview: t('nav.overview'),
+    courses: t('nav.classes'),
+    chat: t('nav.classChat'),
+    submissions: t('nav.submissions'),
+    settings: t('common.settings'),
   }
 
   const handleLogout = async () => {
     await logout()
-    toast.success('Đã đăng xuất')
+    toast.success(t('common.loggedOut'))
     router.push('/login')
   }
 
@@ -114,14 +116,14 @@ export default function StudentDashboard() {
       idPrefix="student-dashboard"
       userId={currentUser.id}
       roleShort="HS"
-      roleLabel="Học sinh"
+      roleLabel={t('role.student')}
       userName={currentUser.fullName}
       sidebarItems={sidebarItems}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       onLogout={handleLogout}
       headerTitle={tabTitles[activeTab]}
-      headerSubtitle="Chào mừng bạn quay trở lại!"
+      headerSubtitle={t('student.subtitle')}
       headerAction={enterClassButton}
     >
       {activeTab === 'overview' && (
@@ -152,7 +154,7 @@ export default function StudentDashboard() {
                   <p className="text-xs text-gray-600 sm:text-sm">{stat.title}</p>
                   <p className="text-xl font-bold text-gray-900 sm:text-2xl">{stat.value}</p>
                   <p className="mt-2 text-[10px] font-medium text-primary-600 sm:text-xs">
-                    {selected ? 'Đang hiển thị danh sách ▲' : 'Nhấn để xem danh sách'}
+                    {selected ? t('common.showingList') : t('common.tapToList')}
                   </p>
                 </button>
               )
@@ -162,10 +164,10 @@ export default function StudentDashboard() {
           {activeStat === 'classes' && (
             <StatDetailPanel
               id="student-dashboard-stat-detail-classes"
-              title="Lớp đang học"
+              title={t('student.classes')}
               count={classes.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa tham gia lớp nào."
+              emptyMessage={t('student.noClasses')}
             >
               <ul className="space-y-2">
                 {classes.map((c) => (
@@ -176,7 +178,7 @@ export default function StudentDashboard() {
                       className="block rounded-lg border p-3 hover:border-primary-200 hover:bg-primary-50/50"
                     >
                       <p className="font-medium text-gray-900">{c.title}</p>
-                      <p className="mt-1 font-mono text-xs text-primary-600">Mã: {c.classCode}</p>
+                      <p className="mt-1 font-mono text-xs text-primary-600">{t('common.code')}: {c.classCode}</p>
                     </Link>
                   </li>
                 ))}
@@ -187,10 +189,10 @@ export default function StudentDashboard() {
           {activeStat === 'pending' && (
             <StatDetailPanel
               id="student-dashboard-stat-detail-pending"
-              title="Bài chưa nộp"
+              title={t('student.pending')}
               count={pendingSubmissions.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Không có bài chưa nộp."
+              emptyMessage={t('student.noPending')}
             >
               <ul className="space-y-2">
                 {pendingSubmissions.map((sub) => {
@@ -204,7 +206,7 @@ export default function StudentDashboard() {
                       >
                         <p className="font-medium text-gray-900">{task?.title ?? '—'}</p>
                         <p className="text-xs text-gray-500">
-                          Hạn: {task ? formatDate(task.dueDate) : '—'}
+                          {t('common.due')}: {task ? formatDate(task.dueDate, locale) : '—'}
                         </p>
                       </Link>
                     </li>
@@ -217,10 +219,10 @@ export default function StudentDashboard() {
           {activeStat === 'graded' && (
             <StatDetailPanel
               id="student-dashboard-stat-detail-graded"
-              title="Bài đã có điểm"
+              title={t('student.gradedTitle')}
               count={gradedSubmissions.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa có bài được chấm điểm."
+              emptyMessage={t('student.noGraded')}
             >
               <ul className="space-y-2">
                 {gradedSubmissions.map((sub) => {
@@ -237,7 +239,7 @@ export default function StudentDashboard() {
                           <span
                             className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs ${SUBMISSION_STATUS_COLORS[sub.status]}`}
                           >
-                            {SUBMISSION_STATUS_LABELS[sub.status]}
+                            {t(`status.submission.${sub.status}`)}
                           </span>
                         </div>
                         <span className="shrink-0 text-sm font-bold text-green-700">
@@ -254,10 +256,10 @@ export default function StudentDashboard() {
           {activeStat === 'all' && (
             <StatDetailPanel
               id="student-dashboard-stat-detail-all"
-              title="Tất cả bài tập"
+              title={t('student.allTitle')}
               count={submissions.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa có bài tập."
+              emptyMessage={t('student.noTasks')}
             >
               <ul className="divide-y divide-gray-100 rounded-lg border">
                 {submissions.map((sub) => {
@@ -274,11 +276,11 @@ export default function StudentDashboard() {
                           <span
                             className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs ${SUBMISSION_STATUS_COLORS[sub.status]}`}
                           >
-                            {SUBMISSION_STATUS_LABELS[sub.status]}
+                            {t(`status.submission.${sub.status}`)}
                           </span>
                         </div>
                         <span className="text-xs text-gray-500">
-                          {sub.grade != null ? `${sub.grade}/${sub.maxGrade ?? 10}` : 'Chưa có điểm'}
+                          {sub.grade != null ? `${sub.grade}/${sub.maxGrade ?? 10}` : t('common.noGrade')}
                         </span>
                       </Link>
                     </li>
@@ -306,22 +308,22 @@ export default function StudentDashboard() {
           <div className="grid gap-6 lg:grid-cols-2">
             <div id="student-dashboard-classes-preview" className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900">Lớp học của bạn</h2>
+                <h2 className="font-semibold text-gray-900">{t('student.yourClasses')}</h2>
                 <button
                   id="student-dashboard-classes-view-all"
                   type="button"
                   onClick={() => setActiveTab('courses')}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700"
                 >
-                  Xem tất cả
+                  {t('common.viewAll')}
                 </button>
               </div>
               {classes.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-300 py-8 text-center">
                   <GraduationCap className="mx-auto h-10 w-10 text-gray-300" />
-                  <p className="mt-2 text-sm text-gray-500">Chưa có lớp nào</p>
+                  <p className="mt-2 text-sm text-gray-500">{t('student.emptyClasses')}</p>
                   <Link id="student-dashboard-join-link" href="/student/join" className="mt-3 inline-block text-sm font-medium text-primary-600">
-                    Nhập mã lớp trong Truy cập nhanh
+                    {t('student.joinHint')}
                   </Link>
                 </div>
               ) : (
@@ -334,7 +336,7 @@ export default function StudentDashboard() {
                       className="block rounded-lg border p-4 transition-shadow hover:shadow-md"
                     >
                       <p className="font-medium text-gray-900">{c.title}</p>
-                      <p className="mt-1 font-mono text-xs text-primary-600">Mã: {c.classCode}</p>
+                      <p className="mt-1 font-mono text-xs text-primary-600">{t('common.code')}: {c.classCode}</p>
                     </Link>
                   ))}
                 </div>
@@ -343,18 +345,18 @@ export default function StudentDashboard() {
 
             <div id="student-dashboard-assignments-preview" className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900">Bài tập gần đây</h2>
+                <h2 className="font-semibold text-gray-900">{t('student.recent')}</h2>
                 <button
                   id="student-dashboard-assignments-view-all"
                   type="button"
                   onClick={() => setActiveTab('submissions')}
                   className="text-sm font-medium text-primary-600"
                 >
-                  Xem tất cả
+                  {t('common.viewAll')}
                 </button>
               </div>
               {recentSubmissions.length === 0 ? (
-                <p className="text-sm text-gray-500">Chưa có bài tập</p>
+                <p className="text-sm text-gray-500">{t('student.noRecent')}</p>
               ) : (
                 <div className="space-y-3">
                   {recentSubmissions.map(({ sub, task }) => (
@@ -368,7 +370,7 @@ export default function StudentDashboard() {
                       <span
                         className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs ${SUBMISSION_STATUS_COLORS[sub.status]}`}
                       >
-                        {SUBMISSION_STATUS_LABELS[sub.status]}
+                        {t(`status.submission.${sub.status}`)}
                       </span>
                     </Link>
                   ))}
@@ -387,7 +389,7 @@ export default function StudentDashboard() {
             className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Tham gia lớp mới
+            {t('common.joinClass')}
           </Link>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {classes.map((c) => (
@@ -403,7 +405,7 @@ export default function StudentDashboard() {
                 <h3 className="font-semibold text-gray-900">{c.title}</h3>
                 {c.status === 'cancelled' && (
                   <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    Đã huỷ
+                    {t('common.cancelled')}
                   </span>
                 )}
                 <p className="mt-2 font-mono text-sm text-primary-600">{c.classCode}</p>
@@ -412,7 +414,7 @@ export default function StudentDashboard() {
           </div>
           {classes.length === 0 && (
             <div className="rounded-xl border border-dashed bg-white py-12 text-center">
-              <p className="text-gray-500">Chưa tham gia lớp nào</p>
+              <p className="text-gray-500">{t('student.emptyJoined')}</p>
             </div>
           )}
         </div>
@@ -425,13 +427,13 @@ export default function StudentDashboard() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">
-                    Bài tập
+                    {t('common.assignment')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Trạng thái
+                    {t('common.status')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Điểm
+                    {t('common.grade')}
                   </th>
                 </tr>
               </thead>
@@ -448,11 +450,11 @@ export default function StudentDashboard() {
                         >
                           {task?.title ?? '—'}
                         </Link>
-                        <p className="text-xs text-gray-500">Hạn: {task ? formatDate(task.dueDate) : '—'}</p>
+                        <p className="text-xs text-gray-500">{t('common.due')}: {task ? formatDate(task.dueDate, locale) : '—'}</p>
                       </td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-2 py-1 text-xs ${SUBMISSION_STATUS_COLORS[sub.status]}`}>
-                          {SUBMISSION_STATUS_LABELS[sub.status]}
+                          {t(`status.submission.${sub.status}`)}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-900">
@@ -465,7 +467,7 @@ export default function StudentDashboard() {
             </table>
           </div>
           {submissions.length === 0 && (
-            <p className="p-8 text-center text-sm text-gray-500">Tham gia lớp để nhận bài tập.</p>
+            <p className="p-8 text-center text-sm text-gray-500">{t('student.joinToGetTasks')}</p>
           )}
         </div>
       )}

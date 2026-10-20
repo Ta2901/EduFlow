@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { Hash, MessageCircle, CheckCircle, type LucideIcon } from 'lucide-react'
 
 interface QuickAccessProps {
@@ -9,30 +10,31 @@ interface QuickAccessProps {
 }
 
 export default function QuickAccess({ onOpenChat, onOpenSubmissions }: QuickAccessProps) {
+  const { t } = useI18n()
   return (
     <div id="student-quick-access" className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="font-semibold text-gray-900">Truy cập nhanh</h2>
-      <p className="mt-1 text-sm text-gray-500">Các thao tác thường dùng</p>
+      <h2 className="font-semibold text-gray-900">{t('student.quickTitle')}</h2>
+      <p className="mt-1 text-sm text-gray-500">{t('student.quickHint')}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <QuickLink
           id="student-quick-access-join"
           href="/student/join"
           icon={Hash}
-          title="Nhập mã lớp"
-          description="Tham gia lớp bằng mã giáo viên cung cấp"
+          title={t('student.joinByCode')}
+          description={t('student.joinByCodeDesc')}
         />
         <QuickButton
           id="student-quick-access-chat"
           icon={MessageCircle}
-          title="Chat lớp"
-          description="Nhắn tin với lớp học"
+          title={t('nav.classChat')}
+          description={t('student.chatDesc')}
           onClick={onOpenChat}
         />
         <QuickButton
           id="student-quick-access-submissions"
           icon={CheckCircle}
-          title="Nộp bài"
-          description="Xem và nộp bài tập"
+          title={t('nav.submissions')}
+          description={t('student.submitDesc')}
           onClick={onOpenSubmissions}
         />
       </div>

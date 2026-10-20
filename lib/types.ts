@@ -132,6 +132,7 @@ export interface ClassRoom {
 
 export type ActivityLogType =
   | 'theme_change'
+  | 'language_change'
   | 'password_change'
   | 'class_join'
   | 'class_create'

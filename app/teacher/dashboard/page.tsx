@@ -21,6 +21,7 @@ import TeacherLearningCharts from '@/components/dashboard/TeacherLearningCharts'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import DashboardShell from '@/components/layout/DashboardShell'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
@@ -29,15 +30,8 @@ import StatDetailPanel from '@/components/dashboard/StatDetailPanel'
 
 type TeacherStatKey = 'classes' | 'students' | 'tasks' | 'codes'
 
-const sidebarItems = [
-  { id: 'overview', label: 'Tổng quan', icon: TrendingUp },
-  { id: 'courses', label: 'Lớp học', icon: GraduationCap },
-  { id: 'chat', label: 'Chat lớp', icon: MessageCircle },
-  { id: 'assignments', label: 'Bài tập', icon: CheckCircle },
-  { id: 'settings', label: 'Cài đặt', icon: Settings },
-]
-
 export default function TeacherDashboard() {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentUser = useAuthStore((s) => s.currentUser)!
@@ -99,55 +93,65 @@ export default function TeacherDashboard() {
   }[] = [
     {
       key: 'classes',
-      title: 'Lớp đang dạy',
+      title: t('teacher.teaching'),
       value: String(classes.length),
       icon: BookOpen,
       color: 'bg-blue-500',
-      change: `${classes.length} lớp`,
+      change: t('teacher.classCount', { count: classes.length }),
     },
     {
       key: 'students',
-      title: 'Học sinh',
+      title: t('teacher.students'),
       value: String(totalStudents),
       icon: Users,
       color: 'bg-green-500',
-      change: 'Tổng HS',
+      change: t('teacher.totalStudents'),
     },
     {
       key: 'tasks',
-      title: 'Bài tập đã giao',
+      title: t('teacher.assigned'),
       value: String(teacherTasks.length),
       icon: CheckCircle,
       color: 'bg-amber-500',
-      change: `${pendingAssignments.filter((a) => a.submitted < a.total).length} chờ nộp`,
+      change: t('teacher.waiting', {
+        count: pendingAssignments.filter((a) => a.submitted < a.total).length,
+      }),
     },
     {
       key: 'codes',
-      title: 'Mã lớp',
+      title: t('teacher.classCodes'),
       value: String(classes.length),
       icon: ClipboardList,
       color: 'bg-violet-500',
-      change: 'Nhấn để xem & sao chép',
+      change: t('teacher.tapCopy'),
     },
   ]
 
+  const sidebarItems = [
+    { id: 'overview', label: t('nav.overview'), icon: TrendingUp },
+    { id: 'courses', label: t('nav.classes'), icon: GraduationCap },
+    { id: 'chat', label: t('nav.classChat'), icon: MessageCircle },
+    { id: 'assignments', label: t('nav.assignments'), icon: CheckCircle },
+    { id: 'settings', label: t('common.settings'), icon: Settings },
+  ]
+
   const tabTitles: Record<string, string> = {
-    overview: 'Tổng quan',
-    courses: 'Lớp học',
-    chat: 'Chat lớp',
-    assignments: 'Bài tập',
-    settings: 'Cài đặt',
+    overview: t('nav.overview'),
+    courses: t('nav.classes'),
+    chat: t('nav.classChat'),
+    assignments: t('nav.assignments'),
+    settings: t('common.settings'),
   }
 
   const handleLogout = async () => {
     await logout()
-    toast.success('Đã đăng xuất')
+    toast.success(t('common.loggedOut'))
     router.push('/login')
   }
 
   const copyClassCode = async (code: string) => {
     await navigator.clipboard.writeText(code)
-    toast.success(`Đã sao chép mã: ${code}`)
+    toast.success(t('common.copiedCode', { code }))
   }
 
   const createClassBtn = (
@@ -157,8 +161,8 @@ export default function TeacherDashboard() {
       className="inline-flex w-full items-center justify-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 sm:w-auto"
     >
       <Plus className="mr-1.5 h-4 w-4" />
-      <span className="hidden sm:inline">Tạo lớp mới</span>
-      <span className="sm:hidden">Tạo lớp</span>
+      <span className="hidden sm:inline">{t('common.createClass')}</span>
+      <span className="sm:hidden">{t('common.createClassShort')}</span>
     </Link>
   )
 
@@ -167,14 +171,14 @@ export default function TeacherDashboard() {
       idPrefix="teacher-dashboard"
       userId={currentUser.id}
       roleShort="GV"
-      roleLabel="Giáo viên"
+      roleLabel={t('role.teacher')}
       userName={currentUser.fullName}
       sidebarItems={sidebarItems}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       onLogout={handleLogout}
       headerTitle={tabTitles[activeTab]}
-      headerSubtitle="Quản lý lớp học và học sinh"
+      headerSubtitle={t('teacher.subtitle')}
       headerAction={createClassBtn}
     >
       {activeTab === 'overview' && (
@@ -201,7 +205,7 @@ export default function TeacherDashboard() {
                   <p className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{stat.value}</p>
                   <p className="text-xs text-gray-500">{stat.change}</p>
                   <p className="mt-2 text-[10px] font-medium text-primary-600 sm:text-xs">
-                    {selected ? 'Đang hiển thị danh sách ▲' : 'Nhấn để xem danh sách'}
+                    {selected ? t('common.showingList') : t('common.tapToList')}
                   </p>
                 </button>
               )
@@ -211,10 +215,10 @@ export default function TeacherDashboard() {
           {activeStat === 'classes' && (
             <StatDetailPanel
               id="teacher-dashboard-stat-detail-classes"
-              title="Danh sách lớp đang dạy"
+              title={t('teacher.classList')}
               count={classes.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa có lớp nào. Tạo lớp mới để bắt đầu."
+              emptyMessage={t('teacher.noClasses')}
             >
               <ul className="space-y-2">
                 {classes.map((course) => (
@@ -228,7 +232,7 @@ export default function TeacherDashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900">{course.title}</p>
                       <p className="text-xs text-gray-500">
-                        {course.students.length} học sinh · Mã{' '}
+                        {t('common.studentCount', { count: course.students.length })} · {t('common.code')}{' '}
                         <span className="font-mono font-semibold text-primary-600">{course.classCode}</span>
                       </p>
                     </div>
@@ -237,7 +241,7 @@ export default function TeacherDashboard() {
                       href={`/teacher/courses/${course.id}`}
                       className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50"
                     >
-                      Chi tiết
+                      {t('common.details')}
                     </Link>
                   </li>
                 ))}
@@ -248,10 +252,10 @@ export default function TeacherDashboard() {
           {activeStat === 'students' && (
             <StatDetailPanel
               id="teacher-dashboard-stat-detail-students"
-              title="Danh sách học sinh"
+              title={t('teacher.studentList')}
               count={allStudents.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa có học sinh trong các lớp."
+              emptyMessage={t('teacher.noStudents')}
             >
               <ul className="divide-y divide-gray-100 rounded-lg border">
                 {allStudents.map((student) => (
@@ -263,7 +267,7 @@ export default function TeacherDashboard() {
                     >
                       <p className="font-medium text-primary-700 hover:underline">{student.name}</p>
                       <p className="text-xs text-gray-500">{student.email}</p>
-                      <p className="mt-1 text-xs text-primary-600">Lớp: {student.classTitle}</p>
+                      <p className="mt-1 text-xs text-primary-600">{t('teacher.classPrefix', { title: student.classTitle })}</p>
                     </Link>
                   </li>
                 ))}
@@ -274,10 +278,10 @@ export default function TeacherDashboard() {
           {activeStat === 'tasks' && (
             <StatDetailPanel
               id="teacher-dashboard-stat-detail-tasks"
-              title="Danh sách bài tập đã giao"
+              title={t('teacher.taskList')}
               count={teacherTasks.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa có bài tập. Vào lớp để giao bài."
+              emptyMessage={t('teacher.noTasks')}
             >
               <ul className="space-y-2">
                 {teacherTasks.map((task) => {
@@ -293,11 +297,11 @@ export default function TeacherDashboard() {
                         <div className="flex justify-between gap-2">
                           <p className="font-medium text-gray-900">{task.title}</p>
                           <span className="shrink-0 text-xs font-medium text-primary-600">
-                            {stat.submitted}/{stat.total} đã nộp
+                            {t('common.submittedOf', { submitted: stat.submitted, total: stat.total })}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500">{classroom?.title ?? '—'}</p>
-                        <p className="mt-1 text-xs text-gray-400">Hạn: {formatDate(task.dueDate)}</p>
+                        <p className="mt-1 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
                       </Link>
                     </li>
                   )
@@ -309,10 +313,10 @@ export default function TeacherDashboard() {
           {activeStat === 'codes' && (
             <StatDetailPanel
               id="teacher-dashboard-stat-detail-codes"
-              title="Mã lớp học"
+              title={t('teacher.codeList')}
               count={classes.length}
               onClose={() => setActiveStat(null)}
-              emptyMessage="Chưa có mã lớp."
+              emptyMessage={t('teacher.noCodes')}
             >
               <ul className="space-y-2">
                 {classes.map((course) => (
@@ -333,7 +337,7 @@ export default function TeacherDashboard() {
                       className="inline-flex items-center rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50"
                     >
                       <Copy className="mr-1 h-3.5 w-3.5" />
-                      Sao chép
+                      {t('common.copy')}
                     </button>
                   </li>
                 ))}
@@ -359,16 +363,16 @@ export default function TeacherDashboard() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div id="teacher-dashboard-classes-preview" className="rounded-xl border bg-white shadow-sm lg:col-span-2">
               <div className="flex items-center justify-between border-b px-5 py-4 sm:px-6">
-                <h2 className="font-semibold text-gray-900">Lớp học của bạn</h2>
+                <h2 className="font-semibold text-gray-900">{t('teacher.yourClasses')}</h2>
                 <button id="teacher-dashboard-classes-view-all" type="button" onClick={() => setActiveTab('courses')} className="text-sm font-medium text-primary-600">
-                  Xem tất cả
+                  {t('common.viewAll')}
                 </button>
               </div>
               <div className="space-y-3 p-5 sm:p-6">
                 {classes.length === 0 ? (
                   <div className="rounded-lg border border-dashed py-8 text-center">
                     <Link id="teacher-dashboard-create-first" href="/teacher/classes/new" className="text-sm font-medium text-primary-600">
-                      Tạo lớp đầu tiên
+                      {t('teacher.createFirst')}
                     </Link>
                   </div>
                 ) : (
@@ -379,7 +383,7 @@ export default function TeacherDashboard() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="font-medium text-gray-900">{course.title}</h3>
-                        <p className="text-sm text-gray-500">{course.students.length} học sinh</p>
+                        <p className="text-sm text-gray-500">{t('common.studentCount', { count: course.students.length })}</p>
                         <button
                           type="button"
                           onClick={() => copyClassCode(course.classCode)}
@@ -400,19 +404,19 @@ export default function TeacherDashboard() {
 
             <div id="teacher-dashboard-pending-preview" className="rounded-xl border bg-white shadow-sm">
               <div className="border-b px-5 py-4 sm:px-6">
-                <h2 className="font-semibold text-gray-900">Theo dõi nộp bài</h2>
+                <h2 className="font-semibold text-gray-900">{t('teacher.trackSubmissions')}</h2>
               </div>
               <div className="space-y-3 p-5 sm:p-6">
                 {pendingAssignments.length === 0 ? (
-                  <p className="text-sm text-gray-500">Chưa có bài tập</p>
+                  <p className="text-sm text-gray-500">{t('teacher.noAssignments')}</p>
                 ) : (
                   pendingAssignments.slice(0, 4).map((a) => (
                     <Link key={a.id} id={`teacher-dashboard-pending-item-${a.id}`} href={`/teacher/assignments/${a.id}/submissions`} className="block rounded-lg border p-3 hover:shadow-sm">
                       <p className="text-sm font-medium text-gray-900">{a.title}</p>
                       <p className="text-xs text-gray-500">{a.class}</p>
                       <div className="mt-2 flex justify-between text-xs">
-                        <span className="text-gray-500">{a.submitted}/{a.total} đã nộp</span>
-                        <span className="text-red-600">Hạn: {formatDate(a.dueDate)}</span>
+                        <span className="text-gray-500">{t('common.submittedOf', { submitted: a.submitted, total: a.total })}</span>
+                        <span className="text-red-600">{t('common.due')}: {formatDate(a.dueDate, locale)}</span>
                       </div>
                     </Link>
                   ))
@@ -427,7 +431,7 @@ export default function TeacherDashboard() {
         <div id="teacher-dashboard-courses" className="space-y-4">
           <Link id="teacher-dashboard-new-class" href="/teacher/classes/new" className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700">
             <Plus className="mr-2 h-4 w-4" />
-            Tạo lớp mới
+            {t('common.createClass')}
           </Link>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {classes.map((course) => (
@@ -439,16 +443,16 @@ export default function TeacherDashboard() {
                   <h3 className="font-semibold text-gray-900">{course.title}</h3>
                   {course.status === 'cancelled' && (
                     <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                      Đã huỷ
+                      {t('common.cancelled')}
                     </span>
                   )}
-                  <p className="mt-1 text-sm text-gray-500">{course.students.length} học sinh</p>
+                  <p className="mt-1 text-sm text-gray-500">{t('common.studentCount', { count: course.students.length })}</p>
                   <button type="button" onClick={() => copyClassCode(course.classCode)} className="mt-2 inline-flex items-center text-xs text-primary-600">
                     <Copy className="mr-1 h-3 w-3" />
                     <span className="font-mono font-bold">{course.classCode}</span>
                   </button>
                   <Link id={`teacher-dashboard-manage-class-${course.id}`} href={`/teacher/courses/${course.id}`} className="mt-4 block rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white hover:bg-primary-700">
-                    Quản lý lớp
+                    {t('common.manageClass')}
                   </Link>
                 </div>
               </div>
@@ -460,7 +464,7 @@ export default function TeacherDashboard() {
       {activeTab === 'assignments' && (
         <div id="teacher-dashboard-assignments" className="space-y-3">
           {teacherTasks.length === 0 ? (
-            <p className="text-gray-500">Chưa có bài tập. Vào lớp để giao bài.</p>
+            <p className="text-gray-500">{t('teacher.noTasks')}</p>
           ) : (
             teacherTasks.map((task) => {
               const classroom = classes.find((c) => c.id === task.classId)
@@ -474,7 +478,7 @@ export default function TeacherDashboard() {
                     </div>
                     <span className="shrink-0 text-sm font-medium text-primary-600">{stat.submitted}/{stat.total}</span>
                   </div>
-                  <p className="mt-2 text-xs text-gray-400">Hạn: {formatDate(task.dueDate)}</p>
+                  <p className="mt-2 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
                 </Link>
               )
             })

@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { ArrowLeft, MessageCircle } from 'lucide-react'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import RoleUserBadge, { RoleUserBadgeCompact } from '@/components/layout/RoleUserBadge'
 import ThemeToggle from '@/components/theme/ThemeToggle'
@@ -25,6 +27,7 @@ export default function PageHeader({
   action,
   userId,
 }: PageHeaderProps) {
+  const { t } = useI18n()
   const currentUser = useAuthStore((s) => s.currentUser)
   const roleShort =
     currentUser?.role === 'teacher' ? 'GV' : currentUser?.role === 'student' ? 'HS' : null
@@ -73,8 +76,8 @@ export default function PageHeader({
               id={`${id}-chat`}
               href={chatHref}
               className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-primary-600"
-              aria-label="Chat lớp"
-              title="Chat lớp"
+              aria-label={t('nav.classChat')}
+              title={t('nav.classChat')}
             >
               <MessageCircle className="h-5 w-5" />
             </Link>
@@ -85,6 +88,7 @@ export default function PageHeader({
               {action}
             </div>
           )}
+          <LanguageSwitcher id={`${id}-language`} />
           <ThemeToggle id={`${id}-theme`} />
         </div>
         {action && (

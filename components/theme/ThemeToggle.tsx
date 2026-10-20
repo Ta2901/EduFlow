@@ -1,6 +1,7 @@
 'use client'
 
 import { Moon, Sun } from 'lucide-react'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { api } from '@/lib/api/client'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -12,6 +13,7 @@ interface ThemeToggleProps {
 
 export default function ThemeToggle({ id = 'theme-toggle', className = '' }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme()
+  const { t } = useI18n()
   const currentUser = useAuthStore((s) => s.currentUser)
   const isDark = theme === 'dark'
 
@@ -22,8 +24,8 @@ export default function ThemeToggle({ id = 'theme-toggle', className = '' }: The
     void api.activity
       .log({
         type: 'theme_change',
-        title: 'Đổi chế độ giao diện',
-        message: next === 'dark' ? 'Đã chuyển sang chế độ tối' : 'Đã chuyển sang chế độ sáng',
+        title: t('theme.activityTitle'),
+        message: next === 'dark' ? t('theme.activityDark') : t('theme.activityLight'),
         meta: { theme: next, source: 'header' },
       })
       .catch(() => {
@@ -37,8 +39,8 @@ export default function ThemeToggle({ id = 'theme-toggle', className = '' }: The
       type="button"
       onClick={handleToggle}
       className={`rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-400 ${className}`}
-      aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
-      title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+      aria-label={isDark ? t('theme.toLight') : t('theme.toDark')}
+      title={isDark ? t('theme.light') : t('theme.dark')}
     >
       {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </button>

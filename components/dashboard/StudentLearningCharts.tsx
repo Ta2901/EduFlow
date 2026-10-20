@@ -15,7 +15,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { ClassRoom, Submission, Task } from '@/lib/types'
-import { SUBMISSION_STATUS_LABELS } from '@/lib/format'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 
 const STATUS_COLORS: Record<string, string> = {
   not_submitted: '#f59e0b',
@@ -37,6 +37,7 @@ export default function StudentLearningCharts({
   tasks,
   id = 'student-learning-charts',
 }: StudentLearningChartsProps) {
+  const { t } = useI18n()
   const statusData = useMemo(() => {
     const counts = {
       not_submitted: 0,
@@ -47,11 +48,11 @@ export default function StudentLearningCharts({
       counts[s.status] = (counts[s.status] || 0) + 1
     }
     return (Object.keys(counts) as Array<keyof typeof counts>).map((key) => ({
-      name: SUBMISSION_STATUS_LABELS[key],
+      name: t(`status.submission.${key}`),
       key,
       value: counts[key],
     })).filter((d) => d.value > 0)
-  }, [submissions])
+  }, [submissions, t])
 
   const progressData = useMemo(() => {
     const total = submissions.length
@@ -59,12 +60,12 @@ export default function StudentLearningCharts({
     const graded = submissions.filter((s) => s.grade != null).length
     const pending = submissions.filter((s) => s.status === 'not_submitted').length
     return [
-      { name: 'Đã nộp', value: done, fill: '#22c55e' },
-      { name: 'Đã chấm', value: graded, fill: '#3b82f6' },
-      { name: 'Chưa nộp', value: pending, fill: '#f59e0b' },
-      { name: 'Tổng BT', value: total, fill: '#94a3b8' },
+      { name: t('charts.submitted'), value: done, fill: '#22c55e' },
+      { name: t('charts.graded'), value: graded, fill: '#3b82f6' },
+      { name: t('charts.pending'), value: pending, fill: '#f59e0b' },
+      { name: t('charts.totalTasks'), value: total, fill: '#94a3b8' },
     ]
-  }, [submissions])
+  }, [submissions, t])
 
   const byClassData = useMemo(() => {
     return classes.map((c) => {
@@ -109,8 +110,8 @@ export default function StudentLearningCharts({
     <div id={id} className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Tiến trình học tập</h2>
-          <p className="text-sm text-gray-500">Tình trạng nộp bài và điểm theo lớp</p>
+          <h2 className="text-lg font-semibold text-gray-900">{t('charts.studentTitle')}</h2>
+          <p className="text-sm text-gray-500">{t('charts.studentSubtitle')}</p>
         </div>
         <div
           id={`${id}-completion`}
@@ -122,9 +123,9 @@ export default function StudentLearningCharts({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div id={`${id}-status`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-3 text-sm font-semibold text-gray-800">Tình trạng nộp bài</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.submissionStatus')}</h3>
           {statusData.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Chưa có bài tập</p>
+            <p className="py-10 text-center text-sm text-gray-400">{t('charts.noTasks')}</p>
           ) : (
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -152,7 +153,7 @@ export default function StudentLearningCharts({
         </div>
 
         <div id={`${id}-progress`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-3 text-sm font-semibold text-gray-800">Tổng quan tiến độ</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.progressOverview')}</h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={progressData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
@@ -171,9 +172,9 @@ export default function StudentLearningCharts({
         </div>
 
         <div id={`${id}-by-class`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:col-span-1">
-          <h3 className="mb-3 text-sm font-semibold text-gray-800">Theo lớp (điểm TB /10)</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.byClass')}</h3>
           {byClassData.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">Chưa có lớp</p>
+            <p className="py-10 text-center text-sm text-gray-400">{t('charts.noClasses')}</p>
           ) : (
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -184,14 +185,14 @@ export default function StudentLearningCharts({
                   <Tooltip
                     formatter={(value: number, name: string) => [
                       value,
-                      name === 'avgScore' ? 'Điểm TB' : name === 'submitted' ? 'Đã nộp' : 'Chưa nộp',
+                      name === 'avgScore' ? t('charts.avgScore') : name === 'submitted' ? t('charts.submitted') : t('charts.pending'),
                     ]}
                     labelFormatter={(label) => String(label)}
                   />
                   <Legend />
-                  <Bar dataKey="avgScore" name="Điểm TB" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="submitted" name="Đã nộp" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pending" name="Chưa nộp" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="avgScore" name={t('charts.avgScore')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="submitted" name={t('charts.submitted')} fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pending" name={t('charts.pending')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

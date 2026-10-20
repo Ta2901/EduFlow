@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, LogOut, Menu, User, X, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
+import LanguageSwitcher, { VersionBadge } from '@/components/i18n/LanguageSwitcher'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import ChatHeaderButton from '@/components/layout/ChatHeaderButton'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import RoleUserBadge, { RoleUserBadgeCompact } from '@/components/layout/RoleUserBadge'
@@ -47,6 +49,7 @@ export default function DashboardShell({
   children,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { t } = useI18n()
   const pid = idPrefix
 
   useEffect(() => {
@@ -77,13 +80,14 @@ export default function DashboardShell({
         >
           <BookOpen className="h-7 w-7 text-primary-600" />
           <span className="font-bold text-gray-900">EduFlow</span>
+          <VersionBadge className="ml-1.5" />
         </Link>
         <button
           id={`${pid}-sidebar-close`}
           type="button"
           onClick={() => setSidebarOpen(false)}
           className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
-          aria-label="Đóng menu"
+          aria-label={t('common.closeMenu')}
         >
           <X className="h-5 w-5" />
         </button>
@@ -93,6 +97,7 @@ export default function DashboardShell({
         <Link id={`${pid}-logo`} href="/" className="flex items-center gap-2">
           <BookOpen className="h-7 w-7 text-primary-600" />
           <span className="font-bold text-gray-900">EduFlow</span>
+          <VersionBadge className="ml-1.5" />
         </Link>
       </div>
 
@@ -142,7 +147,7 @@ export default function DashboardShell({
             type="button"
             onClick={onLogout}
             className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-            title="Đăng xuất"
+            title={t('common.logout')}
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -163,7 +168,7 @@ export default function DashboardShell({
             type="button"
             onClick={() => setSidebarOpen(true)}
             className="shrink-0 rounded-lg p-2 text-gray-600 hover:bg-gray-100"
-            aria-label="Mở menu"
+            aria-label={t('common.openMenu')}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -187,6 +192,7 @@ export default function DashboardShell({
               />
             )}
             <NotificationBell userId={userId} id={`${pid}-notifications-mobile`} />
+            <LanguageSwitcher id={`${pid}-language-mobile`} />
             <ThemeToggle id={`${pid}-theme-mobile`} />
           </div>
         </div>
@@ -242,6 +248,7 @@ export default function DashboardShell({
                 )}
                 <NotificationBell userId={userId} id={`${pid}-notifications-desktop`} />
                 <div id={`${pid}-quick-action-desktop`}>{headerAction}</div>
+                <LanguageSwitcher id={`${pid}-language-desktop`} />
                 <ThemeToggle id={`${pid}-theme-desktop`} />
               </div>
             </div>

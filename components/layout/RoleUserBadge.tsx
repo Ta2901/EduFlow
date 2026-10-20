@@ -1,3 +1,7 @@
+'use client'
+
+import { useI18n } from '@/components/i18n/LanguageProvider'
+
 interface RoleUserBadgeProps {
   id?: string
   roleShort: 'GV' | 'HS'
@@ -14,13 +18,15 @@ export default function RoleUserBadge({
   roleShort,
   userName,
 }: RoleUserBadgeProps) {
+  const { t } = useI18n()
+  const short = roleShort === 'GV' ? t('role.shortTeacher') : t('role.shortStudent')
   return (
     <div
       id={id}
       className={`hidden max-w-[min(40vw,220px)] items-center gap-1.5 rounded-full border px-2.5 py-1 sm:flex sm:max-w-xs ${styles[roleShort]}`}
-      title={`${roleShort} ${userName}`}
+      title={`${short} ${userName}`}
     >
-      <span className="shrink-0 text-xs font-bold">{roleShort}</span>
+      <span className="shrink-0 text-xs font-bold">{short}</span>
       <span className="truncate text-xs font-medium">{userName}</span>
     </div>
   )
@@ -33,13 +39,15 @@ export function RoleUserBadgeCompact({
   roleShort,
   userName,
 }: RoleUserBadgeCompactProps) {
+  const { t } = useI18n()
+  const short = roleShort === 'GV' ? t('role.shortTeacher') : t('role.shortStudent')
   return (
     <div
       id={id}
       className={`flex max-w-[42vw] items-center gap-1 rounded-full border px-2 py-0.5 sm:hidden ${styles[roleShort]}`}
-      title={`${roleShort} ${userName}`}
+      title={`${short} ${userName}`}
     >
-      <span className="shrink-0 text-[10px] font-bold">{roleShort}</span>
+      <span className="shrink-0 text-[10px] font-bold">{short}</span>
       <span className="truncate text-[10px] font-medium">{userName}</span>
     </div>
   )

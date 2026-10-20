@@ -3,7 +3,7 @@ import { jsonError, jsonOk } from '@/lib/server/http'
 import { getSession } from '@/lib/server/session'
 import type { ActivityLogType } from '@/lib/types'
 
-const CLIENT_ALLOWED_TYPES = new Set<ActivityLogType>(['theme_change'])
+const CLIENT_ALLOWED_TYPES = new Set<ActivityLogType>(['theme_change', 'language_change'])
 
 export async function GET(req: Request) {
   const session = await getSession()

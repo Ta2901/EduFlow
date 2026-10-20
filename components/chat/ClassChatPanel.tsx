@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { MessageCircle, Send, Users } from 'lucide-react'
 import { api, ApiError } from '@/lib/api/client'
 import type { ClassChatMessage, ClassChatRoom } from '@/lib/types'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { formatDateTime } from '@/lib/format'
 
 interface ClassChatPanelProps {
@@ -12,6 +13,7 @@ interface ClassChatPanelProps {
 }
 
 export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatPanelProps) {
+  const { t, locale } = useI18n()
   const [chats, setChats] = useState<ClassChatRoom[]>([])
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [activeChat, setActiveChat] = useState<ClassChatRoom | null>(null)
@@ -31,11 +33,11 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
         return data[0]?.classId ?? null
       })
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Không tải được danh sách chat')
+      setError(e instanceof ApiError ? e.message : t('chat.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   const loadRoom = useCallback(async (classId: string) => {
     try {
@@ -71,7 +73,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
       setText('')
       await loadRoom(selectedClassId)
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Gửi tin nhắn thất bại')
+      alert(err instanceof ApiError ? err.message : t('chat.sendFailed'))
     } finally {
       setSending(false)
     }
@@ -80,7 +82,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
   if (loading) {
     return (
       <div id={id} className="rounded-xl border bg-white p-8 text-center text-sm text-gray-500">
-        Đang tải chat lớp...
+        {t('chat.loading')}
       </div>
     )
   }
@@ -98,7 +100,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
       <div id={id} className="rounded-xl border bg-white p-8 text-center">
         <MessageCircle className="mx-auto h-10 w-10 text-gray-300" />
         <p className="mt-3 text-sm text-gray-600">
-          Chưa có nhóm chat nào. Tham gia hoặc tạo lớp để bắt đầu trao đổi.
+          {t('chat.empty')}
         </p>
       </div>
     )
@@ -108,8 +110,8 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
     <div id={id} className="grid gap-4 lg:grid-cols-[260px_1fr]">
       <aside id={`${id}-rooms`} className="overflow-hidden rounded-xl border bg-white">
         <div className="border-b px-4 py-3">
-          <h3 className="text-sm font-semibold text-gray-900">Nhóm lớp</h3>
-          <p className="text-xs text-gray-500">Tự tạo khi vào lớp</p>
+          <h3 className="text-sm font-semibold text-gray-900">{t('chat.rooms')}</h3>
+          <p className="text-xs text-gray-500">{t('chat.roomsHint')}</p>
         </div>
         <div className="max-h-[520px] overflow-y-auto">
           {chats.map((chat) => {
@@ -129,8 +131,8 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
                 </span>
                 <span className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
                   <Users className="h-3 w-3" />
-                  {chat.memberCount} thành viên
-                  {chat.messageCount > 0 ? ` · ${chat.messageCount} tin` : ''}
+                  {t('chat.members', { count: chat.memberCount })}
+                  {chat.messageCount > 0 ? ` · ${t('chat.messages', { count: chat.messageCount })}` : ''}
                 </span>
                 <span className="mt-0.5 truncate font-mono text-[10px] text-gray-400">
                   ID: {chat.id}
@@ -147,7 +149,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
             <div className="border-b px-4 py-3">
               <h3 className="font-semibold text-gray-900">{activeChat.name}</h3>
               <p className="text-xs text-gray-500">
-                GV: {activeChat.teacherName} · Chat ID: <span className="font-mono">{activeChat.id}</span>
+                {t('chat.teacherPrefix')}: {activeChat.teacherName} · Chat ID: <span className="font-mono">{activeChat.id}</span>
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {activeChat.members.slice(0, 8).map((m) => (
@@ -156,7 +158,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
                     className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700"
                     title={`User ID: ${m.id}`}
                   >
-                    {m.role === 'teacher' ? 'GV' : 'HS'} {m.name}
+                    {m.role === 'teacher' ? t('role.shortTeacher') : t('role.shortStudent')} {m.name}
                     {m.memberCode ? ` (${m.memberCode})` : ''}
                   </span>
                 ))}
@@ -168,7 +170,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
 
             <div id={`${id}-messages`} className="flex-1 space-y-3 overflow-y-auto p-4">
               {messages.length === 0 ? (
-                <p className="text-center text-sm text-gray-400">Chưa có tin nhắn. Hãy chào lớp!</p>
+                <p className="text-center text-sm text-gray-400">{t('chat.noMessages')}</p>
               ) : (
                 messages.map((msg) => {
                   const mine = msg.userId === userId
@@ -186,13 +188,13 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
                         {!mine && (
                           <p className="mb-0.5 text-[10px] font-medium opacity-80">
                             {msg.userName}
-                            {msg.role === 'teacher' ? ' (GV)' : ''}
+                            {msg.role === 'teacher' ? ` (${t('role.shortTeacher')})` : ''}
                             {msg.memberCode ? ` · ${msg.memberCode}` : ''}
                           </p>
                         )}
                         <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                         <p className={`mt-1 text-[10px] ${mine ? 'text-primary-100' : 'text-gray-400'}`}>
-                          {formatDateTime(msg.createdAt)}
+                          {formatDateTime(msg.createdAt, locale)}
                         </p>
                       </div>
                     </div>
@@ -208,7 +210,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   disabled={sending}
-                  placeholder="Nhắn với giáo viên và thành viên lớp..."
+                  placeholder={t('chat.placeholder')}
                   className="flex-1 rounded-lg border px-3 py-2 text-sm disabled:bg-gray-50"
                   maxLength={2000}
                 />
@@ -225,7 +227,7 @@ export default function ClassChatPanel({ userId, id = 'class-chat' }: ClassChatP
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
-            Chọn một nhóm lớp để bắt đầu
+            {t('chat.pickRoom')}
           </div>
         )}
       </section>

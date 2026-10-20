@@ -3,21 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell, CheckCheck } from 'lucide-react'
 import Link from 'next/link'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import type { NotificationType } from '@/lib/types'
 import { formatDateTime } from '@/lib/format'
-
-const TYPE_LABELS: Record<NotificationType, string> = {
-  new_assignment: 'Bài tập mới',
-  deadline_reminder: 'Hạn nộp',
-  feedback: 'Điểm & nhận xét',
-  submission_received: 'Bài đã nộp',
-  online_class: 'Lớp học online',
-  admin_reminder: 'Nhắc từ Admin',
-  session_eval: 'Đánh giá buổi học',
-  course_eval: 'Đánh giá khoá học',
-  practice_set: 'Luyện tập',
-}
+import type { Locale } from '@/lib/i18n/catalog'
 
 interface NotificationBellProps {
   userId: string
@@ -28,6 +18,7 @@ export default function NotificationBell({
   userId,
   id = 'notification-bell',
 }: NotificationBellProps) {
+  const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -58,7 +49,7 @@ export default function NotificationBell({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg p-2 text-gray-600 hover:bg-gray-100"
-        aria-label="Thông báo"
+        aria-label={t('nav.notifications')}
         aria-expanded={open}
       >
         <Bell className="h-5 w-5" />
@@ -78,7 +69,7 @@ export default function NotificationBell({
           className="fixed right-3 top-14 z-[100] w-[min(calc(100vw-1.5rem),360px)] rounded-xl border bg-white shadow-lg sm:absolute sm:right-0 sm:top-auto sm:mt-2"
         >
           <div id={`${id}-panel-header`} className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="text-sm font-semibold text-gray-900">Thông báo</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('nav.notifications')}</h3>
             {unreadCount > 0 && (
               <button
                 id={`${id}-mark-all-read`}
@@ -87,7 +78,7 @@ export default function NotificationBell({
                 className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
-                Đọc tất cả
+                {t('nav.markAllRead')}
               </button>
             )}
           </div>
@@ -95,7 +86,7 @@ export default function NotificationBell({
           <ul id={`${id}-list`} className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <li id={`${id}-empty`} className="px-4 py-8 text-center text-sm text-gray-500">
-                Chưa có thông báo
+                {t('nav.noNotifications')}
               </li>
             ) : (
               notifications.slice(0, 30).map((n) => (
@@ -110,7 +101,7 @@ export default function NotificationBell({
                       }}
                       className={`block px-4 py-3 hover:bg-gray-50 ${!n.read ? 'bg-primary-50/50' : ''}`}
                     >
-                      <NotificationItem notification={n} />
+                      <NotificationItem notification={n} locale={locale} typeLabel={t(`status.notification.${n.type}`)} />
                     </Link>
                   ) : (
                     <button
@@ -119,7 +110,7 @@ export default function NotificationBell({
                       onClick={() => markAsRead(n.id)}
                       className={`w-full px-4 py-3 text-left hover:bg-gray-50 ${!n.read ? 'bg-primary-50/50' : ''}`}
                     >
-                      <NotificationItem notification={n} />
+                      <NotificationItem notification={n} locale={locale} typeLabel={t(`status.notification.${n.type}`)} />
                     </button>
                   )}
                 </li>
@@ -134,6 +125,8 @@ export default function NotificationBell({
 
 function NotificationItem({
   notification: n,
+  locale,
+  typeLabel,
 }: {
   notification: {
     type: NotificationType
@@ -142,16 +135,18 @@ function NotificationItem({
     read: boolean
     createdAt: string
   }
+  locale: Locale
+  typeLabel: string
 }) {
   return (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-primary-600">{TYPE_LABELS[n.type]}</p>
+        <p className="text-xs font-medium text-primary-600">{typeLabel}</p>
         {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-primary-500" />}
       </div>
       <p className="mt-0.5 text-sm font-medium text-gray-900">{n.title}</p>
       <p className="text-xs text-gray-600 line-clamp-2">{n.message}</p>
-      <p className="mt-1 text-[10px] text-gray-400">{formatDateTime(n.createdAt)}</p>
+      <p className="mt-1 text-[10px] text-gray-400">{formatDateTime(n.createdAt, locale)}</p>
     </>
   )
 }

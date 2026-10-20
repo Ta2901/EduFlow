@@ -14,14 +14,9 @@ import {
   type SavedQuickAccount,
 } from '@/lib/quickLoginStorage'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { roleDashboardPath } from '@/lib/format'
 import type { UserRole } from '@/lib/types'
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  student: 'Học sinh',
-  teacher: 'Giáo viên',
-  admin: 'Admin',
-}
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -31,6 +26,7 @@ export default function LoginForm() {
   const [savedAccounts, setSavedAccounts] = useState<SavedQuickAccount[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [quickLoadingId, setQuickLoadingId] = useState<string | null>(null)
+  const { t } = useI18n()
   const router = useRouter()
   const login = useAuthStore((s) => s.login)
   const quickLogin = useAuthStore((s) => s.quickLogin)
@@ -54,13 +50,13 @@ export default function LoginForm() {
     setIsLoading(false)
 
     if (!result.ok) {
-      toast.error(result.error || 'Đăng nhập thất bại')
+      toast.error(result.error || t('auth.loginFailed'))
       return
     }
 
     const user = useAuthStore.getState().currentUser
     if (!user) {
-      toast.error('Đăng nhập thất bại')
+      toast.error(t('auth.loginFailed'))
       return
     }
 
@@ -77,11 +73,11 @@ export default function LoginForm() {
         savedAt: new Date().toISOString(),
       })
       setSavedAccounts(listSavedQuickAccounts())
-      toast.success('Đăng nhập thành công — đã lưu đăng nhập nhanh')
+      toast.success(t('auth.loginOkQuick'))
     } else if (enableQuickLogin) {
-      toast.success('Đăng nhập thành công (chưa lưu được đăng nhập nhanh)')
+      toast.success(t('auth.loginOkQuickFail'))
     } else {
-      toast.success('Đăng nhập thành công!')
+      toast.success(t('auth.loginOk'))
     }
 
     router.replace(roleDashboardPath(user.role))
@@ -93,7 +89,7 @@ export default function LoginForm() {
     setQuickLoadingId(null)
 
     if (!result.ok) {
-      toast.error(result.error || 'Đăng nhập nhanh thất bại')
+      toast.error(result.error || t('auth.quickFailed'))
       // Token expired/revoked — remove stale account
       removeQuickAccount(account.userId)
       setSavedAccounts(listSavedQuickAccounts())
@@ -103,11 +99,11 @@ export default function LoginForm() {
 
     const user = useAuthStore.getState().currentUser
     if (!user) {
-      toast.error('Đăng nhập nhanh thất bại')
+      toast.error(t('auth.quickFailed'))
       return
     }
 
-    toast.success(`Xin chào ${user.fullName}!`)
+    toast.success(t('common.helloName', { name: user.fullName }))
     router.replace(roleDashboardPath(user.role))
   }
 
@@ -115,7 +111,7 @@ export default function LoginForm() {
     removeQuickAccount(account.userId)
     setSavedAccounts(listSavedQuickAccounts())
     void api.auth.revokeQuickLogin({ tokenId: account.tokenId, token: account.token }).catch(() => null)
-    toast.success('Đã xoá tài khoản khỏi đăng nhập nhanh')
+    toast.success(t('auth.removedQuick'))
   }
 
   if (!isReady || currentUser) {
@@ -124,7 +120,7 @@ export default function LoginForm() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600" />
           <p className="text-sm text-gray-500">
-            {currentUser ? 'Đang vào bảng điều khiển…' : 'Đang kiểm tra phiên đăng nhập…'}
+            {currentUser ? t('auth.entering') : t('auth.checkingSession')}
           </p>
         </div>
       </div>
@@ -140,11 +136,9 @@ export default function LoginForm() {
         >
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Đăng nhập nhanh</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('auth.quickTitle')}</h3>
           </div>
-          <p className="text-xs text-gray-500">
-            Các tài khoản bạn đã cho phép lưu trên thiết bị này. Nhấn để vào ngay.
-          </p>
+          <p className="text-xs text-gray-500">{t('auth.quickHint')}</p>
           <ul id="auth-login-quick-list" className="space-y-2">
             {savedAccounts.map((account) => (
               <li
@@ -167,13 +161,13 @@ export default function LoginForm() {
                       {account.fullName}
                     </span>
                     <span className="block truncate text-xs text-gray-500">
-                      {ROLE_LABEL[account.role as UserRole] || account.role} · {account.loginId || account.email}
+                      {t(`role.${account.role as UserRole}`) || account.role} · {account.loginId || account.email}
                     </span>
                   </span>
                   {quickLoadingId === account.userId ? (
                     <span className="ml-auto h-4 w-4 shrink-0 animate-spin rounded-full border-b-2 border-primary-600" />
                   ) : (
-                    <span className="ml-auto shrink-0 text-xs font-medium text-primary-600">Vào</span>
+                    <span className="ml-auto shrink-0 text-xs font-medium text-primary-600">{t('auth.enter')}</span>
                   )}
                 </button>
                 <button
@@ -181,8 +175,8 @@ export default function LoginForm() {
                   type="button"
                   onClick={() => void handleRemoveAccount(account)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                  title="Xoá khỏi đăng nhập nhanh"
-                  aria-label="Xoá tài khoản đã lưu"
+                  title={t('auth.removeQuick')}
+                  aria-label={t('auth.removeQuickAria')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -200,7 +194,7 @@ export default function LoginForm() {
       >
         <div>
           <label htmlFor="auth-login-email" className="mb-2 block text-sm font-medium text-gray-700">
-            Email hoặc mã tài khoản
+            {t('auth.emailOrCode')}
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -215,14 +209,14 @@ export default function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Email hoặc mã tài khoản (vd: 100001)"
+              placeholder={t('auth.emailOrCodePlaceholder')}
             />
           </div>
         </div>
 
         <div>
           <label htmlFor="auth-login-password" className="mb-2 block text-sm font-medium text-gray-700">
-            Mật khẩu
+            {t('auth.password')}
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -236,7 +230,7 @@ export default function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-10 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Nhập mật khẩu"
+              placeholder={t('auth.passwordPlaceholder')}
             />
             <button
               id="auth-login-toggle-password"
@@ -265,10 +259,8 @@ export default function LoginForm() {
             className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
           <span className="min-w-0 text-sm text-gray-700">
-            <span className="font-medium text-gray-900">Cho phép đăng nhập nhanh trên thiết bị này</span>
-            <span className="mt-0.5 block text-xs text-gray-500">
-              Chỉ lưu khi bạn đồng ý. Không lưu mật khẩu — dùng mã riêng trên thiết bị, có thể xoá bất kỳ lúc nào.
-            </span>
+            <span className="font-medium text-gray-900">{t('auth.quickConsent')}</span>
+            <span className="mt-0.5 block text-xs text-gray-500">{t('auth.quickConsentHint')}</span>
           </span>
         </label>
 
@@ -278,7 +270,7 @@ export default function LoginForm() {
             href="/forgot-password"
             className="font-medium text-primary-600 hover:text-primary-500"
           >
-            Quên mật khẩu?
+            {t('auth.forgot')}
           </Link>
         </div>
 
@@ -291,38 +283,38 @@ export default function LoginForm() {
           {isLoading ? (
             <div className="flex items-center">
               <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
-              Đang đăng nhập...
+              {t('auth.signingIn')}
             </div>
           ) : (
-            'Đăng nhập'
+            t('common.login')
           )}
         </button>
 
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            Chưa có tài khoản?{' '}
+            {t('auth.noAccount')}{' '}
             <Link
               id="auth-login-register-link"
               href="/register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Đăng ký ngay
+              {t('auth.registerNow')}
             </Link>
           </p>
         </div>
       </motion.form>
 
       <div id="auth-login-demo" className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="mb-2 text-sm font-medium text-blue-800">Tài khoản demo:</h3>
+        <h3 className="mb-2 text-sm font-medium text-blue-800">{t('auth.demoTitle')}</h3>
         <div className="space-y-1 text-xs text-blue-700">
           <p>
-            <strong>Admin:</strong> eduflow.admin / firstedu.eduflow
+            <strong>{t('role.adminShort')}:</strong> eduflow.admin / firstedu.eduflow
           </p>
           <p>
-            <strong>Học sinh:</strong> student@eduflow.com hoặc 100002 / password123
+            <strong>{t('auth.demoStudent')}</strong> student@eduflow.com / 100002 / password123
           </p>
           <p>
-            <strong>Giáo viên:</strong> teacher@eduflow.com hoặc 100001 / password123
+            <strong>{t('auth.demoTeacher')}</strong> teacher@eduflow.com / 100001 / password123
           </p>
         </div>
       </div>

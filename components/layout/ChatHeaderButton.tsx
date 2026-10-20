@@ -1,6 +1,7 @@
 'use client'
 
 import { MessageCircle } from 'lucide-react'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 
 interface ChatHeaderButtonProps {
   id?: string
@@ -13,6 +14,7 @@ export default function ChatHeaderButton({
   active,
   onClick,
 }: ChatHeaderButtonProps) {
+  const { t } = useI18n()
   return (
     <button
       id={id}
@@ -23,8 +25,8 @@ export default function ChatHeaderButton({
           ? 'bg-primary-100 text-primary-700'
           : 'text-gray-600 hover:bg-gray-100 hover:text-primary-600'
       }`}
-      aria-label="Chat lớp"
-      title="Chat lớp"
+      aria-label={t('nav.classChat')}
+      title={t('nav.classChat')}
     >
       <MessageCircle className="h-5 w-5" />
     </button>

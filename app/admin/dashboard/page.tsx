@@ -21,11 +21,12 @@ import AdminWorkCharts from '@/components/dashboard/AdminWorkCharts'
 import AdminTeachingMonitor from '@/components/dashboard/AdminTeachingMonitor'
 import PracticeSetPanel from '@/components/class/PracticeSetPanel'
 import SettingsPanel from '@/components/settings/SettingsPanel'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { api, ApiError, type AdminClassRow } from '@/lib/api/client'
 import type { AccountStatus } from '@/lib/types'
-import { ACCOUNT_STATUS_LABELS } from '@/lib/format'
 
 const STATUS_COLORS: Record<AccountStatus, string> = {
   pending: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -38,6 +39,7 @@ type Tab = 'overview' | 'users' | 'classes' | 'settings'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
+  const { t } = useI18n()
   const currentUser = useAuthStore((s) => s.currentUser)!
   const logout = useAuthStore((s) => s.logout)
 
@@ -137,16 +139,16 @@ export default function AdminDashboardPage() {
   const updateUserStatus = async (userId: string, action: 'approve' | 'setStatus', status?: AccountStatus) => {
     const note =
       action === 'setStatus' && status === 'restricted'
-        ? 'Bị hạn chế bởi quản trị viên'
+        ? t('admin.noteRestricted')
         : action === 'setStatus' && status === 'suspended'
-          ? 'Bị đình chỉ bởi quản trị viên'
+          ? t('admin.noteSuspended')
           : undefined
     try {
       await api.admin.updateUser(userId, { action, status, statusNote: note })
-      toast.success('Đã cập nhật tài khoản')
+      toast.success(t('admin.updated'))
       await Promise.all([loadUsers(), loadOverview()])
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Cập nhật thất bại')
+      toast.error(e instanceof ApiError ? e.message : t('admin.updateFailed'))
     }
   }
 
@@ -154,12 +156,12 @@ export default function AdminDashboardPage() {
     e.preventDefault()
     try {
       await api.admin.createClass(newClass)
-      toast.success('Đã tạo lớp học')
+      toast.success(t('admin.classCreated'))
       setNewClass({ title: '', description: '', teacherId: '' })
       await loadClasses()
       await loadOverview()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Tạo lớp thất bại')
+      toast.error(err instanceof ApiError ? err.message : t('admin.classFailed'))
     }
   }
 
@@ -167,10 +169,10 @@ export default function AdminDashboardPage() {
     if (!selectedClassId) return
     try {
       await api.admin.updateClassRoster(selectedClassId, rosterIds)
-      toast.success('Đã cập nhật danh sách lớp')
+      toast.success(t('admin.rosterSaved'))
       await loadClasses()
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Lưu danh sách thất bại')
+      toast.error(e instanceof ApiError ? e.message : t('admin.rosterFailed'))
     }
   }
 
@@ -179,10 +181,10 @@ export default function AdminDashboardPage() {
   }
 
   const nav = [
-    { id: 'overview' as const, label: 'Tổng quan', icon: LayoutDashboard },
-    { id: 'users' as const, label: 'Tài khoản', icon: Users },
-    { id: 'classes' as const, label: 'Lớp học', icon: BookOpen },
-    { id: 'settings' as const, label: 'Cài đặt', icon: Settings },
+    { id: 'overview' as const, label: t('nav.overview'), icon: LayoutDashboard },
+    { id: 'users' as const, label: t('nav.accounts'), icon: Users },
+    { id: 'classes' as const, label: t('nav.classes'), icon: BookOpen },
+    { id: 'settings' as const, label: t('common.settings'), icon: Settings },
   ]
 
   return (
@@ -192,8 +194,8 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-3">
             <Shield className="h-8 w-8 text-sky-400" />
             <div>
-              <h1 className="text-lg font-bold">EduFlow Admin</h1>
-              <p className="text-xs text-slate-400">Quản lý giáo viên, học sinh và lớp học</p>
+              <h1 className="text-lg font-bold">{t('admin.title')}</h1>
+              <p className="text-xs text-slate-400">{t('admin.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -205,8 +207,9 @@ export default function AdminDashboardPage() {
               className="inline-flex items-center rounded-lg border border-slate-600 px-3 py-2 text-sm hover:bg-slate-800"
             >
               <LogOut className="mr-1.5 h-4 w-4" />
-              Đăng xuất
+              {t('common.logout')}
             </button>
+            <LanguageSwitcher id="admin-dashboard-language" tone="onDark" />
             <ThemeToggle id="admin-dashboard-theme-toggle" className="text-slate-200 hover:bg-slate-800 hover:text-white" />
           </div>
         </div>
@@ -253,13 +256,13 @@ export default function AdminDashboardPage() {
             <div id="admin-dashboard-overview" className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
-                  { label: 'Chờ duyệt', value: overview.pending, color: 'text-amber-600' },
-                  { label: 'Đang hoạt động', value: overview.active, color: 'text-green-600' },
-                  { label: 'Bị hạn chế', value: overview.restricted, color: 'text-orange-600' },
-                  { label: 'Đình chỉ', value: overview.suspended, color: 'text-red-600' },
-                  { label: 'Giáo viên', value: overview.teachers, color: 'text-blue-600' },
-                  { label: 'Học sinh', value: overview.students, color: 'text-violet-600' },
-                  { label: 'Lớp học', value: overview.classes, color: 'text-slate-700' },
+                  { label: t('admin.pending'), value: overview.pending, color: 'text-amber-600' },
+                  { label: t('admin.active'), value: overview.active, color: 'text-green-600' },
+                  { label: t('admin.restricted'), value: overview.restricted, color: 'text-orange-600' },
+                  { label: t('admin.suspended'), value: overview.suspended, color: 'text-red-600' },
+                  { label: t('admin.teachers'), value: overview.teachers, color: 'text-blue-600' },
+                  { label: t('admin.students'), value: overview.students, color: 'text-violet-600' },
+                  { label: t('admin.classes'), value: overview.classes, color: 'text-slate-700' },
                 ].map((s) => (
                   <div key={s.label} className="rounded-xl border bg-white p-5 shadow-sm">
                     <p className="text-sm text-slate-500">{s.label}</p>
@@ -289,7 +292,7 @@ export default function AdminDashboardPage() {
                     id="admin-dashboard-user-search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Tìm tên, email hoặc mã ID..."
+                    placeholder={t('admin.searchPlaceholder')}
                     className="w-full rounded-lg border py-2 pl-9 pr-3 text-sm"
                   />
                 </div>
@@ -299,9 +302,9 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setRoleFilter(e.target.value)}
                   className="rounded-lg border px-3 py-2 text-sm"
                 >
-                  <option value="">Tất cả vai trò</option>
-                  <option value="teacher">Giáo viên</option>
-                  <option value="student">Học sinh</option>
+                  <option value="">{t('common.allRoles')}</option>
+                  <option value="teacher">{t('role.teacher')}</option>
+                  <option value="student">{t('role.student')}</option>
                 </select>
                 <select
                   id="admin-dashboard-user-status-filter"
@@ -309,11 +312,11 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="rounded-lg border px-3 py-2 text-sm"
                 >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="pending">Chờ duyệt</option>
-                  <option value="active">Hoạt động</option>
-                  <option value="restricted">Hạn chế</option>
-                  <option value="suspended">Đình chỉ</option>
+                  <option value="">{t('common.allStatuses')}</option>
+                  <option value="pending">{t('status.account.pending')}</option>
+                  <option value="active">{t('status.account.active')}</option>
+                  <option value="restricted">{t('status.account.restricted')}</option>
+                  <option value="suspended">{t('status.account.suspended')}</option>
                 </select>
                 <button
                   id="admin-dashboard-user-filter-submit"
@@ -321,7 +324,7 @@ export default function AdminDashboardPage() {
                   onClick={() => loadUsers()}
                   className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white"
                 >
-                  Lọc
+                  {t('common.filter')}
                 </button>
               </div>
 
@@ -329,11 +332,11 @@ export default function AdminDashboardPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                     <tr>
-                      <th className="px-4 py-3">Người dùng</th>
-                      <th className="px-4 py-3">Mã ID</th>
-                      <th className="px-4 py-3">Vai trò</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3">Thao tác</th>
+                      <th className="px-4 py-3">{t('common.user')}</th>
+                      <th className="px-4 py-3">{t('admin.memberCode')}</th>
+                      <th className="px-4 py-3">{t('common.role')}</th>
+                      <th className="px-4 py-3">{t('common.status')}</th>
+                      <th className="px-4 py-3">{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -350,12 +353,12 @@ export default function AdminDashboardPage() {
                           {u.role === 'teacher' ? (
                             <span className="inline-flex items-center text-blue-700">
                               <GraduationCap className="mr-1 h-3.5 w-3.5" />
-                              Giáo viên
+                              {t('role.teacher')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center text-violet-700">
                               <Users className="mr-1 h-3.5 w-3.5" />
-                              Học sinh
+                              {t('role.student')}
                             </span>
                           )}
                         </td>
@@ -363,7 +366,7 @@ export default function AdminDashboardPage() {
                           <span
                             className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[u.accountStatus]}`}
                           >
-                            {ACCOUNT_STATUS_LABELS[u.accountStatus]}
+                            {t(`status.account.${u.accountStatus}`)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -375,7 +378,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => updateUserStatus(u.id, 'approve')}
                                 className="rounded bg-green-600 px-2 py-1 text-xs text-white"
                               >
-                                Duyệt
+                                {t('admin.approve')}
                               </button>
                             )}
                             {u.accountStatus !== 'active' && u.accountStatus !== 'pending' && (
@@ -385,7 +388,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => updateUserStatus(u.id, 'setStatus', 'active')}
                                 className="rounded border px-2 py-1 text-xs"
                               >
-                                Kích hoạt
+                                {t('admin.activate')}
                               </button>
                             )}
                             {u.accountStatus !== 'restricted' && (
@@ -395,7 +398,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => updateUserStatus(u.id, 'setStatus', 'restricted')}
                                 className="rounded border border-orange-300 bg-orange-50 px-2 py-1 text-xs text-orange-800"
                               >
-                                Hạn chế
+                                {t('admin.restrict')}
                               </button>
                             )}
                             {u.accountStatus !== 'suspended' && (
@@ -405,7 +408,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => updateUserStatus(u.id, 'setStatus', 'suspended')}
                                 className="rounded border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-800"
                               >
-                                Đình chỉ
+                                {t('admin.suspend')}
                               </button>
                             )}
                             <button
@@ -417,7 +420,7 @@ export default function AdminDashboardPage() {
                               className="inline-flex items-center rounded border border-sky-300 bg-sky-50 px-2 py-1 text-xs text-sky-800"
                             >
                               <KeyRound className="mr-1 h-3 w-3" />
-                              Reset MK
+                              {t('admin.resetPassword')}
                             </button>
                           </div>
                         </td>
@@ -426,7 +429,7 @@ export default function AdminDashboardPage() {
                   </tbody>
                 </table>
                 {users.length === 0 && (
-                  <p className="p-8 text-center text-sm text-slate-500">Không có tài khoản phù hợp</p>
+                  <p className="p-8 text-center text-sm text-slate-500">{t('admin.noUsers')}</p>
                 )}
               </div>
             </div>
@@ -436,21 +439,21 @@ export default function AdminDashboardPage() {
             <div id="admin-dashboard-classes" className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-4">
                 <form id="admin-dashboard-create-class-form" onSubmit={handleCreateClass} className="rounded-xl border bg-white p-4 shadow-sm">
-                  <h2 className="mb-3 font-semibold text-slate-900">Tạo lớp học mới</h2>
+                  <h2 className="mb-3 font-semibold text-slate-900">{t('admin.createClass')}</h2>
                   <div className="space-y-2">
                     <input
                       id="admin-dashboard-class-title"
                       required
                       value={newClass.title}
                       onChange={(e) => setNewClass((f) => ({ ...f, title: e.target.value }))}
-                      placeholder="Tên lớp"
+                      placeholder={t('admin.className')}
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     />
                     <textarea
                       id="admin-dashboard-class-description"
                       value={newClass.description}
                       onChange={(e) => setNewClass((f) => ({ ...f, description: e.target.value }))}
-                      placeholder="Mô tả"
+                      placeholder={t('admin.description')}
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                       rows={2}
                     />
@@ -461,7 +464,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) => setNewClass((f) => ({ ...f, teacherId: e.target.value }))}
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     >
-                      <option value="">Chọn giáo viên (đã kích hoạt)</option>
+                      <option value="">{t('admin.pickTeacher')}</option>
                       {teachers.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.fullName} — {t.email}
@@ -469,13 +472,13 @@ export default function AdminDashboardPage() {
                       ))}
                     </select>
                     <button id="admin-dashboard-class-create-submit" type="submit" className="w-full rounded-lg bg-slate-900 py-2 text-sm text-white">
-                      Tạo lớp
+                      {t('admin.create')}
                     </button>
                   </div>
                 </form>
 
                 <div className="rounded-xl border bg-white shadow-sm">
-                  <div className="border-b px-4 py-3 font-semibold">Danh sách lớp ({classes.length})</div>
+                  <div className="border-b px-4 py-3 font-semibold">{t('admin.classList', { count: classes.length })}</div>
                   <ul className="max-h-[420px] divide-y overflow-y-auto">
                     {classes.map((c) => (
                       <li key={c.id}>
@@ -489,7 +492,7 @@ export default function AdminDashboardPage() {
                         >
                           <p className="font-medium text-slate-900">{c.title}</p>
                           <p className="text-xs text-slate-500">
-                            GV: {c.teacherName} · {c.studentCount} HS · Mã {c.classCode}
+                            {t('admin.rosterMeta', { teacher: c.teacherName, count: c.studentCount, code: c.classCode })}
                           </p>
                         </button>
                       </li>
@@ -501,14 +504,14 @@ export default function AdminDashboardPage() {
               <div id="admin-dashboard-roster" className="rounded-xl border bg-white p-4 shadow-sm">
                 <h2 className="mb-3 flex items-center font-semibold text-slate-900">
                   <UserCheck className="mr-2 h-5 w-5" />
-                  Danh sách học sinh trong lớp
+                  {t('admin.rosterTitle')}
                 </h2>
                 {!selectedClass ? (
-                  <p className="text-sm text-slate-500">Chọn một lớp để quản lý danh sách học sinh.</p>
+                  <p className="text-sm text-slate-500">{t('admin.pickClass')}</p>
                 ) : (
                   <>
                     <p className="mb-3 text-sm text-slate-600">
-                      Lớp: <strong>{selectedClass.title}</strong>
+                      {t('admin.classIs', { title: selectedClass.title })}
                     </p>
                     <div className="max-h-[360px] space-y-1 overflow-y-auto rounded-lg border p-2">
                       {allStudents.map((s) => (
@@ -533,7 +536,7 @@ export default function AdminDashboardPage() {
                       onClick={handleSaveRoster}
                       className="mt-3 w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white"
                     >
-                      Lưu danh sách ({rosterIds.length} học sinh)
+                      {t('admin.saveRoster', { count: rosterIds.length })}
                     </button>
                     <div className="mt-6 border-t pt-4">
                       <PracticeSetPanel

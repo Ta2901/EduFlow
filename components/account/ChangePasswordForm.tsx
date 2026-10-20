@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 import { removeQuickAccount } from '@/lib/quickLoginStorage'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -25,17 +26,18 @@ export default function ChangePasswordForm({
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { t } = useI18n()
   const pid = idPrefix
   const userId = useAuthStore((s) => s.currentUser?.id)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword !== confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp')
+      toast.error(t('settings.passwordMismatch'))
       return
     }
     if (newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự')
+      toast.error(t('settings.passwordMin'))
       return
     }
 
@@ -43,13 +45,13 @@ export default function ChangePasswordForm({
     try {
       await api.auth.changePassword({ currentPassword, newPassword })
       if (userId) removeQuickAccount(userId)
-      toast.success('Đã đổi mật khẩu thành công')
+      toast.success(t('settings.passwordOk'))
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       onSuccess?.()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Đổi mật khẩu thất bại')
+      toast.error(err instanceof ApiError ? err.message : t('settings.passwordFail'))
     } finally {
       setLoading(false)
     }
@@ -60,12 +62,12 @@ export default function ChangePasswordForm({
       {!hideHeader && (
         <div className="mb-5 flex items-center gap-2">
           <KeyRound className="h-5 w-5 text-primary-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Đổi mật khẩu</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('settings.password')}</h2>
         </div>
       )}
       <form id={`${pid}-form`} onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm">
-          <span className="text-gray-700">Mật khẩu hiện tại</span>
+          <span className="text-gray-700">{t('settings.currentPassword')}</span>
           <div className="relative mt-1">
             <input
               id={`${pid}-current`}
@@ -86,7 +88,7 @@ export default function ChangePasswordForm({
           </div>
         </label>
         <label className="block text-sm">
-          <span className="text-gray-700">Mật khẩu mới</span>
+          <span className="text-gray-700">{t('settings.newPassword')}</span>
           <div className="relative mt-1">
             <input
               id={`${pid}-new`}
@@ -108,7 +110,7 @@ export default function ChangePasswordForm({
           </div>
         </label>
         <label className="block text-sm">
-          <span className="text-gray-700">Xác nhận mật khẩu mới</span>
+          <span className="text-gray-700">{t('settings.confirmNew')}</span>
           <input
             id={`${pid}-confirm`}
             type="password"
@@ -125,7 +127,7 @@ export default function ChangePasswordForm({
           disabled={loading}
           className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
         >
-          {loading ? 'Đang lưu...' : 'Cập nhật mật khẩu'}
+          {loading ? t('common.saving') : t('settings.updatePassword')}
         </button>
       </form>
     </div>

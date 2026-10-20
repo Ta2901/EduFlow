@@ -3,13 +3,15 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import AuthHydrator from '@/components/auth/AuthHydrator'
+import LanguageScript from '@/components/i18n/LanguageScript'
+import { LanguageProvider } from '@/components/i18n/LanguageProvider'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import ThemeScript from '@/components/theme/ThemeScript'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'EduFlow - Hệ thống học tập thông minh',
+  title: 'EduFlow 2.0',
   description: 'Nền tảng học tập và giảng dạy hiện đại, hỗ trợ giáo viên và học sinh trong quá trình giáo dục',
   keywords: 'education, learning, teaching, online learning, vietnam',
   authors: [{ name: 'EduFlow Team' }],
@@ -34,8 +36,10 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <LanguageScript />
       </head>
       <body className={`${inter.className} bg-[var(--background)] text-[var(--foreground)] antialiased`}>
+        <LanguageProvider>
         <ThemeProvider>
           <AuthHydrator />
           {children}
@@ -51,6 +55,7 @@ export default function RootLayout({
             }}
           />
         </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   )

@@ -5,11 +5,14 @@ import { motion } from 'framer-motion'
 import { BookOpen, Users, Award, Smartphone, Monitor, Globe, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import LanguageSwitcher, { VersionBadge } from '@/components/i18n/LanguageSwitcher'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
-import { ROLE_LABELS, roleDashboardPath } from '@/lib/format'
+import { roleDashboardPath } from '@/lib/format'
 
 export default function HomePage() {
+  const { t } = useI18n()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const logout = useAuthStore((s) => s.logout)
   const currentUser = useAuthStore((s) => s.currentUser)
@@ -18,7 +21,7 @@ export default function HomePage() {
   const handleLogout = async () => {
     await logout()
     setMobileMenuOpen(false)
-    toast.success('Đã đăng xuất')
+    toast.success(t('common.loggedOut'))
   }
 
   const dashboardPath = currentUser ? roleDashboardPath(currentUser.role) : '/login'
@@ -26,36 +29,36 @@ export default function HomePage() {
   const features = [
     {
       icon: BookOpen,
-      title: 'Quản lý khóa học',
-      description: 'Tạo và quản lý các khóa học một cách dễ dàng'
+      title: t('landing.featureCourse'),
+      description: t('landing.featureCourseBody')
     },
     {
       icon: Users,
-      title: 'Tương tác học tập',
-      description: 'Giao tiếp và tương tác giữa giáo viên và học sinh'
+      title: t('landing.featureInteract'),
+      description: t('landing.featureInteractBody')
     },
     {
       icon: Award,
-      title: 'Đánh giá tiến độ',
-      description: 'Theo dõi và đánh giá tiến độ học tập hiệu quả'
+      title: t('landing.featureProgress'),
+      description: t('landing.featureProgressBody')
     }
   ]
 
   const responsiveFeatures = [
     {
       icon: Smartphone,
-      title: 'Mobile First',
-      description: 'Tối ưu hoàn hảo cho thiết bị di động'
+      title: t('landing.mobileTitle'),
+      description: t('landing.mobileBody')
     },
     {
       icon: Monitor,
-      title: 'Desktop Ready',
-      description: 'Giao diện đầy đủ tính năng trên máy tính'
+      title: t('landing.desktopTitle'),
+      description: t('landing.desktopBody')
     },
     {
       icon: Globe,
-      title: 'Responsive Design',
-      description: 'Tự động điều chỉnh trên mọi kích thước màn hình'
+      title: t('landing.responsiveCard'),
+      description: t('landing.responsiveCardBody')
     }
   ]
 
@@ -67,17 +70,18 @@ export default function HomePage() {
             <Link id="landing-logo" href="/" className="flex items-center">
               <BookOpen className="h-7 w-7 text-primary-600 sm:h-8 sm:w-8" />
               <span className="ml-2 text-lg font-bold text-gray-900 sm:text-xl">EduFlow</span>
+              <VersionBadge className="ml-2" />
             </Link>
             <nav id="landing-nav" className="hidden items-center gap-6 md:flex">
-              <a id="landing-nav-features" href="#features" className="text-sm text-gray-600 hover:text-primary-600">Tính năng</a>
-              <a id="landing-nav-responsive" href="#responsive" className="text-sm text-gray-600 hover:text-primary-600">Responsive</a>
+              <a id="landing-nav-features" href="#features" className="text-sm text-gray-600 hover:text-primary-600">{t('nav.features')}</a>
+              <a id="landing-nav-responsive" href="#responsive" className="text-sm text-gray-600 hover:text-primary-600">{t('nav.responsive')}</a>
               {!isReady ? (
                 <div className="h-9 w-40 animate-pulse rounded-lg bg-gray-100" aria-hidden />
               ) : currentUser ? (
                 <>
                   <span className="text-sm text-gray-700">
-                    Xin chào, <strong>{currentUser.fullName}</strong>
-                    <span className="ml-1 text-gray-500">({ROLE_LABELS[currentUser.role]})</span>
+                    {t('common.hello')}, <strong>{currentUser.fullName}</strong>
+                    <span className="ml-1 text-gray-500">({t(`role.${currentUser.role}`)})</span>
                   </span>
                   <Link
                     id="landing-nav-dashboard"
@@ -85,7 +89,7 @@ export default function HomePage() {
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                   >
                     <LayoutDashboard className="h-4 w-4" />
-                    Bảng điều khiển
+                    {t('nav.dashboard')}
                   </Link>
                   <button
                     id="landing-nav-logout"
@@ -94,23 +98,24 @@ export default function HomePage() {
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600"
                   >
                     <LogOut className="h-4 w-4" />
-                    Đăng xuất
+                    {t('common.logout')}
                   </button>
                 </>
               ) : (
                 <>
                   <Link id="landing-nav-register" href="/register" className="text-sm font-medium text-gray-600 hover:text-primary-600">
-                    Đăng ký
+                    {t('common.register')}
                   </Link>
                   <Link
                     id="landing-nav-login"
                     href="/login"
                     className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                   >
-                    Đăng nhập
+                    {t('common.login')}
                   </Link>
                 </>
               )}
+              <LanguageSwitcher id="landing-language" />
               <ThemeToggle id="landing-theme-toggle" />
             </nav>
             <div className="flex items-center gap-1 md:hidden">
@@ -119,10 +124,11 @@ export default function HomePage() {
                 type="button"
                 className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Menu"
+                aria-label={t('common.menu')}
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
+              <LanguageSwitcher id="landing-language-mobile" />
               <ThemeToggle id="landing-theme-toggle-mobile" />
             </div>
           </div>
@@ -130,18 +136,18 @@ export default function HomePage() {
             <nav id="landing-nav-mobile" className="border-t py-3 md:hidden">
               <div className="flex flex-col gap-2">
                 <a id="landing-nav-mobile-features" href="#features" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
-                  Tính năng
+                  {t('nav.features')}
                 </a>
                 <a id="landing-nav-mobile-responsive" href="#responsive" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
-                  Responsive
+                  {t('nav.responsive')}
                 </a>
                 {!isReady ? (
                   <div className="mx-3 h-10 animate-pulse rounded-lg bg-gray-100" aria-hidden />
                 ) : currentUser ? (
                   <>
                     <p className="px-3 py-2 text-sm text-gray-700">
-                      Xin chào, <strong>{currentUser.fullName}</strong>
-                      <span className="block text-xs text-gray-500">{ROLE_LABELS[currentUser.role]}</span>
+                      {t('common.hello')}, <strong>{currentUser.fullName}</strong>
+                      <span className="block text-xs text-gray-500">{t(`role.${currentUser.role}`)}</span>
                     </p>
                     <Link
                       id="landing-nav-mobile-dashboard"
@@ -150,7 +156,7 @@ export default function HomePage() {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <LayoutDashboard className="h-4 w-4" />
-                      Bảng điều khiển
+                      {t('nav.dashboard')}
                     </Link>
                     <button
                       id="landing-nav-mobile-logout"
@@ -159,13 +165,13 @@ export default function HomePage() {
                       className="mx-3 flex items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700"
                     >
                       <LogOut className="h-4 w-4" />
-                      Đăng xuất
+                      {t('common.logout')}
                     </button>
                   </>
                 ) : (
                   <>
                     <Link id="landing-nav-mobile-register" href="/register" className="rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50" onClick={() => setMobileMenuOpen(false)}>
-                      Đăng ký
+                      {t('common.register')}
                     </Link>
                     <Link
                       id="landing-nav-mobile-login"
@@ -173,7 +179,7 @@ export default function HomePage() {
                       className="mx-3 rounded-lg bg-primary-600 py-2.5 text-center text-sm font-medium text-white"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Đăng nhập
+                      {t('common.login')}
                     </Link>
                   </>
                 )}
@@ -192,11 +198,11 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
           >
             <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:mb-6 sm:text-4xl md:text-5xl lg:text-6xl">
-              Hệ thống học tập
-              <span className="text-primary-600"> thông minh</span>
+              {t('landing.heroTitle')}
+              <span className="text-primary-600"> {t('landing.heroAccent')}</span>
             </h1>
             <p className="mx-auto mb-6 max-w-3xl text-base text-gray-600 sm:mb-8 sm:text-lg md:text-xl">
-              Nền tảng giáo dục hiện đại, kết nối giáo viên và học sinh trong một môi trường học tập tương tác và hiệu quả
+              {t('landing.heroBody')}
             </p>
           </motion.div>
 
@@ -214,7 +220,7 @@ export default function HomePage() {
                 href={dashboardPath}
                 className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
               >
-                Vào bảng điều khiển
+                {t('landing.enterDashboard')}
               </Link>
             ) : isReady ? (
               <>
@@ -223,14 +229,14 @@ export default function HomePage() {
                   href="/login"
                   className="w-full rounded-lg bg-primary-600 px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-primary-700 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
                 >
-                  Đăng nhập
+                  {t('common.login')}
                 </Link>
                 <Link
                   id="landing-cta-register"
                   href="/register"
                   className="w-full rounded-lg border-2 border-primary-600 px-6 py-3.5 text-center text-base font-semibold text-primary-600 hover:bg-primary-50 sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
                 >
-                  Đăng ký tài khoản
+                  {t('landing.createAccount')}
                 </Link>
               </>
             ) : (
@@ -245,10 +251,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Tính năng nổi bật
+              {t('landing.featuresTitle')}
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Các công cụ mạnh mẽ giúp tối ưu hóa trải nghiệm học tập và giảng dạy
+              {t('landing.featuresBody')}
             </p>
           </div>
 
@@ -281,10 +287,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Responsive Design
+              {t('landing.responsiveTitle')}
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Tối ưu hoàn hảo cho mọi thiết bị, từ điện thoại đến máy tính
+              {t('landing.responsiveBody')}
             </p>
           </div>
 
@@ -322,36 +328,36 @@ export default function HomePage() {
                 <span className="ml-2 text-xl font-bold">EduFlow</span>
               </div>
               <p className="text-gray-400">
-                Nền tảng giáo dục hiện đại, kết nối giáo viên và học sinh.
+                {t('landing.footerBody')}
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Sản phẩm</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('landing.product')}</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Tính năng</a></li>
-                <li><a href="#" className="hover:text-white">Giá cả</a></li>
-                <li><a href="#" className="hover:text-white">Demo</a></li>
+                <li><a href="#" className="hover:text-white">{t('nav.features')}</a></li>
+                <li><a href="#" className="hover:text-white">{t('landing.pricing')}</a></li>
+                <li><a href="#" className="hover:text-white">{t('landing.demo')}</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Hỗ trợ</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('landing.support')}</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Trung tâm trợ giúp</a></li>
-                <li><a href="#" className="hover:text-white">Liên hệ</a></li>
+                <li><a href="#" className="hover:text-white">{t('landing.helpCenter')}</a></li>
+                <li><a href="#" className="hover:text-white">{t('landing.contact')}</a></li>
                 <li><a href="#" className="hover:text-white">FAQ</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Công ty</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('landing.company')}</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Giới thiệu</a></li>
+                <li><a href="#" className="hover:text-white">{t('landing.about')}</a></li>
                 <li><a href="#" className="hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-white">Tuyển dụng</a></li>
+                <li><a href="#" className="hover:text-white">{t('landing.careers')}</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2026 EduFlow. Tất cả quyền được bảo lưu.</p>
+            <p>{t('landing.rights')}</p>
           </div>
         </div>
       </footer>
