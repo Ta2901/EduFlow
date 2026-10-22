@@ -1,3 +1,4 @@
+import { normalizeClassStatus } from '../classStatus'
 import type { ClassRoom, ClassStudent, Submission, Task, TaskAttachment } from '../types'
 
 type ClassWithRelations = {
@@ -54,7 +55,7 @@ export function mapClassRoom(row: ClassWithRelations): ClassRoom {
     description: row.description,
     classCode: row.classCode,
     teacherId: row.teacherId,
-    status: row.status === 'cancelled' ? 'cancelled' : 'active',
+    status: normalizeClassStatus(row.status),
     students: row.enrollments.map(mapClassStudent),
     createdAt: row.createdAt.toISOString(),
   }

@@ -1,3 +1,4 @@
+import { joinBlockedReason, normalizeClassStatus } from '../classStatus'
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
 import { logActivitiesManyLater, logActivityLater } from './activityLog'
@@ -95,11 +96,12 @@ export async function getEduContext(session: SessionPayload) {
 
 export async function createClassForTeacher(
   teacherId: string,
-  input: { title: string; description: string }
+  input: { title: string; description: string; publish?: boolean }
 ) {
   const existingCodes = (await prisma.class.findMany({ select: { classCode: true } })).map(
     (c) => c.classCode
   )
+  const status = input.publish ? 'published' : 'draft'
 
   const row = await prisma.class.create({
     data: {
@@ -107,6 +109,7 @@ export async function createClassForTeacher(
       description: input.description.trim(),
       classCode: generateUniqueClassCode(existingCodes),
       teacherId,
+      status,
     },
     include: classInclude,
   })
@@ -116,10 +119,13 @@ export async function createClassForTeacher(
   logActivityLater({
     userId: teacherId,
     type: 'class_create',
-    title: 'Tạo lớp học',
-    message: `Đã tạo lớp "${row.title}" (mã ${row.classCode})`,
+    title: status === 'draft' ? 'Lưu nháp lớp học' : 'Tạo lớp học',
+    message:
+      status === 'draft'
+        ? `Đã lưu nháp lớp "${row.title}" (mã ${row.classCode}). Học sinh chưa thể tham gia.`
+        : `Đã phát hành lớp "${row.title}" (mã ${row.classCode})`,
     href: `/teacher/courses/${row.id}`,
-    meta: { classId: row.id, classCode: row.classCode },
+    meta: { classId: row.id, classCode: row.classCode, status },
   })
 
   return mapClassRoom(row)
@@ -144,8 +150,9 @@ export async function joinClassByCode(studentId: string, _studentName: string, _
     return { ok: false as const, error: 'Mã lớp không tồn tại. Vui lòng kiểm tra lại.' }
   }
 
-  if (classroom.status === 'cancelled') {
-    return { ok: false as const, error: 'Lớp học này đã bị huỷ, không thể tham gia.' }
+  const blocked = joinBlockedReason(classroom.status)
+  if (blocked) {
+    return { ok: false as const, error: blocked }
   }
 
   if (classroom.enrollments.some((e) => e.studentId === studentId)) {
@@ -202,7 +209,9 @@ export async function updateClassForTeacher(
     include: classInclude,
   })
   if (!classroom) throw new Error('Không tìm thấy lớp học')
-  if (classroom.status === 'cancelled') throw new Error('Lớp đã bị huỷ, không thể chỉnh sửa')
+  if (normalizeClassStatus(classroom.status) === 'cancelled') {
+    throw new Error('Lớp đã bị huỷ, không thể chỉnh sửa')
+  }
 
   const title = input.title.trim()
   if (!title) throw new Error('Vui lòng nhập tên lớp')
@@ -238,7 +247,9 @@ export async function cancelClassForTeacher(teacherId: string, classId: string) 
     include: classInclude,
   })
   if (!classroom) throw new Error('Không tìm thấy lớp học')
-  if (classroom.status === 'cancelled') throw new Error('Lớp đã được huỷ trước đó')
+  if (normalizeClassStatus(classroom.status) === 'cancelled') {
+    throw new Error('Lớp đã được huỷ trước đó')
+  }
 
   const updated = await prisma.class.update({
     where: { id: classId },
@@ -264,6 +275,65 @@ export async function cancelClassForTeacher(teacherId: string, classId: string) 
       meta: { classId, classCode: classroom.classCode },
     })),
   ])
+
+  return mapClassRoom(updated)
+}
+
+export async function setClassLifecycleForTeacher(
+  teacherId: string,
+  classId: string,
+  action: 'publish' | 'archive' | 'reopen'
+) {
+  const classroom = await prisma.class.findFirst({
+    where: { id: classId, teacherId },
+    include: classInclude,
+  })
+  if (!classroom) throw new Error('Không tìm thấy lớp học')
+
+  const current = normalizeClassStatus(classroom.status)
+  if (current === 'cancelled') throw new Error('Lớp đã bị huỷ, không thể đổi trạng thái')
+
+  let next: 'published' | 'archived' | 'draft' = current
+  if (action === 'publish') {
+    if (current !== 'draft' && current !== 'archived') {
+      throw new Error('Chỉ phát hành lớp đang nháp hoặc đã lưu trữ')
+    }
+    next = 'published'
+  } else if (action === 'archive') {
+    if (current !== 'published') throw new Error('Chỉ lưu trữ lớp đang phát hành')
+    next = 'archived'
+  } else {
+    if (current !== 'archived') throw new Error('Chỉ mở lại lớp đã lưu trữ')
+    next = 'published'
+  }
+
+  const updated = await prisma.class.update({
+    where: { id: classId },
+    data: { status: next },
+    include: classInclude,
+  })
+
+  const log =
+    next === 'archived'
+      ? {
+          type: 'class_archive' as const,
+          title: 'Lưu trữ lớp học',
+          message: `Đã lưu trữ lớp "${classroom.title}". Học sinh không thể tham gia mới.`,
+        }
+      : {
+          type: 'class_publish' as const,
+          title: current === 'archived' ? 'Mở lại lớp học' : 'Phát hành lớp học',
+          message: `Đã phát hành lớp "${classroom.title}" (mã ${classroom.classCode}). Học sinh có thể tham gia.`,
+        }
+
+  logActivityLater({
+    userId: teacherId,
+    type: log.type,
+    title: log.title,
+    message: log.message,
+    href: `/teacher/courses/${classId}`,
+    meta: { classId, classCode: classroom.classCode, status: next },
+  })
 
   return mapClassRoom(updated)
 }

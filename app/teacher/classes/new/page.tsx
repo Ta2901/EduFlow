@@ -20,10 +20,10 @@ export default function CreateClassPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [createdCode, setCreatedCode] = useState<string | null>(null)
+  const [created, setCreated] = useState<{ code: string; published: boolean; id: string } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, publish: boolean) => {
     e.preventDefault()
     if (!title.trim()) {
       toast.error('Vui lòng nhập tên lớp')
@@ -32,9 +32,9 @@ export default function CreateClassPage() {
 
     setIsLoading(true)
     try {
-      const newClass = await createClass({ title, description })
-      setCreatedCode(newClass.classCode)
-      toast.success('Tạo lớp học thành công!')
+      const newClass = await createClass({ title, description, publish })
+      setCreated({ code: newClass.classCode, published: newClass.status === 'published', id: newClass.id })
+      toast.success(publish ? 'Đã phát hành lớp học' : 'Đã lưu nháp lớp học')
     } catch {
       toast.error('Tạo lớp thất bại')
     } finally {
@@ -43,14 +43,14 @@ export default function CreateClassPage() {
   }
 
   const copyCode = async () => {
-    if (!createdCode) return
-    await navigator.clipboard.writeText(createdCode)
+    if (!created) return
+    await navigator.clipboard.writeText(created.code)
     setCopied(true)
-    toast.success(t('common.copiedCode', { code: createdCode }))
+    toast.success(t('common.copiedCode', { code: created.code }))
     setTimeout(() => setCopied(false), 2000)
   }
 
-  if (createdCode) {
+  if (created) {
     return (
       <div id="teacher-class-created" className="min-h-screen bg-gray-50 text-gray-900">
         <PageHeader id="teacher-class-created-header" userId={currentUser.id} title={t('admin.classCreated')} backHref="/teacher/dashboard" />
@@ -63,15 +63,19 @@ export default function CreateClassPage() {
             <div className="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <Check className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Tạo lớp thành công!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {created.published ? 'Đã phát hành lớp!' : 'Đã lưu nháp lớp!'}
+            </h2>
             <p className="text-gray-600 mb-6">
-              Chia sẻ mã lớp bên dưới để học sinh tham gia
+              {created.published
+                ? 'Chia sẻ mã lớp bên dưới để học sinh tham gia'
+                : 'Học sinh chưa thể tham gia. Phát hành khi đã chuẩn bị xong.'}
             </p>
 
             <div className="bg-primary-50 border-2 border-dashed border-primary-200 rounded-xl p-6 mb-6">
               <p className="text-sm text-primary-700 mb-2 font-medium">{t('common.classCode')}</p>
               <p className="text-4xl font-bold tracking-widest text-primary-600 font-mono">
-                {createdCode}
+                {created.code}
               </p>
               <button
                 id="teacher-class-created-copy"
@@ -91,6 +95,15 @@ export default function CreateClassPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {!created.published && (
+                <button
+                  id="teacher-class-created-manage"
+                  onClick={() => router.push(`/teacher/courses/${created.id}`)}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                >
+                  Chuẩn bị rồi phát hành
+                </button>
+              )}
               <button
                 id="teacher-class-created-home"
                 onClick={() => router.push('/teacher/dashboard')}
@@ -101,7 +114,7 @@ export default function CreateClassPage() {
               <button
                 id="teacher-class-created-another"
                 onClick={() => {
-                  setCreatedCode(null)
+                  setCreated(null)
                   setTitle('')
                   setDescription('')
                 }}
@@ -123,14 +136,15 @@ export default function CreateClassPage() {
         id="teacher-class-new-form"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        onSubmit={handleSubmit}
+        onSubmit={(e) => void handleSubmit(e, false)}
         className="mx-auto max-w-2xl p-4 sm:p-6"
       >
         <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
           <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
             <BookOpen className="h-8 w-8 text-blue-600 flex-shrink-0" />
             <p className="text-sm text-blue-800">
-              Sau khi tạo, hệ thống sẽ tự động sinh <strong>mã lớp duy nhất</strong> (6 ký tự) để học sinh tham gia.
+              Mặc định lớp được <strong>lưu nháp</strong>. Học sinh chỉ tham gia được sau khi bạn phát hành.
+              Hệ thống sinh mã lớp 6 ký tự ngay khi lưu.
             </p>
           </div>
 
@@ -162,7 +176,7 @@ export default function CreateClassPage() {
             />
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <Link
               id="teacher-class-new-cancel"
               href="/teacher/dashboard"
@@ -171,12 +185,21 @@ export default function CreateClassPage() {
               Hủy
             </Link>
             <button
-              id="teacher-class-new-submit"
+              id="teacher-class-new-draft"
               type="submit"
               disabled={isLoading}
+              className="flex-1 py-3 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
+            >
+              {isLoading ? 'Đang lưu...' : 'Lưu nháp'}
+            </button>
+            <button
+              id="teacher-class-new-publish"
+              type="button"
+              disabled={isLoading}
+              onClick={(e) => void handleSubmit(e, true)}
               className="flex-1 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
-              {isLoading ? 'Đang tạo...' : 'Tạo lớp & sinh mã'}
+              {isLoading ? 'Đang tạo...' : 'Tạo và phát hành'}
             </button>
           </div>
         </div>

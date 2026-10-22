@@ -138,6 +138,7 @@ async function seedDemoContent() {
       description: 'Khóa học toán học cơ bản cho học sinh lớp 10',
       classCode: 'MATH10A',
       teacherId: teacher.id,
+      status: 'published',
     },
   })
 
@@ -147,6 +148,7 @@ async function seedDemoContent() {
       description: 'Khóa học toán học nâng cao lớp 10',
       classCode: 'MATH10B',
       teacherId: teacher.id,
+      status: 'published',
     },
   })
 

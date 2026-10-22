@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   const classroom = await createClassForTeacher(session.userId, {
     title,
     description: String(body.description || ''),
+    publish: Boolean(body.publish),
   })
 
   return jsonOk({ classroom }, 201)

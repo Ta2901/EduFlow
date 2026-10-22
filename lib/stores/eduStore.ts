@@ -11,6 +11,7 @@ interface StudentProfile {
 interface CreateClassInput {
   title: string
   description: string
+  publish?: boolean
 }
 
 interface CreateTaskInput {

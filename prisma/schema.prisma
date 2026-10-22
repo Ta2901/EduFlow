@@ -92,7 +92,8 @@ model Class {
   description String   @default("")
   classCode   String   @unique
   teacherId   String
-  status      String   @default("active")
+  /// draft | published | archived | cancelled  (legacy "active" = published)
+  status      String   @default("draft")
   /// YYYY-MM-DD — đầu / cuối khoá (dùng mở đánh giá giữa kỳ & cuối kỳ)
   termStart   String?
   termEnd     String?

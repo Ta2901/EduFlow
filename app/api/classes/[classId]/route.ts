@@ -1,4 +1,8 @@
-import { cancelClassForTeacher, updateClassForTeacher } from '@/lib/server/edu'
+import {
+  cancelClassForTeacher,
+  setClassLifecycleForTeacher,
+  updateClassForTeacher,
+} from '@/lib/server/edu'
 import { assertCanWrite } from '@/lib/server/account'
 import { jsonError, jsonOk } from '@/lib/server/http'
 import { getSession } from '@/lib/server/session'
@@ -18,10 +22,17 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => ({}))
-  const title = String(body.title || '').trim()
-  if (!title) return jsonError('Vui lòng nhập tên lớp', 400)
+  const action = String(body.action || '')
 
   try {
+    if (action === 'publish' || action === 'archive' || action === 'reopen') {
+      const classroom = await setClassLifecycleForTeacher(session.userId, params.classId, action)
+      return jsonOk({ classroom })
+    }
+
+    const title = String(body.title || '').trim()
+    if (!title) return jsonError('Vui lòng nhập tên lớp', 400)
+
     const classroom = await updateClassForTeacher(session.userId, params.classId, {
       title,
       description: String(body.description || ''),

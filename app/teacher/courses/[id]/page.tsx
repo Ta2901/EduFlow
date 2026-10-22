@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Calendar, FileText, Plus, Copy, Paperclip, GraduationCap, CalendarDays, Video, ClipboardList, Timer } from 'lucide-react'
+import ClassHomeOverview from '@/components/class/ClassHomeOverview'
 import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import ClassSettingsActions from '@/components/class/ClassSettingsActions'
 import TeachingPlanPanel from '@/components/class/TeachingPlanPanel'
@@ -131,6 +132,13 @@ export default function CourseDetailPage() {
           <div className="p-6">
             {activeTab === 'overview' && (
               <div id="teacher-course-overview" className="space-y-6">
+                <ClassHomeOverview
+                  id="teacher-course-home"
+                  classId={courseId}
+                  tasks={assignments}
+                  userId={currentUser.id}
+                  assignmentHref={(taskId) => `/teacher/assignments/${taskId}/submissions`}
+                />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p className="text-sm text-blue-600">{t('role.student')}</p>

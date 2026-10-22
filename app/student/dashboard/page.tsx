@@ -28,6 +28,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { formatDate, SUBMISSION_STATUS_COLORS } from '@/lib/format'
 import StatDetailPanel from '@/components/dashboard/StatDetailPanel'
+import ClassStatusBadge from '@/components/class/ClassStatusBadge'
 
 type StudentStatKey = 'classes' | 'pending' | 'graded' | 'all'
 
@@ -403,11 +404,7 @@ export default function StudentDashboard() {
                   <GraduationCap className="h-6 w-6 text-primary-600" />
                 </div>
                 <h3 className="font-semibold text-gray-900">{c.title}</h3>
-                {c.status === 'cancelled' && (
-                  <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    {t('common.cancelled')}
-                  </span>
-                )}
+                <ClassStatusBadge status={c.status} />
                 <p className="mt-2 font-mono text-sm text-primary-600">{c.classCode}</p>
               </Link>
             ))}

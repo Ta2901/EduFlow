@@ -16,6 +16,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
+import AdminNotificationBell from '@/components/admin/AdminNotificationBell'
+import AdminOverviewList, { type AdminAccountRow } from '@/components/admin/AdminOverviewList'
 import BulkStudentImport from '@/components/admin/BulkStudentImport'
 import AdminWorkCharts from '@/components/dashboard/AdminWorkCharts'
 import AdminTeachingMonitor from '@/components/dashboard/AdminTeachingMonitor'
@@ -26,6 +28,7 @@ import { useI18n } from '@/components/i18n/LanguageProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { api, ApiError, type AdminClassRow } from '@/lib/api/client'
+import { drillForStat, sameAdminDrill, type AdminDrill, type AdminInbox } from '@/lib/admin/inbox'
 import type { AccountStatus } from '@/lib/types'
 
 const STATUS_COLORS: Record<AccountStatus, string> = {
@@ -53,6 +56,11 @@ export default function AdminDashboardPage() {
     students: 0,
     classes: 0,
   })
+  const [inbox, setInbox] = useState<AdminInbox | null>(null)
+  const [drill, setDrill] = useState<AdminDrill | null>(null)
+  const [drillUsers, setDrillUsers] = useState<AdminAccountRow[]>([])
+  const [drillLoading, setDrillLoading] = useState(false)
+  const [remindingId, setRemindingId] = useState<string | null>(null)
   const [users, setUsers] = useState<
     {
       id: string
@@ -91,6 +99,15 @@ export default function AdminDashboardPage() {
     setOverview(data)
   }, [])
 
+  const loadInbox = useCallback(async () => {
+    try {
+      const { inbox: data } = await api.admin.inbox()
+      setInbox(data)
+    } catch {
+      /* keep the last inbox if a refresh fails */
+    }
+  }, [])
+
   const loadUsers = useCallback(async () => {
     const { users: data } = await api.admin.listUsers({
       role: roleFilter || undefined,
@@ -114,7 +131,34 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     loadOverview().catch(() => {})
     loadClasses().catch(() => {})
-  }, [loadOverview, loadClasses])
+    loadInbox().catch(() => {})
+  }, [loadOverview, loadClasses, loadInbox])
+
+  const accountDrill = drill?.kind === 'accounts'
+  const accountStatus = accountDrill ? drill.status : undefined
+  const accountRole = accountDrill ? drill.role : undefined
+
+  useEffect(() => {
+    if (!accountDrill) return
+    let cancel = false
+    setDrillLoading(true)
+    api.admin
+      .listUsers({ status: accountStatus, role: accountRole })
+      .then(({ users: data }) => {
+        if (!cancel) setDrillUsers(data)
+      })
+      .catch((err) => {
+        if (cancel) return
+        setDrillUsers([])
+        toast.error(err instanceof ApiError ? err.message : t('admin.updateFailed'))
+      })
+      .finally(() => {
+        if (!cancel) setDrillLoading(false)
+      })
+    return () => {
+      cancel = true
+    }
+  }, [accountDrill, accountStatus, accountRole, t])
 
   useEffect(() => {
     if (tab === 'users') loadUsers().catch(() => {})
@@ -146,7 +190,14 @@ export default function AdminDashboardPage() {
     try {
       await api.admin.updateUser(userId, { action, status, statusNote: note })
       toast.success(t('admin.updated'))
-      await Promise.all([loadUsers(), loadOverview()])
+      await Promise.all([loadUsers(), loadOverview(), loadInbox()])
+      if (drill?.kind === 'accounts') {
+        const { users: data } = await api.admin.listUsers({
+          status: drill.status,
+          role: drill.role,
+        })
+        setDrillUsers(data)
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('admin.updateFailed'))
     }
@@ -180,6 +231,28 @@ export default function AdminDashboardPage() {
     setRosterIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  const applyDrill = (next: AdminDrill | null) => {
+    setDrillLoading(next?.kind === 'accounts')
+    setDrill(next)
+  }
+
+  const openClassFromOverview = (classId: string) => {
+    setSelectedClassId(classId)
+    setTab('classes')
+  }
+
+  const remindFromWarning = async (warning: { id: string; teacherId: string; classId: string }) => {
+    setRemindingId(warning.id)
+    try {
+      await api.admin.remindTeacher({ teacherId: warning.teacherId, classId: warning.classId })
+      toast.success(t('admin.inboxReminded'))
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('charts.remindFailed'))
+    } finally {
+      setRemindingId(null)
+    }
+  }
+
   const nav = [
     { id: 'overview' as const, label: t('nav.overview'), icon: LayoutDashboard },
     { id: 'users' as const, label: t('nav.accounts'), icon: Users },
@@ -189,7 +262,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div id="admin-dashboard" className="min-h-screen bg-slate-100 dark:bg-[#0b1220]">
-      <header id="admin-dashboard-header" className="border-b border-slate-800 bg-slate-900 text-white">
+      <header id="admin-dashboard-header" className="relative z-30 border-b border-slate-800 bg-slate-900 text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
             <Shield className="h-8 w-8 text-sky-400" />
@@ -200,6 +273,15 @@ export default function AdminDashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-slate-300 sm:inline">{currentUser.fullName}</span>
+            <AdminNotificationBell
+              id="admin-dashboard-notifications"
+              inbox={inbox}
+              onOpen={(next) => {
+                setTab('overview')
+                applyDrill(next)
+              }}
+              onRefresh={loadInbox}
+            />
             <button
               id="admin-dashboard-logout"
               type="button"
@@ -255,21 +337,51 @@ export default function AdminDashboardPage() {
           {tab === 'overview' && (
             <div id="admin-dashboard-overview" className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  { label: t('admin.pending'), value: overview.pending, color: 'text-amber-600' },
-                  { label: t('admin.active'), value: overview.active, color: 'text-green-600' },
-                  { label: t('admin.restricted'), value: overview.restricted, color: 'text-orange-600' },
-                  { label: t('admin.suspended'), value: overview.suspended, color: 'text-red-600' },
-                  { label: t('admin.teachers'), value: overview.teachers, color: 'text-blue-600' },
-                  { label: t('admin.students'), value: overview.students, color: 'text-violet-600' },
-                  { label: t('admin.classes'), value: overview.classes, color: 'text-slate-700' },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-xl border bg-white p-5 shadow-sm">
-                    <p className="text-sm text-slate-500">{s.label}</p>
-                    <p className={`mt-1 text-3xl font-bold ${s.color}`}>{s.value}</p>
-                  </div>
-                ))}
+                {(
+                  [
+                    { key: 'pending', label: t('admin.pending'), value: overview.pending, color: 'text-amber-600' },
+                    { key: 'active', label: t('admin.active'), value: overview.active, color: 'text-green-600' },
+                    { key: 'restricted', label: t('admin.restricted'), value: overview.restricted, color: 'text-orange-600' },
+                    { key: 'suspended', label: t('admin.suspended'), value: overview.suspended, color: 'text-red-600' },
+                    { key: 'teachers', label: t('admin.teachers'), value: overview.teachers, color: 'text-blue-600' },
+                    { key: 'students', label: t('admin.students'), value: overview.students, color: 'text-violet-600' },
+                    { key: 'classes', label: t('admin.classes'), value: overview.classes, color: 'text-slate-700' },
+                  ] as const
+                ).map((s) => {
+                  const next = drillForStat(s.key)
+                  const active = sameAdminDrill(drill, next)
+                  return (
+                    <button
+                      key={s.key}
+                      id={`admin-dashboard-stat-${s.key}`}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => applyDrill(sameAdminDrill(drill, next) ? null : next)}
+                      className={`rounded-xl border bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                        active ? 'ring-2 ring-slate-900' : ''
+                      }`}
+                    >
+                      <p className="text-sm text-slate-500">{s.label}</p>
+                      <p className={`mt-1 text-3xl font-bold ${s.color}`}>{s.value}</p>
+                    </button>
+                  )
+                })}
               </div>
+              {drill && (
+                <AdminOverviewList
+                  drill={drill}
+                  inbox={inbox}
+                  users={drillUsers}
+                  classes={classes}
+                  loading={drill.kind === 'accounts' && drillLoading}
+                  remindingId={remindingId}
+                  onClose={() => applyDrill(null)}
+                  onUpdateStatus={updateUserStatus}
+                  onResetPassword={setResetUser}
+                  onOpenClass={openClassFromOverview}
+                  onRemind={remindFromWarning}
+                />
+              )}
               <AdminWorkCharts id="admin-dashboard-work-charts" />
               <AdminTeachingMonitor id="admin-dashboard-teaching-monitor" />
             </div>
@@ -492,6 +604,14 @@ export default function AdminDashboardPage() {
                         >
                           <p className="font-medium text-slate-900">{c.title}</p>
                           <p className="text-xs text-slate-500">
+                            {c.status === 'draft'
+                              ? t('common.draft')
+                              : c.status === 'archived'
+                                ? t('common.archived')
+                                : c.status === 'cancelled'
+                                  ? t('common.cancelled')
+                                  : t('common.published')}
+                            {' · '}
                             {t('admin.rosterMeta', { teacher: c.teacherName, count: c.studentCount, code: c.classCode })}
                           </p>
                         </button>

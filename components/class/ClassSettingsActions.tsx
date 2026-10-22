@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Ban } from 'lucide-react'
+import { Pencil, Ban, Megaphone, Archive, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { api, ApiError } from '@/lib/api/client'
 import { useEduStore } from '@/lib/stores/eduStore'
 import type { ClassRoom } from '@/lib/types'
+import ClassStatusBadge from './ClassStatusBadge'
 
 interface ClassSettingsActionsProps {
   classroom: ClassRoom
@@ -23,10 +24,10 @@ export default function ClassSettingsActions({
   const [title, setTitle] = useState(classroom.title)
   const [description, setDescription] = useState(classroom.description)
   const [saving, setSaving] = useState(false)
-  const [cancelling, setCancelling] = useState(false)
+  const [busy, setBusy] = useState<'publish' | 'archive' | 'reopen' | 'cancel' | null>(null)
   const pid = idPrefix
-
-  const isCancelled = classroom.status === 'cancelled'
+  const status = classroom.status
+  const isCancelled = status === 'cancelled'
 
   const save = async () => {
     setSaving(true)
@@ -42,6 +43,28 @@ export default function ClassSettingsActions({
     }
   }
 
+  const runLifecycle = async (action: 'publish' | 'archive' | 'reopen') => {
+    const confirmMsg =
+      action === 'publish'
+        ? `Phát hành lớp "${classroom.title}"? Học sinh có thể tham gia bằng mã lớp.`
+        : action === 'archive'
+          ? `Lưu trữ lớp "${classroom.title}"? Học sinh không thể tham gia mới.`
+          : `Mở lại lớp "${classroom.title}" để học sinh có thể tham gia?`
+    if (!window.confirm(confirmMsg)) return
+    setBusy(action)
+    try {
+      await api.edu.setClassLifecycle(classroom.id, action)
+      await refresh()
+      toast.success(
+        action === 'publish' ? 'Đã phát hành lớp' : action === 'archive' ? 'Đã lưu trữ lớp' : 'Đã mở lại lớp'
+      )
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Không thể đổi trạng thái')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const cancelClass = async () => {
     if (
       !window.confirm(
@@ -50,7 +73,7 @@ export default function ClassSettingsActions({
     ) {
       return
     }
-    setCancelling(true)
+    setBusy('cancel')
     try {
       await api.edu.cancelClass(classroom.id)
       await refresh()
@@ -59,7 +82,7 @@ export default function ClassSettingsActions({
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Không thể huỷ lớp')
     } finally {
-      setCancelling(false)
+      setBusy(null)
     }
   }
 
@@ -76,6 +99,17 @@ export default function ClassSettingsActions({
 
   return (
     <div id={pid} className="space-y-3">
+      <ClassStatusBadge status={status} />
+      {status === 'draft' && (
+        <p className="text-sm text-slate-600">
+          Lớp đang ở chế độ nháp. Chuẩn bị xong thì phát hành để học sinh tham gia.
+        </p>
+      )}
+      {status === 'archived' && (
+        <p className="text-sm text-violet-800">
+          Lớp đã lưu trữ. Học sinh đã tham gia vẫn vào được; không ai tự tham gia mới.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         <button
           id={`${pid}-edit`}
@@ -90,15 +124,51 @@ export default function ClassSettingsActions({
           <Pencil className="mr-1.5 h-4 w-4" />
           {editing ? 'Đóng' : 'Sửa thông tin lớp'}
         </button>
+        {status === 'draft' && (
+          <button
+            id={`${pid}-publish`}
+            type="button"
+            onClick={() => void runLifecycle('publish')}
+            disabled={busy !== null}
+            className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+          >
+            <Megaphone className="mr-1.5 h-4 w-4" />
+            {busy === 'publish' ? 'Đang phát hành...' : 'Phát hành lớp'}
+          </button>
+        )}
+        {status === 'published' && (
+          <button
+            id={`${pid}-archive`}
+            type="button"
+            onClick={() => void runLifecycle('archive')}
+            disabled={busy !== null}
+            className="inline-flex items-center rounded-lg border border-violet-200 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+          >
+            <Archive className="mr-1.5 h-4 w-4" />
+            {busy === 'archive' ? 'Đang lưu trữ...' : 'Lưu trữ lớp'}
+          </button>
+        )}
+        {status === 'archived' && (
+          <button
+            id={`${pid}-reopen`}
+            type="button"
+            onClick={() => void runLifecycle('reopen')}
+            disabled={busy !== null}
+            className="inline-flex items-center rounded-lg border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RotateCcw className="mr-1.5 h-4 w-4" />
+            {busy === 'reopen' ? 'Đang mở lại...' : 'Mở lại lớp'}
+          </button>
+        )}
         <button
           id={`${pid}-cancel`}
           type="button"
           onClick={() => void cancelClass()}
-          disabled={cancelling}
+          disabled={busy !== null}
           className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
           <Ban className="mr-1.5 h-4 w-4" />
-          {cancelling ? 'Đang huỷ...' : 'Huỷ lớp học'}
+          {busy === 'cancel' ? 'Đang huỷ...' : 'Huỷ lớp học'}
         </button>
       </div>
 

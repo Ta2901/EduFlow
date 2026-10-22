@@ -27,6 +27,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { formatDate } from '@/lib/format'
 import StatDetailPanel from '@/components/dashboard/StatDetailPanel'
+import ClassStatusBadge from '@/components/class/ClassStatusBadge'
 
 type TeacherStatKey = 'classes' | 'students' | 'tasks' | 'codes'
 
@@ -441,11 +442,7 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="p-5">
                   <h3 className="font-semibold text-gray-900">{course.title}</h3>
-                  {course.status === 'cancelled' && (
-                    <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                      {t('common.cancelled')}
-                    </span>
-                  )}
+                  <ClassStatusBadge status={course.status} />
                   <p className="mt-1 text-sm text-gray-500">{t('common.studentCount', { count: course.students.length })}</p>
                   <button type="button" onClick={() => copyClassCode(course.classCode)} className="mt-2 inline-flex items-center text-xs text-primary-600">
                     <Copy className="mr-1 h-3 w-3" />

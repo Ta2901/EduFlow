@@ -1,3 +1,4 @@
+import type { AdminInbox } from '../admin/inbox'
 import type {
   AccountStatus,
   AppNotification,
@@ -119,12 +120,17 @@ export const api = {
   edu: {
     context: () =>
       request<{ classes: ClassRoom[]; tasks: Task[]; submissions: Submission[] }>('/api/edu/context'),
-    createClass: (body: { title: string; description: string }) =>
+    createClass: (body: { title: string; description: string; publish?: boolean }) =>
       request<{ classroom: ClassRoom }>('/api/classes', { method: 'POST', body: JSON.stringify(body) }),
     updateClass: (classId: string, body: { title: string; description: string }) =>
       request<{ classroom: ClassRoom }>(`/api/classes/${classId}`, {
         method: 'PATCH',
         body: JSON.stringify(body),
+      }),
+    setClassLifecycle: (classId: string, action: 'publish' | 'archive' | 'reopen') =>
+      request<{ classroom: ClassRoom }>(`/api/classes/${classId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action }),
       }),
     cancelClass: (classId: string) =>
       request<{ classroom: ClassRoom; message: string }>(`/api/classes/${classId}`, {
@@ -596,6 +602,7 @@ export const api = {
           classes: number
         }
       }>('/api/admin/overview'),
+    inbox: () => request<{ inbox: AdminInbox }>('/api/admin/inbox'),
     workStats: () =>
       request<{
         stats: {
@@ -805,6 +812,7 @@ export interface AdminClassRow {
   title: string
   description: string
   classCode: string
+  status: 'draft' | 'published' | 'archived' | 'cancelled'
   teacherId: string
   teacherName: string
   teacherEmail: string

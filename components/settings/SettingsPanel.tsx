@@ -39,6 +39,8 @@ const ACTIVITY_TYPES = new Set<ActivityLogType>([
   'class_join',
   'class_create',
   'class_update',
+  'class_publish',
+  'class_archive',
   'class_cancel',
   'assignment_submit',
   'other',

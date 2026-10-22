@@ -117,7 +117,7 @@ export interface SessionRecording {
   createdAt: string
 }
 
-export type ClassStatus = 'active' | 'cancelled'
+export type ClassStatus = 'draft' | 'published' | 'archived' | 'cancelled'
 
 export interface ClassRoom {
   id: string
@@ -137,6 +137,8 @@ export type ActivityLogType =
   | 'class_join'
   | 'class_create'
   | 'class_update'
+  | 'class_publish'
+  | 'class_archive'
   | 'class_cancel'
   | 'assignment_submit'
   | 'other'

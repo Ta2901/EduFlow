@@ -70,15 +70,17 @@ export default function StudentEvalPanel({
         api.edu.listPendingSessionEvals(classId),
         api.edu.listCourseEvals(classId),
       ])
-      setPendingSessions(pendingRes.pending)
-      setCourseEvals(courseRes.evaluations)
+      const pending = pendingRes.pending ?? []
+      const evaluations = courseRes.evaluations ?? []
+      setPendingSessions(pending)
+      setCourseEvals(evaluations)
       const highlighted = highlightSessionKey
-        ? pendingRes.pending.find((p) => p.sessionKey === highlightSessionKey)
+        ? pending.find((p) => p.sessionKey === highlightSessionKey)
         : undefined
-      setActiveSession(highlighted?.sessionKey ?? pendingRes.pending[0]?.sessionKey ?? null)
+      setActiveSession(highlighted?.sessionKey ?? pending[0]?.sessionKey ?? null)
       setCourseForms((prev) => {
         const next = { ...prev }
-        for (const ev of courseRes.evaluations) {
+        for (const ev of evaluations) {
           if (!next[ev.id]) {
             next[ev.id] = {
               teachingQuality: 5,

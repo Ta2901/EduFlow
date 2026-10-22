@@ -8,6 +8,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { formatDate, SUBMISSION_STATUS_COLORS } from '@/lib/format'
+import ClassHomeOverview from '@/components/class/ClassHomeOverview'
 import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
 import StudentEvalPanel from '@/components/class/StudentEvalPanel'
@@ -48,12 +49,20 @@ export default function StudentCoursePage() {
         backHref="/student/dashboard"
       />
 
-      <div id="student-course-content" className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div id="student-course-content" className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
         {classroom.description && (
           <div className="rounded-xl border bg-white p-5 shadow-sm">
             <p className="text-gray-600">{classroom.description}</p>
           </div>
         )}
+
+        <ClassHomeOverview
+          id="student-course-home"
+          classId={courseId}
+          tasks={tasks}
+          userId={currentUser.id}
+          assignmentHref={(taskId) => `/student/assignments/${taskId}`}
+        />
 
         <StudentEvalPanel
           id="student-course-eval"

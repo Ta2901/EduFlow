@@ -1,3 +1,4 @@
+import { normalizeClassStatus } from '../classStatus'
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
 import { generateTempPassword } from '../utils/generateTempPassword'
@@ -168,6 +169,7 @@ export async function listAdminClasses(session: SessionPayload) {
     title: c.title,
     description: c.description,
     classCode: c.classCode,
+    status: normalizeClassStatus(c.status),
     teacherId: c.teacherId,
     teacherName: c.teacher.fullName,
     teacherEmail: c.teacher.email,
@@ -203,6 +205,7 @@ export async function createAdminClass(
       description: input.description.trim(),
       classCode: generateUniqueClassCode(existingCodes),
       teacherId: input.teacherId,
+      status: 'published',
     },
     include: classInclude,
   })
