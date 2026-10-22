@@ -15,6 +15,7 @@ import {
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import PageHeader from '@/components/layout/PageHeader'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -30,14 +31,15 @@ export default function StudentAssignmentPage() {
   const taskId = params.id as string
   const currentUser = useAuthStore((s) => s.currentUser)!
   const { t, locale } = useI18n()
-  const getTaskById = useEduStore((s) => s.getTaskById)
-  const getClassById = useEduStore((s) => s.getClassById)
-  const getStudentSubmission = useEduStore((s) => s.getStudentSubmission)
+  const text = useContentText()
+  const task = useEduStore((s) => s.tasks.find((item) => item.id === taskId))
+  const classroom = useEduStore((s) =>
+    task ? s.classes.find((c) => c.id === task.classId) : undefined
+  )
+  const submission = useEduStore((s) =>
+    s.submissions.find((item) => item.taskId === taskId && item.studentId === currentUser.id)
+  )
   const submitWork = useEduStore((s) => s.submitWork)
-
-  const task = getTaskById(taskId)
-  const classroom = task ? getClassById(task.classId) : undefined
-  const submission = getStudentSubmission(taskId, currentUser.id)
 
   const [content, setContent] = useState(submission?.content ?? '')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
@@ -54,16 +56,16 @@ export default function StudentAssignmentPage() {
   if (!submission) {
     return (
       <div id="student-assignment-no-access" className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-        <p className="text-gray-600 text-center">Bạn chưa tham gia lớp học này.</p>
+        <p className="text-gray-600 text-center">{t('student.uiNotInClass')}</p>
         <Link id="student-assignment-join" href="/student/join" className="text-primary-600 font-medium">
-          Tham gia lớp bằng mã
+          {t('student.uiJoinByCode')}
         </Link>
       </div>
     )
   }
 
   const isSubmitted = submission.status === 'submitted' || submission.status === 'late'
-  const canSubmit = !isSubmitted
+  const canSubmit = !isSubmitted && classroom?.status !== 'cancelled'
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files
@@ -79,10 +81,10 @@ export default function StudentAssignmentPage() {
     setIsLoading(false)
 
     if (!result.ok) {
-      toast.error(result.error || 'Nộp bài thất bại')
+      toast.error(result.error || t('student.uiSubmitFail'))
       return
     }
-    toast.success('Nộp bài thành công!')
+    toast.success(t('student.uiSubmitOk'))
     setPendingFiles([])
   }
 
@@ -91,8 +93,8 @@ export default function StudentAssignmentPage() {
       <PageHeader
         id="student-assignment-header"
         userId={currentUser.id}
-        title={task.title}
-        subtitle={classroom?.title}
+        title={text(task.title)}
+        subtitle={classroom ? text(classroom.title) : undefined}
         backHref={classroom ? `/student/courses/${classroom.id}` : '/student/dashboard'}
         action={
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${SUBMISSION_STATUS_COLORS[submission.status]}`}>
@@ -105,7 +107,7 @@ export default function StudentAssignmentPage() {
         {/* F-05: Assignment details */}
         <div className="bg-white rounded-xl border p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">{t('common.details')}</h2>
-          <p className="text-gray-600 whitespace-pre-wrap">{task.description || '—'}</p>
+          <p className="text-gray-600 whitespace-pre-wrap">{text(task.description) || '—'}</p>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Clock className="h-4 w-4" />
             {t('common.due')}: <strong>{formatDate(task.dueDate, locale)}</strong>
@@ -158,7 +160,7 @@ export default function StudentAssignmentPage() {
             </dl>
             {submission.content && (
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Nội dung đã nộp</p>
+                <p className="text-xs text-gray-500 mb-1">{t('student.uiSubmittedBody')}</p>
                 <p className="text-sm text-gray-800 whitespace-pre-wrap">{submission.content}</p>
               </div>
             )}
@@ -199,7 +201,7 @@ export default function StudentAssignmentPage() {
             {submission.feedback && (
               <div className="bg-white rounded-lg p-4 border border-green-100">
                 <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" /> Nhận xét
+                  <MessageSquare className="h-3 w-3" /> {t('student.uiFeedback')}
                 </p>
                 <p className="text-gray-800 whitespace-pre-wrap">{submission.feedback}</p>
               </div>
@@ -212,7 +214,13 @@ export default function StudentAssignmentPage() {
 
         {isSubmitted && submission.grade == null && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-800">
-            Bài đã nộp. Giáo viên chưa chấm điểm — bạn sẽ nhận thông báo khi có kết quả.
+            {t('student.uiWaitingGrade')}
+          </div>
+        )}
+
+        {classroom?.status === 'cancelled' && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            {t('student.uiCancelledNote')}
           </div>
         )}
 
@@ -222,7 +230,7 @@ export default function StudentAssignmentPage() {
             <h2 className="font-semibold">{t('nav.submissions')}</h2>
             <div>
               <label htmlFor="student-assignment-content" className="block text-sm font-medium text-gray-700 mb-2">
-                Nội dung bài làm
+                {t('student.uiWorkContent')}
               </label>
               <textarea
                 id="student-assignment-content"
@@ -230,14 +238,14 @@ export default function StudentAssignmentPage() {
                 onChange={(e) => setContent(e.target.value)}
                 rows={6}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                placeholder="Mô tả bài làm hoặc dán link Google Drive..."
+                placeholder={t('student.uiWorkPlaceholder')}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('common.attachments', { count: pendingFiles.length })}</label>
               <label className="flex items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
                 <Upload className="h-6 w-6 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-600">Chọn tệp nộp bài</span>
+                <span className="text-sm text-gray-600">{t('student.uiPickFile')}</span>
                 <input id="student-assignment-files" type="file" multiple className="hidden" onChange={handleFileChange} />
               </label>
               {pendingFiles.length > 0 && (
@@ -263,13 +271,13 @@ export default function StudentAssignmentPage() {
               disabled={isLoading}
               className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
-              {isLoading ? 'Đang nộp...' : 'Nộp bài'}
+              {isLoading ? t('student.uiSubmitting') : t('student.uiSubmit')}
             </button>
           </form>
         )}
 
         <Link id="student-assignment-all-submissions" href="/student/submissions" className="block text-center text-sm text-primary-600 hover:underline">
-          Xem tất cả trạng thái nộp bài
+          {t('student.uiAllStatuses')}
         </Link>
       </div>
     </div>

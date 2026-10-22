@@ -6,6 +6,7 @@ interface NotificationState {
   notifications: AppNotification[]
   isLoaded: boolean
   refresh: () => Promise<void>
+  reset: () => void
   getForUser: (userId: string) => AppNotification[]
   getUnreadCount: (userId: string) => number
   markAsRead: (id: string) => Promise<void>
@@ -20,6 +21,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const { notifications } = await api.notifications.list()
     set({ notifications, isLoaded: true })
   },
+
+  reset: () => set({ notifications: [], isLoaded: false }),
 
   getForUser: (userId) =>
     get()

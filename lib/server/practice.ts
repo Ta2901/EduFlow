@@ -1,3 +1,4 @@
+import { classWritesBlocked } from '../classStatus'
 import { prisma } from '../prisma'
 import { assertCanWrite } from './account'
 import { createNotification } from './notifications'
@@ -48,10 +49,13 @@ async function assertTeacherOwnsClass(classId: string, session: SessionPayload) 
       id: true,
       title: true,
       teacherId: true,
+      status: true,
       enrollments: { select: { studentId: true } },
     },
   })
   if (!classroom) throw new Error('Không tìm thấy lớp')
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
   if (session.role === 'admin') return classroom
   if (session.role !== 'teacher' || classroom.teacherId !== session.userId) {
     throw new Error('Không có quyền')
@@ -520,7 +524,9 @@ export async function startPracticeAttempt(setId: string, session: SessionPayloa
     },
   })
   if (!set) throw new Error('Không tìm thấy bộ bài tập')
-  await assertClassMember(set.classId, session)
+  const classroom = await assertClassMember(set.classId, session)
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
   if (set.questions.length === 0) throw new Error('Giáo viên chưa thêm câu hỏi')
 
   const existing = await prisma.practiceAttempt.findFirst({

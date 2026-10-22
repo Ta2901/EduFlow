@@ -21,7 +21,7 @@ export default function JoinClassPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!code.trim()) {
-      toast.error('Vui lòng nhập mã lớp')
+      toast.error(t('student.uiJoinNeedCode'))
       return
     }
 
@@ -34,11 +34,11 @@ export default function JoinClassPage() {
     setIsLoading(false)
 
     if (!result.ok) {
-      toast.error(result.error || 'Không thể tham gia lớp')
+      toast.error(result.error || t('student.uiJoinFail'))
       return
     }
 
-    toast.success('Tham gia lớp thành công!')
+    toast.success(t('student.uiJoinOk'))
     router.push(`/student/courses/${result.classId}`)
   }
 
@@ -57,7 +57,7 @@ export default function JoinClassPage() {
           <div className="flex items-start gap-3 rounded-lg bg-blue-50 p-4">
             <Users className="h-8 w-8 shrink-0 text-blue-600" />
             <p className="text-sm text-blue-800">
-              Nhập <strong>mã lớp</strong> do giáo viên cung cấp (VD: <span className="font-mono">MATH10A</span>).
+              {t('student.uiJoinHelp')}
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export default function JoinClassPage() {
               onClick={() => router.push('/student/dashboard')}
               className="flex-1 rounded-lg border border-gray-300 py-3 text-center text-gray-700 hover:bg-gray-50"
             >
-              Hủy
+              {t('student.uiCancel')}
             </button>
             <button
               id="student-join-submit"
@@ -100,7 +100,7 @@ export default function JoinClassPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-gray-500">
-          Demo: mã <span className="font-mono font-semibold">MATH10A</span> (sau khi GV đã tạo lớp)
+          {t('student.uiJoinDemo')}
         </p>
       </motion.form>
     </div>

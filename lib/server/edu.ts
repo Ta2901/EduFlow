@@ -1,4 +1,4 @@
-import { joinBlockedReason, normalizeClassStatus } from '../classStatus'
+import { classWritesBlocked, joinBlockedReason, normalizeClassStatus } from '../classStatus'
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
 import { logActivitiesManyLater, logActivityLater } from './activityLog'
@@ -353,6 +353,8 @@ export async function createTaskForClass(
     include: classInclude,
   })
   if (!classroom) throw new Error('Không tìm thấy lớp học')
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
 
   const task = await prisma.task.create({
     data: {
@@ -400,9 +402,11 @@ export async function submitWorkForTask(
 ) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { class: { select: { teacherId: true, id: true } } },
+    include: { class: { select: { teacherId: true, id: true, status: true } } },
   })
   if (!task) return { ok: false as const, error: 'Không tìm thấy bài tập' }
+  const writeBlocked = classWritesBlocked(task.class.status)
+  if (writeBlocked) return { ok: false as const, error: writeBlocked }
 
   const submission = await prisma.submission.findUnique({
     where: { taskId_studentId: { taskId, studentId } },

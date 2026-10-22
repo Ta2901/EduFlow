@@ -35,6 +35,8 @@ interface EduState {
   submissions: Submission[]
   isLoaded: boolean
   refresh: () => Promise<void>
+  reset: () => void
+  upsertClass: (classroom: ClassRoom) => void
   getClassById: (id: string) => ClassRoom | undefined
   getClassByCode: (code: string) => ClassRoom | undefined
   getClassesByTeacher: (teacherId: string) => ClassRoom[]
@@ -73,6 +75,15 @@ export const useEduStore = create<EduState>((set, get) => ({
     })
   },
 
+  reset: () => set({ classes: [], tasks: [], submissions: [], isLoaded: false }),
+
+  upsertClass: (classroom) =>
+    set((state) => ({
+      classes: state.classes.some((c) => c.id === classroom.id)
+        ? state.classes.map((c) => (c.id === classroom.id ? classroom : c))
+        : [classroom, ...state.classes],
+    })),
+
   getClassById: (id) => get().classes.find((c) => c.id === id),
 
   getClassByCode: (code) =>
@@ -83,10 +94,9 @@ export const useEduStore = create<EduState>((set, get) => ({
 
   getClassesByStudent: (studentId, studentEmail) => {
     const email = studentEmail.toLowerCase()
-    return get().classes.filter((c) => {
-      if (c.students.length === 0) return true
-      return c.students.some((s) => s.id === studentId || s.email.toLowerCase() === email)
-    })
+    return get().classes.filter((c) =>
+      c.students.some((s) => s.id === studentId || s.email.toLowerCase() === email)
+    )
   },
 
   createClass: async (input) => {
@@ -103,8 +113,7 @@ export const useEduStore = create<EduState>((set, get) => ({
           ? state.classes.map((c) => (c.id === classroom.id ? classroom : c))
           : [classroom, ...state.classes],
       }))
-      // Tasks/submissions for the new class — one targeted refresh is cheaper than full wait before navigate
-      void get().refresh()
+      await get().refresh()
       return { ok: true, classId }
     } catch (e) {
       return { ok: false, error: e instanceof ApiError ? e.message : 'Không thể tham gia lớp' }

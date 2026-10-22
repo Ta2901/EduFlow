@@ -8,6 +8,7 @@ import { useNotificationStore } from '@/lib/stores/notificationStore'
 import type { NotificationType } from '@/lib/types'
 import { formatDateTime } from '@/lib/format'
 import type { Locale } from '@/lib/i18n/catalog'
+import { localizeNotice } from '@/lib/i18n/contentText'
 
 interface NotificationBellProps {
   userId: string
@@ -138,14 +139,15 @@ function NotificationItem({
   locale: Locale
   typeLabel: string
 }) {
+  const shown = localizeNotice(n, locale)
   return (
     <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium text-primary-600">{typeLabel}</p>
         {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-primary-500" />}
       </div>
-      <p className="mt-0.5 text-sm font-medium text-gray-900">{n.title}</p>
-      <p className="text-xs text-gray-600 line-clamp-2">{n.message}</p>
+      <p className="mt-0.5 text-sm font-medium text-gray-900">{shown.title}</p>
+      <p className="text-xs text-gray-600 line-clamp-2">{shown.message}</p>
       <p className="mt-1 text-[10px] text-gray-400">{formatDateTime(n.createdAt, locale)}</p>
     </>
   )

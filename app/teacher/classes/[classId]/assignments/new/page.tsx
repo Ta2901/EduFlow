@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { formatFileSize } from '@/lib/format'
@@ -17,10 +18,9 @@ export default function CreateAssignmentPage() {
   const router = useRouter()
   const currentUser = useAuthStore((s) => s.currentUser)!
   const { t } = useI18n()
-  const getClassById = useEduStore((s) => s.getClassById)
+  const text = useContentText()
+  const classroom = useEduStore((s) => s.classes.find((c) => c.id === classId))
   const createTask = useEduStore((s) => s.createTask)
-
-  const classroom = getClassById(classId)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -32,6 +32,14 @@ export default function CreateAssignmentPage() {
     return (
       <div id="teacher-assignment-new-not-found" className="min-h-screen flex items-center justify-center">
         <p className="text-gray-600">{t('common.notFound')}</p>
+      </div>
+    )
+  }
+
+  if (classroom.status === 'cancelled') {
+    return (
+      <div id="teacher-assignment-new-cancelled" className="flex min-h-screen items-center justify-center p-6">
+        <p className="text-center text-amber-800">{t('student.uiCancelledNote')}</p>
       </div>
     )
   }
@@ -93,7 +101,7 @@ export default function CreateAssignmentPage() {
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Giao bài tập mới</h1>
-            <p className="text-sm text-gray-500">{classroom.title}</p>
+            <p className="text-sm text-gray-500">{text(classroom.title)}</p>
           </div>
         </div>
       </div>

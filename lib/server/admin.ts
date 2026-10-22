@@ -254,27 +254,31 @@ export async function updateAdminClassRoster(
   })
   if (!classroom) throw new Error('Không tìm thấy lớp học')
 
+  if (normalizeClassStatus(classroom.status) === 'cancelled') {
+    throw new Error('Lớp đã bị huỷ, không thể chỉnh danh sách học sinh')
+  }
+
   const uniqueIds = Array.from(new Set(studentIds))
+  const current = await prisma.classEnrollment.findMany({ where: { classId } })
+  const currentIds = new Set(current.map((e) => e.studentId))
+  const toAdd = uniqueIds.filter((id) => !currentIds.has(id))
   const students =
-    uniqueIds.length === 0
+    toAdd.length === 0
       ? []
       : await prisma.user.findMany({
           where: {
-            id: { in: uniqueIds },
+            id: { in: toAdd },
             role: 'student',
             accountStatus: { in: ['active', 'restricted'] },
           },
         })
-  if (students.length !== uniqueIds.length) {
+  if (students.length !== toAdd.length) {
     throw new Error('Một số học sinh không hợp lệ')
   }
 
-  const current = await prisma.classEnrollment.findMany({ where: { classId } })
-  const currentIds = new Set(current.map((e) => e.studentId))
   const targetIds = new Set(uniqueIds)
 
   const toRemove = current.filter((e) => !targetIds.has(e.studentId))
-  const toAdd = uniqueIds.filter((id) => !currentIds.has(id))
 
   for (const e of toRemove) {
     await prisma.classEnrollment.delete({ where: { id: e.id } })
@@ -390,7 +394,7 @@ export async function getAdminWorkStats(session: SessionPayload) {
     submitted: 0,
     late: 0,
     graded: 0,
-    total: submissions.length,
+    total: 0,
   }
 
   const studentItems: AdminWorkListItem[] = []
@@ -420,6 +424,7 @@ export async function getAdminWorkStats(session: SessionPayload) {
       teacherId: classroom.teacherId,
     })
   }
+  studentSummary.total = studentItems.length
 
   const teacherSummary = {
     pending_grade: 0,

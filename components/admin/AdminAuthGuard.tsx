@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { roleDashboardPath } from '@/lib/format'
 import { useAuthStore } from '@/lib/stores/authStore'
 
 export default function AdminAuthGuard({ children }: { children: React.ReactNode }) {
@@ -15,10 +16,16 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
     let cancelled = false
 
     async function init() {
-      await hydrate()
+      if (!useAuthStore.getState().isReady) {
+        await hydrate()
+      }
       const user = useAuthStore.getState().currentUser
-      if (!user || user.role !== 'admin') {
+      if (!user) {
         router.replace('/login')
+        return
+      }
+      if (user.role !== 'admin') {
+        router.replace(roleDashboardPath(user.role))
         return
       }
       if (!cancelled) setReady(true)

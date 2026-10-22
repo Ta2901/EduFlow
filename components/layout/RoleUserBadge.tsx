@@ -48,7 +48,7 @@ export function RoleUserBadgeCompact({
       title={`${short} ${userName}`}
     >
       <span className="shrink-0 text-[10px] font-bold">{short}</span>
-      <span className="truncate text-[10px] font-medium">{userName}</span>
+      <span className="hidden truncate text-[10px] font-medium min-[380px]:inline">{userName}</span>
     </div>
   )
 }

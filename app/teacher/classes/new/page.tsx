@@ -77,6 +77,7 @@ export default function CreateClassPage() {
               <p className="text-4xl font-bold tracking-widest text-primary-600 font-mono">
                 {created.code}
               </p>
+              {created.published ? (
               <button
                 id="teacher-class-created-copy"
                 onClick={copyCode}
@@ -92,6 +93,11 @@ export default function CreateClassPage() {
                   </>
                 )}
               </button>
+              ) : (
+                <p className="mt-4 text-sm text-primary-700">
+                  Học sinh chưa dùng được mã này cho đến khi bạn phát hành.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   BookOpen,
   GraduationCap,
@@ -25,10 +25,12 @@ import PracticeSetPanel from '@/components/class/PracticeSetPanel'
 import SettingsPanel from '@/components/settings/SettingsPanel'
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { api, ApiError, type AdminClassRow } from '@/lib/api/client'
 import { drillForStat, sameAdminDrill, type AdminDrill, type AdminInbox } from '@/lib/admin/inbox'
+import ClassStatusBadge from '@/components/class/ClassStatusBadge'
 import type { AccountStatus } from '@/lib/types'
 
 const STATUS_COLORS: Record<AccountStatus, string> = {
@@ -42,11 +44,27 @@ type Tab = 'overview' | 'users' | 'classes' | 'settings'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t } = useI18n()
+  const text = useContentText()
   const currentUser = useAuthStore((s) => s.currentUser)!
   const logout = useAuthStore((s) => s.logout)
 
-  const [tab, setTab] = useState<Tab>('overview')
+  const tabParam = searchParams.get('tab')
+  const tabFromUrl: Tab =
+    tabParam === 'users' || tabParam === 'classes' || tabParam === 'settings' ? tabParam : 'overview'
+  const [tab, setTabState] = useState<Tab>(tabFromUrl)
+  useEffect(() => {
+    setTabState(tabFromUrl)
+  }, [tabFromUrl])
+  const setTab = (id: Tab) => {
+    setTabState(id)
+    const next = new URLSearchParams(searchParams.toString())
+    if (id === 'overview') next.delete('tab')
+    else next.set('tab', id)
+    const qs = next.toString()
+    router.replace(qs ? `?${qs}` : '?', { scroll: false })
+  }
   const [overview, setOverview] = useState({
     pending: 0,
     active: 0,
@@ -175,6 +193,23 @@ export default function AdminDashboardPage() {
     }
   }, [selectedClass])
 
+  const rosterStudents = useMemo(() => {
+    const byId = new Map(allStudents.map((s) => [s.id, s]))
+    if (selectedClass) {
+      for (const s of selectedClass.students) {
+        if (!byId.has(s.id)) {
+          byId.set(s.id, {
+            id: s.id,
+            fullName: s.name,
+            email: s.email,
+            accountStatus: s.accountStatus,
+          })
+        }
+      }
+    }
+    return Array.from(byId.values())
+  }, [allStudents, selectedClass])
+
   const handleLogout = async () => {
     await logout()
     router.push('/login')
@@ -263,12 +298,12 @@ export default function AdminDashboardPage() {
   return (
     <div id="admin-dashboard" className="min-h-screen bg-slate-100 dark:bg-[#0b1220]">
       <header id="admin-dashboard-header" className="relative z-30 border-b border-slate-800 bg-slate-900 text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:py-4">
           <div className="flex items-center gap-3">
             <Shield className="h-8 w-8 text-sky-400" />
             <div>
               <h1 className="text-lg font-bold">{t('admin.title')}</h1>
-              <p className="text-xs text-slate-400">{t('admin.subtitle')}</p>
+              <p className="meta-secondary text-xs text-slate-400">{t('admin.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -289,7 +324,7 @@ export default function AdminDashboardPage() {
               className="inline-flex items-center rounded-lg border border-slate-600 px-3 py-2 text-sm hover:bg-slate-800"
             >
               <LogOut className="mr-1.5 h-4 w-4" />
-              {t('common.logout')}
+              <span className="hidden sm:inline">{t('common.logout')}</span>
             </button>
             <LanguageSwitcher id="admin-dashboard-language" tone="onDark" />
             <ThemeToggle id="admin-dashboard-theme-toggle" className="text-slate-200 hover:bg-slate-800 hover:text-white" />
@@ -318,7 +353,7 @@ export default function AdminDashboardPage() {
         </aside>
 
         <main className="min-w-0 flex-1 space-y-4">
-          <div id="admin-dashboard-nav-mobile" className="flex gap-2 lg:hidden">
+          <div id="admin-dashboard-nav-mobile" className="flex flex-wrap gap-2 overflow-x-auto lg:hidden">
             {nav.map((item) => (
               <button
                 key={item.id}
@@ -440,12 +475,12 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+              <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                     <tr>
                       <th className="px-4 py-3">{t('common.user')}</th>
-                      <th className="px-4 py-3">{t('admin.memberCode')}</th>
+                      <th className="meta-secondary px-4 py-3">{t('admin.memberCode')}</th>
                       <th className="px-4 py-3">{t('common.role')}</th>
                       <th className="px-4 py-3">{t('common.status')}</th>
                       <th className="px-4 py-3">{t('common.actions')}</th>
@@ -456,9 +491,9 @@ export default function AdminDashboardPage() {
                       <tr key={u.id} id={`admin-dashboard-user-row-${u.id}`} className="hover:bg-slate-50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-slate-900">{u.fullName}</p>
-                          <p className="text-xs text-slate-500">{u.email}</p>
+                          <p className="meta-secondary text-xs text-slate-500">{u.email}</p>
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-700">
+                        <td className="meta-secondary px-4 py-3 font-mono text-xs text-slate-700">
                           {u.memberCode || '—'}
                         </td>
                         <td className="px-4 py-3">
@@ -597,21 +632,17 @@ export default function AdminDashboardPage() {
                         <button
                           id={`admin-dashboard-class-item-${c.id}`}
                           type="button"
-                          onClick={() => setSelectedClassId(c.id)}
+                          onClick={() => {
+                            setSelectedClassId(c.id)
+                            setRosterIds(c.students.map((s) => s.id))
+                          }}
                           className={`w-full px-4 py-3 text-left hover:bg-slate-50 ${
                             selectedClassId === c.id ? 'bg-sky-50' : ''
                           }`}
                         >
-                          <p className="font-medium text-slate-900">{c.title}</p>
+                          <p className="font-medium text-slate-900">{text(c.title)}</p>
+                          <ClassStatusBadge status={c.status} />
                           <p className="text-xs text-slate-500">
-                            {c.status === 'draft'
-                              ? t('common.draft')
-                              : c.status === 'archived'
-                                ? t('common.archived')
-                                : c.status === 'cancelled'
-                                  ? t('common.cancelled')
-                                  : t('common.published')}
-                            {' · '}
                             {t('admin.rosterMeta', { teacher: c.teacherName, count: c.studentCount, code: c.classCode })}
                           </p>
                         </button>
@@ -633,8 +664,11 @@ export default function AdminDashboardPage() {
                     <p className="mb-3 text-sm text-slate-600">
                       {t('admin.classIs', { title: selectedClass.title })}
                     </p>
-                    <div className="max-h-[360px] space-y-1 overflow-y-auto rounded-lg border p-2">
-                      {allStudents.map((s) => (
+                    {selectedClass.status === 'cancelled' && (
+                      <p className="mb-3 text-sm text-amber-800">{t('student.uiCancelledNote')}</p>
+                    )}
+                    <div className="max-h-[360px] space-y-1 overflow-x-auto overflow-y-auto rounded-lg border p-2">
+                      {rosterStudents.map((s) => (
                         <label
                           key={s.id}
                           className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50"
@@ -654,7 +688,8 @@ export default function AdminDashboardPage() {
                       id="admin-dashboard-roster-save"
                       type="button"
                       onClick={handleSaveRoster}
-                      className="mt-3 w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white"
+                      disabled={selectedClass.status === 'cancelled'}
+                      className="mt-3 w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white disabled:opacity-50"
                     >
                       {t('admin.saveRoster', { count: rosterIds.length })}
                     </button>
@@ -662,7 +697,7 @@ export default function AdminDashboardPage() {
                       <PracticeSetPanel
                         id="admin-dashboard-class-practice"
                         classId={selectedClass.id}
-                        canEdit
+                        canEdit={selectedClass.status !== 'cancelled'}
                       />
                     </div>
                   </>

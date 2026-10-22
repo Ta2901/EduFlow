@@ -18,3 +18,10 @@ export function joinBlockedReason(status?: string | null): string | null {
   if (s === 'cancelled') return 'Lớp học này đã bị huỷ, không thể tham gia.'
   return null
 }
+
+export function classWritesBlocked(status?: string | null): string | null {
+  if (normalizeClassStatus(status) === 'cancelled') {
+    return 'Lớp đã bị huỷ, không thể chỉnh sửa.'
+  }
+  return null
+}

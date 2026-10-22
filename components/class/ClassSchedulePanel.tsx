@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Calendar, Clock, MapPin, Plus, Trash2, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import { api, ApiError } from '@/lib/api/client'
 import type { AttendanceStatus, ClassStudent, ScheduleSlot } from '@/lib/types'
 import {
@@ -36,6 +37,7 @@ export default function ClassSchedulePanel({
   id = 'class-schedule',
 }: ClassSchedulePanelProps) {
   const { t } = useI18n()
+  const text = useContentText()
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
@@ -137,24 +139,24 @@ export default function ClassSchedulePanel({
     e.preventDefault()
     try {
       await api.edu.createScheduleSlot(classId, form)
-      toast.success('Đã thêm tiết học')
+      toast.success(t('student.uiSlotAdded'))
       setShowAddForm(false)
       setForm((f) => ({ ...f, subject: '', room: '' }))
       await loadSlots()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không thể thêm tiết')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiSlotAddFail'))
     }
   }
 
   const handleDeleteSlot = async (slotId: string) => {
-    if (!confirm('Xóa tiết học này khỏi thời khóa biểu?')) return
+    if (!confirm(t('student.uiSlotDeleteAsk'))) return
     try {
       await api.edu.deleteScheduleSlot(classId, slotId)
       if (selectedSlotId === slotId) setSelectedSlotId(null)
-      toast.success('Đã xóa tiết học')
+      toast.success(t('student.uiSlotDeleted'))
       await loadSlots()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không thể xóa')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiSlotDeleteFail'))
     }
   }
 
@@ -181,11 +183,11 @@ export default function ClassSchedulePanel({
         sessionDate,
         records,
       })
-      toast.success('Đã lưu điểm danh')
+      toast.success(t('student.uiAttendanceSaved'))
       await loadAttendance(selectedSlotId, sessionDate)
       if (!isTeacher) await loadStudentHistory()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Lưu thất bại')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiSaveFail'))
     } finally {
       setSaving(false)
     }
@@ -275,11 +277,11 @@ export default function ClassSchedulePanel({
                 className="mt-1 w-full rounded-lg border px-3 py-2"
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                placeholder="Ví dụ: Toán"
+                placeholder={t('student.uiSubjectPh')}
               />
             </label>
             <label className="block text-sm">
-              <span className="text-gray-600">Bắt đầu</span>
+              <span className="text-gray-600">{t('student.uiStartTime')}</span>
               <input
                 id={`${id}-start-time`}
                 type="time"
@@ -290,7 +292,7 @@ export default function ClassSchedulePanel({
               />
             </label>
             <label className="block text-sm">
-              <span className="text-gray-600">Kết thúc</span>
+              <span className="text-gray-600">{t('student.uiEndTime')}</span>
               <input
                 id={`${id}-end-time`}
                 type="time"
@@ -301,7 +303,7 @@ export default function ClassSchedulePanel({
               />
             </label>
             <label className="block text-sm sm:col-span-2">
-              <span className="text-gray-600">Phòng (tuỳ chọn)</span>
+              <span className="text-gray-600">{t('student.uiRoomOptional')}</span>
               <input
                 id={`${id}-room`}
                 className="mt-1 w-full rounded-lg border px-3 py-2"
@@ -317,7 +319,7 @@ export default function ClassSchedulePanel({
               type="submit"
               className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700"
             >
-              Lưu tiết học
+              {t('student.uiSaveSlot')}
             </button>
             <button
               id={`${id}-add-cancel`}
@@ -325,7 +327,7 @@ export default function ClassSchedulePanel({
               onClick={() => setShowAddForm(false)}
               className="rounded-lg border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
-              Huỷ
+              {t('student.uiCancel')}
             </button>
           </div>
         </form>
@@ -366,7 +368,7 @@ export default function ClassSchedulePanel({
                             }`}
                           >
                             <p className="font-medium text-gray-900">
-                              {t('common.periodN', { n: slot.period })}: {slot.subject}
+                              {t('common.periodN', { n: slot.period })}: {text(slot.subject)}
                             </p>
                             <p className="mt-0.5 flex items-center text-xs text-gray-500">
                               <Clock className="mr-1 h-3 w-3" />
@@ -394,7 +396,7 @@ export default function ClassSchedulePanel({
                                     type="button"
                                     onClick={() => handleDeleteSlot(slot.id)}
                                     className="rounded border border-red-200 p-1 text-red-600 hover:bg-red-50"
-                                    aria-label="Xóa tiết"
+                                    aria-label={t('student.uiDeleteSlot')}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
@@ -417,7 +419,7 @@ export default function ClassSchedulePanel({
         <div id={`${id}-attendance`} className="rounded-xl border bg-gray-50 p-4">
           <div className="mb-3 flex flex-wrap items-end gap-3">
             <label className="text-sm">
-              <span className="font-medium text-gray-700">Ngày điểm danh</span>
+              <span className="font-medium text-gray-700">{t('student.uiAttendanceDate')}</span>
               <input
                 id={`${id}-session-date`}
                 type="date"
@@ -448,7 +450,7 @@ export default function ClassSchedulePanel({
                       : 'bg-white hover:bg-gray-100'
                   }`}
                 >
-                  {t('common.periodN', { n: s.period })} — {s.subject}
+                  {t('common.periodN', { n: s.period })} — {text(s.subject)}
                 </button>
               ))}
             </div>
@@ -460,7 +462,7 @@ export default function ClassSchedulePanel({
                 <div>
                   <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                     <UserCheck className="h-5 w-5 text-primary-600" />
-                    {t('charts.attendanceTitle')}: {selectedSlot.subject} ({t('common.periodN', { n: selectedSlot.period })})
+                    {t('charts.attendanceTitle')}: {text(selectedSlot.subject)} ({t('common.periodN', { n: selectedSlot.period })})
                   </h4>
                   <p className="text-xs text-gray-500">
                     {t(`weekday.${selectedSlot.dayOfWeek}`)} · {sessionDate} · {selectedSlot.startTime}–
@@ -539,7 +541,7 @@ export default function ClassSchedulePanel({
           )}
 
           {!selectedSlot && (
-            <p className="text-sm text-gray-500">Chọn tiết học trên bảng hoặc danh sách tiết trong ngày để điểm danh.</p>
+            <p className="text-sm text-gray-500">{t('student.uiPickSlot')}</p>
           )}
         </div>
       )}
@@ -556,7 +558,7 @@ export default function ClassSchedulePanel({
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {h.subject} — {t('common.periodN', { n: h.period })}
+                    {text(h.subject)} — {t('common.periodN', { n: h.period })}
                   </p>
                   <p className="text-xs text-gray-500">
                     {t(`weekday.${h.dayOfWeek}`)} · {h.sessionDate} · {h.startTime}–{h.endTime}

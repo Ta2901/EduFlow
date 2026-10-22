@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, PhoneOff, Radio } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useContentText } from '@/components/i18n/useContentText'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { api, ApiError } from '@/lib/api/client'
@@ -17,6 +18,7 @@ export default function OnlineClassPage() {
   const params = useParams()
   const sessionId = params.sessionId as string
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const text = useContentText()
   const getClassById = useEduStore((s) => s.getClassById)
 
   const [onlineSession, setOnlineSession] = useState<OnlineSession | null>(null)
@@ -122,7 +124,7 @@ export default function OnlineClassPage() {
           <div>
             <h1 className="font-semibold text-gray-900">{onlineSession.title}</h1>
             <p className="text-xs text-gray-500">
-              {classroom.title}
+              {text(classroom.title)}
               {isLive && <span className="ml-2 text-green-600">● Đang live</span>}
               {isEnded && <span className="ml-2 text-gray-400">Đã kết thúc</span>}
             </p>

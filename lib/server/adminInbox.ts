@@ -79,7 +79,7 @@ export async function getAdminInbox(session: SessionPayload): Promise<AdminInbox
     getAdminTeachingProgress(session),
     getAdminEvalOverview(session),
     prisma.class.findMany({
-      where: { status: { not: 'cancelled' } },
+      where: { status: 'published' },
       orderBy: { title: 'asc' },
       select: {
         id: true,

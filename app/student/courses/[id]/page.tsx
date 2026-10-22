@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { Paperclip } from 'lucide-react'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
@@ -13,6 +14,7 @@ import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
 import StudentEvalPanel from '@/components/class/StudentEvalPanel'
 import StudentPracticePanel from '@/components/class/StudentPracticePanel'
+import ClassStatusBadge from '@/components/class/ClassStatusBadge'
 
 export default function StudentCoursePage() {
   const params = useParams()
@@ -20,12 +22,10 @@ export default function StudentCoursePage() {
   const courseId = params.id as string
   const currentUser = useAuthStore((s) => s.currentUser)!
   const { t, locale } = useI18n()
-  const getClassById = useEduStore((s) => s.getClassById)
-  const getTasksByClass = useEduStore((s) => s.getTasksByClass)
-  const getStudentSubmission = useEduStore((s) => s.getStudentSubmission)
-
-  const classroom = getClassById(courseId)
-  const tasks = getTasksByClass(courseId)
+  const text = useContentText()
+  const classroom = useEduStore((s) => s.classes.find((c) => c.id === courseId))
+  const tasks = useEduStore((s) => s.tasks.filter((task) => task.classId === courseId))
+  const submissions = useEduStore((s) => s.submissions)
   const evalSession = searchParams.get('eval')
   const courseEvalParam = searchParams.get('courseEval')
   const courseEvalKind =
@@ -44,15 +44,22 @@ export default function StudentCoursePage() {
       <PageHeader
         id="student-course-header"
         userId={currentUser.id}
-        title={classroom.title}
+        title={text(classroom.title)}
         subtitle={`${t('common.classCode')}: ${classroom.classCode}`}
         backHref="/student/dashboard"
+        action={<ClassStatusBadge status={classroom.status} />}
       />
 
       <div id="student-course-content" className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+        {classroom.status === 'cancelled' && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {t('student.uiCancelledNote')}
+          </div>
+        )}
+
         {classroom.description && (
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <p className="text-gray-600">{classroom.description}</p>
+          <div className="meta-secondary rounded-xl border bg-white p-5 shadow-sm">
+            <p className="text-gray-600">{text(classroom.description)}</p>
           </div>
         )}
 
@@ -71,7 +78,9 @@ export default function StudentCoursePage() {
           highlightCourseKind={courseEvalKind}
         />
 
-        <StudentPracticePanel id="student-course-practice" classId={courseId} />
+        {classroom.status !== 'cancelled' && (
+          <StudentPracticePanel id="student-course-practice" classId={courseId} />
+        )}
 
         <div className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
           <OnlineSessionPanel id="student-course-online" classId={courseId} isTeacher={false} />
@@ -96,7 +105,7 @@ export default function StudentCoursePage() {
           ) : (
             <div className="divide-y">
               {tasks.map((task) => {
-                const sub = getStudentSubmission(task.id, currentUser.id)
+                const sub = submissions.find((s) => s.taskId === task.id && s.studentId === currentUser.id)
                 return (
                   <Link
                     key={task.id}
@@ -106,8 +115,8 @@ export default function StudentCoursePage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="font-medium text-gray-900">{task.title}</h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-gray-500">{task.description}</p>
+                        <h3 className="font-medium text-gray-900">{text(task.title)}</h3>
+                        <p className="mt-1 line-clamp-2 text-sm text-gray-500">{text(task.description)}</p>
                         <p className="mt-2 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
                         {task.attachments.length > 0 && (
                           <p className="mt-1 flex items-center text-xs text-primary-600">

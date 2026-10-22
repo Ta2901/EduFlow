@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Pencil, Ban, Megaphone, Archive, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import { api, ApiError } from '@/lib/api/client'
 import { useEduStore } from '@/lib/stores/eduStore'
 import type { ClassRoom } from '@/lib/types'
@@ -19,7 +21,10 @@ export default function ClassSettingsActions({
   idPrefix = 'class-settings',
 }: ClassSettingsActionsProps) {
   const router = useRouter()
+  const { t } = useI18n()
+  const text = useContentText()
   const refresh = useEduStore((s) => s.refresh)
+  const upsertClass = useEduStore((s) => s.upsertClass)
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(classroom.title)
   const [description, setDescription] = useState(classroom.description)
@@ -34,10 +39,10 @@ export default function ClassSettingsActions({
     try {
       await api.edu.updateClass(classroom.id, { title, description })
       await refresh()
-      toast.success('Đã cập nhật lớp học')
+      toast.success(t('student.uiClassUpdated'))
       setEditing(false)
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không thể cập nhật')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiClassUpdateFail'))
     } finally {
       setSaving(false)
     }
@@ -46,20 +51,21 @@ export default function ClassSettingsActions({
   const runLifecycle = async (action: 'publish' | 'archive' | 'reopen') => {
     const confirmMsg =
       action === 'publish'
-        ? `Phát hành lớp "${classroom.title}"? Học sinh có thể tham gia bằng mã lớp.`
+        ? t('student.uiPublishAsk', { title: text(classroom.title) })
         : action === 'archive'
-          ? `Lưu trữ lớp "${classroom.title}"? Học sinh không thể tham gia mới.`
-          : `Mở lại lớp "${classroom.title}" để học sinh có thể tham gia?`
+          ? t('student.uiArchiveAsk', { title: text(classroom.title) })
+          : t('student.uiReopenAsk', { title: text(classroom.title) })
     if (!window.confirm(confirmMsg)) return
     setBusy(action)
     try {
-      await api.edu.setClassLifecycle(classroom.id, action)
+      const { classroom: next } = await api.edu.setClassLifecycle(classroom.id, action)
+      upsertClass(next)
       await refresh()
       toast.success(
-        action === 'publish' ? 'Đã phát hành lớp' : action === 'archive' ? 'Đã lưu trữ lớp' : 'Đã mở lại lớp'
+        action === 'publish' ? t('student.uiPublished') : action === 'archive' ? t('student.uiArchivedDone') : t('student.uiReopened')
       )
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không thể đổi trạng thái')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiStatusFail'))
     } finally {
       setBusy(null)
     }
@@ -68,19 +74,20 @@ export default function ClassSettingsActions({
   const cancelClass = async () => {
     if (
       !window.confirm(
-        `Huỷ lớp "${classroom.title}"? Học sinh sẽ không thể tham gia lớp này nữa.`
+        t('student.uiCancelAsk', { title: text(classroom.title) })
       )
     ) {
       return
     }
     setBusy('cancel')
     try {
-      await api.edu.cancelClass(classroom.id)
+      const { classroom: next } = await api.edu.cancelClass(classroom.id)
+      upsertClass(next)
       await refresh()
-      toast.success('Đã huỷ lớp học')
+      toast.success(t('student.uiCancelled'))
       router.push('/teacher/dashboard?tab=courses')
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không thể huỷ lớp')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiCancelFail'))
     } finally {
       setBusy(null)
     }
@@ -92,7 +99,7 @@ export default function ClassSettingsActions({
         id={pid}
         className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
       >
-        Lớp học này đã bị huỷ. Không thể chỉnh sửa hoặc giao bài mới.
+        {t('student.uiCancelledNote')}
       </div>
     )
   }
@@ -102,12 +109,12 @@ export default function ClassSettingsActions({
       <ClassStatusBadge status={status} />
       {status === 'draft' && (
         <p className="text-sm text-slate-600">
-          Lớp đang ở chế độ nháp. Chuẩn bị xong thì phát hành để học sinh tham gia.
+          {t('student.uiDraftNote')}
         </p>
       )}
       {status === 'archived' && (
         <p className="text-sm text-violet-800">
-          Lớp đã lưu trữ. Học sinh đã tham gia vẫn vào được; không ai tự tham gia mới.
+          {t('student.uiArchivedNote')}
         </p>
       )}
       <div className="flex flex-wrap gap-2">
@@ -122,7 +129,7 @@ export default function ClassSettingsActions({
           className="inline-flex items-center rounded-lg border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <Pencil className="mr-1.5 h-4 w-4" />
-          {editing ? 'Đóng' : 'Sửa thông tin lớp'}
+          {editing ? t('student.uiClose') : t('student.uiEditClass')}
         </button>
         {status === 'draft' && (
           <button
@@ -133,7 +140,7 @@ export default function ClassSettingsActions({
             className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
           >
             <Megaphone className="mr-1.5 h-4 w-4" />
-            {busy === 'publish' ? 'Đang phát hành...' : 'Phát hành lớp'}
+            {busy === 'publish' ? t('student.uiPublishing') : t('common.publishClass')}
           </button>
         )}
         {status === 'published' && (
@@ -145,7 +152,7 @@ export default function ClassSettingsActions({
             className="inline-flex items-center rounded-lg border border-violet-200 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
           >
             <Archive className="mr-1.5 h-4 w-4" />
-            {busy === 'archive' ? 'Đang lưu trữ...' : 'Lưu trữ lớp'}
+            {busy === 'archive' ? t('student.uiArchiving') : t('common.archiveClass')}
           </button>
         )}
         {status === 'archived' && (
@@ -157,7 +164,7 @@ export default function ClassSettingsActions({
             className="inline-flex items-center rounded-lg border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             <RotateCcw className="mr-1.5 h-4 w-4" />
-            {busy === 'reopen' ? 'Đang mở lại...' : 'Mở lại lớp'}
+            {busy === 'reopen' ? t('student.uiReopening') : t('common.reopenClass')}
           </button>
         )}
         <button
@@ -168,14 +175,14 @@ export default function ClassSettingsActions({
           className="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
           <Ban className="mr-1.5 h-4 w-4" />
-          {busy === 'cancel' ? 'Đang huỷ...' : 'Huỷ lớp học'}
+          {busy === 'cancel' ? t('student.uiCancelling') : t('student.uiCancelClass')}
         </button>
       </div>
 
       {editing && (
         <div id={`${pid}-form`} className="space-y-3 rounded-xl border bg-white p-4">
           <label className="block text-sm">
-            <span className="text-gray-700">Tên lớp</span>
+            <span className="text-gray-700">{t('admin.className')}</span>
             <input
               id={`${pid}-title`}
               value={title}
@@ -184,7 +191,7 @@ export default function ClassSettingsActions({
             />
           </label>
           <label className="block text-sm">
-            <span className="text-gray-700">Mô tả</span>
+            <span className="text-gray-700">{t('admin.description')}</span>
             <textarea
               id={`${pid}-description`}
               value={description}
@@ -200,7 +207,7 @@ export default function ClassSettingsActions({
             disabled={saving || !title.trim()}
             className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
           >
-            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {saving ? t('common.saving') : t('student.uiSaveChanges')}
           </button>
         </div>
       )}

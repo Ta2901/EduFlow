@@ -17,6 +17,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import ChangePasswordForm from '@/components/account/ChangePasswordForm'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { localizeActivity } from '@/lib/i18n/contentText'
 import {
   deviceLanguages,
   LOCALE_OPTIONS,
@@ -217,12 +218,14 @@ export default function SettingsPanel({ showPassword = true, id = 'settings' }: 
               <p className="text-sm text-gray-400">{t('settings.emptyHistory')}</p>
             ) : (
               <ul id={`${id}-history-list`} className="divide-y">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const shown = localizeActivity(item, locale)
+                  return (
                   <li key={item.id} id={`${id}-history-item-${item.id}`} className="py-3 first:pt-0 last:pb-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                        <p className="mt-0.5 text-sm text-gray-600">{item.message}</p>
+                        <p className="text-sm font-medium text-gray-900">{shown.title}</p>
+                        <p className="mt-0.5 text-sm text-gray-600">{shown.message}</p>
                         {item.href ? (
                           <Link
                             id={`${id}-history-item-${item.id}-link`}
@@ -243,7 +246,8 @@ export default function SettingsPanel({ showPassword = true, id = 'settings' }: 
                       </div>
                     </div>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             )}
           </section>

@@ -1,3 +1,4 @@
+import { classWritesBlocked } from '../classStatus'
 import { notifySessionEvalOpen } from './evaluations'
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
@@ -147,6 +148,8 @@ export async function createOnlineSession(
     include: { enrollments: true },
   })
   if (!classroom) throw new Error('Không có quyền')
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
 
   if (!input.title.trim()) throw new Error('Vui lòng nhập tên buổi học')
 

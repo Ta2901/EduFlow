@@ -1,3 +1,4 @@
+import { classWritesBlocked } from '../classStatus'
 import { prisma } from '../prisma'
 import { assertCanWrite, requireAdmin } from './account'
 import { createNotification } from './notifications'
@@ -18,6 +19,8 @@ async function assertTeacherOwnsClass(classId: string, session: SessionPayload) 
     select: { id: true, title: true, teacherId: true, termStart: true, termEnd: true, status: true },
   })
   if (!classroom) throw new Error('Không tìm thấy lớp')
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
   if (session.role === 'admin') return classroom
   if (session.role !== 'teacher' || classroom.teacherId !== session.userId) {
     throw new Error('Không có quyền')
@@ -249,7 +252,7 @@ export async function getAdminTeachingProgress(session: SessionPayload) {
   requireAdmin(session)
 
   const classes = await prisma.class.findMany({
-    where: { status: { not: 'cancelled' } },
+    where: { status: 'published' },
     select: {
       id: true,
       title: true,

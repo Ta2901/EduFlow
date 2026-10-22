@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Star } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 
 interface StudentEvalPanelProps {
@@ -49,6 +50,8 @@ export default function StudentEvalPanel({
   highlightCourseKind,
   id = 'student-eval',
 }: StudentEvalPanelProps) {
+  const { t } = useI18n()
+  const kindLabel = (kind: 'midterm' | 'final') => (kind === 'midterm' ? t('student.uiMidterm') : t('student.uiFinal'))
   const [pendingSessions, setPendingSessions] = useState<
     { sessionKey: string; onlineSessionId: string; title: string; endedAt?: string }[]
   >([])
@@ -93,7 +96,7 @@ export default function StudentEvalPanel({
         return next
       })
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Không tải được đánh giá')
+      toast.error(e instanceof ApiError ? e.message : t('student.uiEvalLoadFail'))
     } finally {
       setLoading(false)
     }
@@ -113,11 +116,11 @@ export default function StudentEvalPanel({
         rating: sessionRating,
         comment: sessionComment,
       })
-      toast.success('Đã gửi đánh giá buổi học')
+      toast.success(t('student.uiEvalSessionOk'))
       setSessionComment('')
       await load()
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Gửi thất bại')
+      toast.error(e instanceof ApiError ? e.message : t('student.uiSendFail'))
     }
   }
 
@@ -130,17 +133,17 @@ export default function StudentEvalPanel({
     }
     try {
       await api.edu.submitCourseEval(classId, { evaluationId, ...form })
-      toast.success('Đã gửi đánh giá khoá học')
+      toast.success(t('student.uiEvalCourseOk'))
       await load()
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Gửi thất bại')
+      toast.error(e instanceof ApiError ? e.message : t('student.uiSendFail'))
     }
   }
 
   if (loading) {
     return (
       <div id={id} className="rounded-xl border bg-white p-6 text-sm text-gray-500 shadow-sm">
-        Đang tải đánh giá…
+        {t('student.uiEvalLoading')}
       </div>
     )
   }
@@ -158,15 +161,15 @@ export default function StudentEvalPanel({
     const done = courseEvals.filter((e) => e.submitted)
     return (
       <div id={id} className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="font-semibold text-gray-900">Đánh giá</h2>
+        <h2 className="font-semibold text-gray-900">{t('student.uiEvalTitle')}</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Hiện không có đợt đánh giá nào cần hoàn thành.
+          {t('student.uiEvalEmpty')}
         </p>
         {done.length > 0 && (
           <ul className="mt-3 space-y-1 text-sm text-gray-600">
             {done.map((e) => (
               <li key={e.id}>
-                Đã gửi đánh giá {e.kind === 'midterm' ? 'giữa kỳ' : 'cuối kỳ'}
+                {t('student.uiEvalSent', { kind: kindLabel(e.kind) })}
               </li>
             ))}
           </ul>
@@ -179,8 +182,8 @@ export default function StudentEvalPanel({
     <div id={id} className="space-y-4">
       {pendingSessions.length > 0 && (
         <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="font-semibold text-gray-900">Đánh giá sau buổi học</h2>
-          <p className="mt-1 text-sm text-gray-500">Chấm nhanh giáo viên sau mỗi buổi đã kết thúc</p>
+          <h2 className="font-semibold text-gray-900">{t('student.uiEvalSession')}</h2>
+          <p className="mt-1 text-sm text-gray-500">{t('student.uiEvalSessionHint')}</p>
 
           {pendingSessions.length > 1 && (
             <select
@@ -202,7 +205,7 @@ export default function StudentEvalPanel({
               <p className="text-sm font-medium text-gray-800">{active.title}</p>
               <RatingRow
                 id={`${id}-session-stars`}
-                label="Mức hài lòng"
+                label={t('student.uiSatisfaction')}
                 value={sessionRating}
                 onChange={setSessionRating}
               />
@@ -210,7 +213,7 @@ export default function StudentEvalPanel({
                 id={`${id}-session-comment`}
                 value={sessionComment}
                 onChange={(e) => setSessionComment(e.target.value)}
-                placeholder="Góp ý ngắn (không bắt buộc)"
+                placeholder={t('student.uiCommentOptional')}
                 rows={2}
                 className="w-full rounded-lg border px-3 py-2 text-sm"
               />
@@ -220,7 +223,7 @@ export default function StudentEvalPanel({
                 onClick={() => void submitSession()}
                 className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white"
               >
-                Gửi đánh giá buổi học
+                {t('student.uiSendSession')}
               </button>
             </div>
           )}
@@ -242,25 +245,25 @@ export default function StudentEvalPanel({
         return (
         <div key={ev.id} id={`${id}-course-${ev.kind}`} className="rounded-xl border bg-white p-5 shadow-sm">
           <h2 className="font-semibold text-gray-900">
-            Đánh giá {ev.kind === 'midterm' ? 'giữa kỳ' : 'cuối kỳ'}
+            {t('student.uiEvalKindTitle', { kind: kindLabel(ev.kind) })}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">Hai lần trong khoá: giữa kỳ và cuối kỳ</p>
+          <p className="mt-1 text-sm text-gray-500">{t('student.uiEvalCourseHint')}</p>
           <div className="mt-4 space-y-3">
             <RatingRow
               id={`${id}-${ev.kind}-teaching`}
-              label="Chất lượng giảng dạy"
+              label={t('student.uiTeaching')}
               value={form.teachingQuality}
               onChange={(n) => patch({ teachingQuality: n })}
             />
             <RatingRow
               id={`${id}-${ev.kind}-clarity`}
-              label="Độ rõ ràng nội dung"
+              label={t('student.uiClarity')}
               value={form.contentClarity}
               onChange={(n) => patch({ contentClarity: n })}
             />
             <RatingRow
               id={`${id}-${ev.kind}-pacing`}
-              label="Nhịp độ học"
+              label={t('student.uiPacing')}
               value={form.pacing}
               onChange={(n) => patch({ pacing: n })}
             />
@@ -268,7 +271,7 @@ export default function StudentEvalPanel({
               id={`${id}-${ev.kind}-comment`}
               value={form.comment}
               onChange={(e) => patch({ comment: e.target.value })}
-              placeholder="Nhận xét thêm"
+              placeholder={t('student.uiCommentMore')}
               rows={2}
               className="w-full rounded-lg border px-3 py-2 text-sm"
             />
@@ -278,7 +281,7 @@ export default function StudentEvalPanel({
               onClick={() => void submitCourse(ev.id)}
               className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
             >
-              Gửi đánh giá {ev.kind === 'midterm' ? 'giữa kỳ' : 'cuối kỳ'}
+              {t('student.uiSendCourse', { kind: kindLabel(ev.kind) })}
             </button>
           </div>
         </div>

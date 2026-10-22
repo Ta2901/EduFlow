@@ -27,6 +27,7 @@ import {
   Legend,
 } from 'recharts'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import PageHeader from '@/components/layout/PageHeader'
 import { api, ApiError } from '@/lib/api/client'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -44,6 +45,7 @@ export default function TeacherStudentProgressPage() {
   const studentId = params.studentId as string
   const currentUser = useAuthStore((s) => s.currentUser)!
   const { t, locale } = useI18n()
+  const text = useContentText()
 
   const [progress, setProgress] = useState<StudentClassProgress | null>(null)
   const [error, setError] = useState('')
@@ -110,7 +112,7 @@ export default function TeacherStudentProgressPage() {
   const scoreBars = tasks
     .filter((t) => t.submission?.grade != null)
     .map((t) => ({
-      name: t.task.title.length > 12 ? `${t.task.title.slice(0, 12)}…` : t.task.title,
+      name: text(t.task.title).length > 12 ? `${text(t.task.title).slice(0, 12)}…` : text(t.task.title),
       score: Number(
         (((t.submission!.grade ?? 0) / (t.submission!.maxGrade || 10)) * 10).toFixed(1)
       ),
@@ -122,7 +124,7 @@ export default function TeacherStudentProgressPage() {
         id="teacher-student-progress-header"
         userId={currentUser.id}
         title={student.fullName}
-        subtitle={`${classroom.title} · ${t('charts.studentTitle')}`}
+        subtitle={`${text(classroom.title)} · ${t('charts.studentTitle')}`}
         backHref={`/teacher/courses/${classId}`}
       />
 
@@ -296,7 +298,7 @@ export default function TeacherStudentProgressPage() {
                     const status = submission?.status ?? 'not_submitted'
                     return (
                       <tr key={task.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{task.title}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{text(task.title)}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                           {formatDate(task.dueDate, locale)}
                         </td>
@@ -358,7 +360,7 @@ export default function TeacherStudentProgressPage() {
                     <tr key={row.id}>
                       <td className="px-4 py-2.5 whitespace-nowrap">{formatDate(row.sessionDate, locale)}</td>
                       <td className="px-4 py-2.5">
-                        {row.subject}
+                        {text(row.subject)}
                         <span className="text-gray-500">
                           {' '}
                           · {t(`weekday.${row.dayOfWeek}`)} · {t('common.periodN', { n: row.period })}

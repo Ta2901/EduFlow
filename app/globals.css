@@ -33,6 +33,79 @@ html.dark {
   color-scheme: dark;
 }
 
+html.dark .bg-gray-50,
+html.dark .bg-slate-50 {
+  background-color: var(--background);
+}
+
+html.dark .bg-white {
+  background-color: var(--card);
+}
+
+html.dark .text-gray-900,
+html.dark .text-slate-900 {
+  color: #f3f4f6;
+}
+
+html.dark .text-gray-800,
+html.dark .text-gray-700 {
+  color: #e5e7eb;
+}
+
+html.dark .text-gray-600,
+html.dark .text-gray-500,
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #9ca3af;
+}
+
+html.dark .bg-primary-50 .text-gray-900,
+html.dark .bg-primary-50 .text-gray-800,
+html.dark .bg-primary-50 .text-gray-700,
+html.dark .bg-blue-50 .text-gray-900,
+html.dark .bg-blue-50 .text-gray-800,
+html.dark .bg-green-50 .text-gray-900,
+html.dark .bg-green-50 .text-gray-800,
+html.dark .bg-yellow-50 .text-gray-900,
+html.dark .bg-amber-50 .text-gray-900,
+html.dark .bg-amber-50 .text-gray-800,
+html.dark .bg-red-50 .text-gray-900,
+html.dark .bg-violet-50 .text-gray-900,
+html.dark .bg-primary-50\/40 .text-gray-900,
+html.dark .bg-primary-50\/40 .text-gray-800 {
+  color: #111827;
+}
+
+html.dark .bg-primary-50 .text-gray-600,
+html.dark .bg-primary-50 .text-gray-500,
+html.dark .bg-blue-50 .text-gray-600,
+html.dark .bg-blue-50 .text-gray-500,
+html.dark .bg-green-50 .text-gray-600,
+html.dark .bg-green-50 .text-gray-500,
+html.dark .bg-primary-50\/40 .text-gray-500,
+html.dark .bg-primary-50\/40 .text-gray-400 {
+  color: #4b5563;
+}
+
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .border-slate-200 {
+  border-color: var(--border);
+}
+
+html.dark input:not([type='checkbox']):not([type='radio']),
+html.dark textarea,
+html.dark select {
+  background-color: #0f172a;
+  color: #f3f4f6;
+  border-color: var(--border);
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+  background-color: #1f2937;
+}
+
 html.locale-pending body {
   visibility: hidden;
 }
@@ -55,6 +128,17 @@ body {
   overflow-x: clip;
   color: var(--foreground);
   background-color: var(--background);
+}
+
+/* Small viewports: keep primary facts, hide supporting / older lines */
+@layer utilities {
+  .meta-secondary {
+    @apply max-sm:hidden;
+  }
+
+  .compact-list > :nth-child(n + 4) {
+    @apply max-sm:hidden;
+  }
 }
 
 img,

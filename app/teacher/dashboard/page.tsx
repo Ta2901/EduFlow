@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   BookOpen,
   Users,
@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import DashboardShell from '@/components/layout/DashboardShell'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
@@ -33,23 +34,38 @@ type TeacherStatKey = 'classes' | 'students' | 'tasks' | 'codes'
 
 export default function TeacherDashboard() {
   const { t, locale } = useI18n()
+  const text = useContentText()
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentUser = useAuthStore((s) => s.currentUser)!
   const logout = useAuthStore((s) => s.logout)
-  const getClassesByTeacher = useEduStore((s) => s.getClassesByTeacher)
+  const allClasses = useEduStore((s) => s.classes)
   const tasks = useEduStore((s) => s.tasks)
   const getSubmissionStats = useEduStore((s) => s.getSubmissionStats)
 
   const tabParam = searchParams.get('tab')
-  const initialTab =
+  const tabFromUrl =
     tabParam === 'chat' || tabParam === 'settings' || tabParam === 'courses' || tabParam === 'assignments'
       ? tabParam
       : 'overview'
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const [activeTab, setActiveTabState] = useState(tabFromUrl)
+  useEffect(() => {
+    setActiveTabState(tabFromUrl)
+  }, [tabFromUrl])
+  const setActiveTab = (id: string) => {
+    setActiveTabState(id)
+    const next = new URLSearchParams(searchParams.toString())
+    if (id === 'overview') next.delete('tab')
+    else next.set('tab', id)
+    const qs = next.toString()
+    router.replace(qs ? `?${qs}` : '?', { scroll: false })
+  }
   const [activeStat, setActiveStat] = useState<TeacherStatKey | null>(null)
 
-  const classes = getClassesByTeacher(currentUser.id)
+  const classes = useMemo(
+    () => allClasses.filter((c) => c.teacherId === currentUser.id),
+    [allClasses, currentUser.id]
+  )
   const teacherTasks = tasks.filter((t) => t.teacherId === currentUser.id)
 
   const pendingAssignments = useMemo(() => {
@@ -150,7 +166,17 @@ export default function TeacherDashboard() {
     router.push('/login')
   }
 
-  const copyClassCode = async (code: string) => {
+  const copyClassCode = async (code: string, status: typeof classes[number]['status']) => {
+    if (status !== 'published') {
+      toast.error(
+        status === 'draft'
+          ? t('student.uiDraftNote')
+          : status === 'archived'
+            ? t('student.uiArchivedNote')
+            : t('student.uiCancelledNote')
+      )
+      return
+    }
     await navigator.clipboard.writeText(code)
     toast.success(t('common.copiedCode', { code }))
   }
@@ -204,8 +230,8 @@ export default function TeacherDashboard() {
                   </div>
                   <p className="text-xs text-gray-600 sm:text-sm">{stat.title}</p>
                   <p className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{stat.value}</p>
-                  <p className="text-xs text-gray-500">{stat.change}</p>
-                  <p className="mt-2 text-[10px] font-medium text-primary-600 sm:text-xs">
+                  <p className="meta-secondary text-xs text-gray-500">{stat.change}</p>
+                  <p className="meta-secondary mt-2 text-[10px] font-medium text-primary-600 sm:text-xs">
                     {selected ? t('common.showingList') : t('common.tapToList')}
                   </p>
                 </button>
@@ -231,7 +257,8 @@ export default function TeacherDashboard() {
                       <GraduationCap className="h-5 w-5 text-primary-600" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-900">{course.title}</p>
+                      <p className="font-medium text-gray-900">{text(course.title)}</p>
+                      <ClassStatusBadge status={course.status} />
                       <p className="text-xs text-gray-500">
                         {t('common.studentCount', { count: course.students.length })} · {t('common.code')}{' '}
                         <span className="font-mono font-semibold text-primary-600">{course.classCode}</span>
@@ -267,8 +294,8 @@ export default function TeacherDashboard() {
                       className="block"
                     >
                       <p className="font-medium text-primary-700 hover:underline">{student.name}</p>
-                      <p className="text-xs text-gray-500">{student.email}</p>
-                      <p className="mt-1 text-xs text-primary-600">{t('teacher.classPrefix', { title: student.classTitle })}</p>
+                      <p className="meta-secondary text-xs text-gray-500">{student.email}</p>
+                      <p className="mt-1 text-xs text-primary-600">{t('teacher.classPrefix', { title: text(student.classTitle) })}</p>
                     </Link>
                   </li>
                 ))}
@@ -296,13 +323,13 @@ export default function TeacherDashboard() {
                         className="block rounded-lg border p-3 hover:border-primary-200 hover:bg-primary-50/50"
                       >
                         <div className="flex justify-between gap-2">
-                          <p className="font-medium text-gray-900">{task.title}</p>
+                          <p className="font-medium text-gray-900">{text(task.title)}</p>
                           <span className="shrink-0 text-xs font-medium text-primary-600">
                             {t('common.submittedOf', { submitted: stat.submitted, total: stat.total })}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500">{classroom?.title ?? '—'}</p>
-                        <p className="mt-1 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
+                        <p className="meta-secondary mt-1 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
                       </Link>
                     </li>
                   )
@@ -326,7 +353,7 @@ export default function TeacherDashboard() {
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50/50 px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900">{course.title}</p>
+                      <p className="font-medium text-gray-900">{text(course.title)}</p>
                       <p className="font-mono text-lg font-bold tracking-wider text-violet-700">
                         {course.classCode}
                       </p>
@@ -334,7 +361,7 @@ export default function TeacherDashboard() {
                     <button
                       id={`teacher-dashboard-copy-code-${course.id}`}
                       type="button"
-                      onClick={() => copyClassCode(course.classCode)}
+                      onClick={() => copyClassCode(course.classCode, course.status)}
                       className="inline-flex items-center rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50"
                     >
                       <Copy className="mr-1 h-3.5 w-3.5" />
@@ -383,11 +410,11 @@ export default function TeacherDashboard() {
                         <GraduationCap className="h-7 w-7 text-primary-500" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-medium text-gray-900">{course.title}</h3>
+                        <h3 className="font-medium text-gray-900">{text(course.title)}</h3>
                         <p className="text-sm text-gray-500">{t('common.studentCount', { count: course.students.length })}</p>
                         <button
                           type="button"
-                          onClick={() => copyClassCode(course.classCode)}
+                          onClick={() => copyClassCode(course.classCode, course.status)}
                           className="mt-1 inline-flex items-center text-xs text-primary-600"
                         >
                           <Copy className="mr-1 h-3 w-3" />
@@ -407,17 +434,17 @@ export default function TeacherDashboard() {
               <div className="border-b px-5 py-4 sm:px-6">
                 <h2 className="font-semibold text-gray-900">{t('teacher.trackSubmissions')}</h2>
               </div>
-              <div className="space-y-3 p-5 sm:p-6">
+              <div className="compact-list space-y-3 p-5 sm:p-6">
                 {pendingAssignments.length === 0 ? (
                   <p className="text-sm text-gray-500">{t('teacher.noAssignments')}</p>
                 ) : (
                   pendingAssignments.slice(0, 4).map((a) => (
                     <Link key={a.id} id={`teacher-dashboard-pending-item-${a.id}`} href={`/teacher/assignments/${a.id}/submissions`} className="block rounded-lg border p-3 hover:shadow-sm">
-                      <p className="text-sm font-medium text-gray-900">{a.title}</p>
-                      <p className="text-xs text-gray-500">{a.class}</p>
+                      <p className="text-sm font-medium text-gray-900">{text(a.title)}</p>
+                      <p className="meta-secondary text-xs text-gray-500">{a.class === '—' ? a.class : text(a.class)}</p>
                       <div className="mt-2 flex justify-between text-xs">
                         <span className="text-gray-500">{t('common.submittedOf', { submitted: a.submitted, total: a.total })}</span>
-                        <span className="text-red-600">{t('common.due')}: {formatDate(a.dueDate, locale)}</span>
+                        <span className="meta-secondary text-red-600">{t('common.due')}: {formatDate(a.dueDate, locale)}</span>
                       </div>
                     </Link>
                   ))
@@ -437,14 +464,14 @@ export default function TeacherDashboard() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {classes.map((course) => (
               <div key={course.id} id={`teacher-dashboard-course-card-${course.id}`} className="overflow-hidden rounded-xl border bg-white shadow-sm">
-                <div className="flex h-28 items-center justify-center bg-primary-50">
+                <div className="hidden h-28 items-center justify-center bg-primary-50 sm:flex">
                   <GraduationCap className="h-12 w-12 text-primary-300" />
                 </div>
                 <div className="p-5">
-                  <h3 className="font-semibold text-gray-900">{course.title}</h3>
+                  <h3 className="font-semibold text-gray-900">{text(course.title)}</h3>
                   <ClassStatusBadge status={course.status} />
                   <p className="mt-1 text-sm text-gray-500">{t('common.studentCount', { count: course.students.length })}</p>
-                  <button type="button" onClick={() => copyClassCode(course.classCode)} className="mt-2 inline-flex items-center text-xs text-primary-600">
+                  <button type="button" onClick={() => copyClassCode(course.classCode, course.status)} className="mt-2 inline-flex items-center text-xs text-primary-600">
                     <Copy className="mr-1 h-3 w-3" />
                     <span className="font-mono font-bold">{course.classCode}</span>
                   </button>
@@ -470,12 +497,12 @@ export default function TeacherDashboard() {
                 <Link key={task.id} id={`teacher-dashboard-assignment-item-${task.id}`} href={`/teacher/assignments/${task.id}/submissions`} className="block rounded-xl border bg-white p-4 shadow-sm hover:shadow-md sm:p-5">
                   <div className="flex justify-between gap-4">
                     <div className="min-w-0">
-                      <h3 className="font-medium text-gray-900">{task.title}</h3>
-                      <p className="text-sm text-gray-500">{classroom?.title}</p>
+                      <h3 className="font-medium text-gray-900">{text(task.title)}</h3>
+                      <p className="meta-secondary text-sm text-gray-500">{classroom ? text(classroom.title) : ''}</p>
                     </div>
                     <span className="shrink-0 text-sm font-medium text-primary-600">{stat.submitted}/{stat.total}</span>
                   </div>
-                  <p className="mt-2 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
+                  <p className="meta-secondary mt-2 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
                 </Link>
               )
             })

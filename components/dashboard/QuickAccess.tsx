@@ -14,7 +14,7 @@ export default function QuickAccess({ onOpenChat, onOpenSubmissions }: QuickAcce
   return (
     <div id="student-quick-access" className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
       <h2 className="font-semibold text-gray-900">{t('student.quickTitle')}</h2>
-      <p className="mt-1 text-sm text-gray-500">{t('student.quickHint')}</p>
+      <p className="meta-secondary mt-1 text-sm text-gray-500">{t('student.quickHint')}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <QuickLink
           id="student-quick-access-join"
@@ -66,7 +66,7 @@ function QuickLink({
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-medium text-gray-900">{title}</span>
-        <span className="mt-0.5 block text-xs text-gray-500">{description}</span>
+        <span className="meta-secondary mt-0.5 block text-xs text-gray-500">{description}</span>
       </span>
     </Link>
   )
@@ -97,7 +97,7 @@ function QuickButton({
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-medium text-gray-900">{title}</span>
-        <span className="mt-0.5 block text-xs text-gray-500">{description}</span>
+        <span className="meta-secondary mt-0.5 block text-xs text-gray-500">{description}</span>
       </span>
     </button>
   )

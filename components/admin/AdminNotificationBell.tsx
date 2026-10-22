@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Bell, CalendarRange, CheckCheck, UserCheck } from 'lucide-react'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import {
   attendanceRateLabel,
   formatPeriodDay,
@@ -49,29 +50,31 @@ function writeSeen(ids: string[]) {
 
 function warningMessage(
   warning: AdminTeacherWarning,
-  t: (path: string, vars?: Record<string, string | number>) => string
+  t: (path: string, vars?: Record<string, string | number>) => string,
+  text: (value: string) => string
 ) {
+  const classTitle = text(warning.classTitle)
   if (warning.reason === 'behind') {
     return t('admin.inboxBehind', {
       teacher: warning.teacherName,
-      classTitle: warning.classTitle,
+      classTitle,
       rate: warning.progressRate,
       overdue: warning.overdue,
     })
   }
   if (warning.reason === 'no_plan') {
-    return t('admin.inboxNoPlan', { teacher: warning.teacherName, classTitle: warning.classTitle })
+    return t('admin.inboxNoPlan', { teacher: warning.teacherName, classTitle })
   }
   if (warning.reason === 'low_session_rating') {
     return t('admin.inboxLowSession', {
       teacher: warning.teacherName,
-      classTitle: warning.classTitle,
+      classTitle,
       rating: warning.rating ?? 0,
     })
   }
   return t('admin.inboxLowCourse', {
     teacher: warning.teacherName,
-    classTitle: warning.classTitle,
+    classTitle,
     rating: warning.rating ?? 0,
     kind: warning.courseKind === 'final' ? t('charts.finalTerm') : t('charts.midterm'),
   })
@@ -84,6 +87,7 @@ export default function AdminNotificationBell({
   onRefresh,
 }: AdminNotificationBellProps) {
   const { t, locale } = useI18n()
+  const text = useContentText()
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState<string[] | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -111,7 +115,7 @@ export default function AdminNotificationBell({
       items.push({
         id: warning.id,
         section: 'warnings',
-        message: warningMessage(warning, t),
+        message: warningMessage(warning, t, text),
         drill: { kind: 'warnings', highlightId: warning.id },
         alert: true,
       })
@@ -133,7 +137,7 @@ export default function AdminNotificationBell({
         id: report.id,
         section: report.period === 'week' ? 'week' : 'month',
         message: t('admin.inboxReportLine', {
-          classTitle: report.classTitle,
+          classTitle: text(report.classTitle),
           submitted: report.submitted + report.late,
           total: report.totalSubs,
           rate: attendanceRateLabel(report),
@@ -143,7 +147,7 @@ export default function AdminNotificationBell({
       })
     }
     return items
-  }, [inbox, t])
+  }, [inbox, t, text])
 
   const seenSet = useMemo(() => new Set(seen ?? []), [seen])
   const unreadCount =

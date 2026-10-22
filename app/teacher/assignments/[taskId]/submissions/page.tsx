@@ -14,6 +14,7 @@ import {
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
@@ -29,6 +30,7 @@ export default function SubmissionTrackingPage() {
   const taskId = params.taskId as string
   const currentUser = useAuthStore((s) => s.currentUser)!
   const { t, locale } = useI18n()
+  const text = useContentText()
 
   const getTaskById = useEduStore((s) => s.getTaskById)
   const getClassById = useEduStore((s) => s.getClassById)
@@ -64,8 +66,8 @@ export default function SubmissionTrackingPage() {
       <PageHeader
         id="teacher-submissions-header"
         userId={currentUser.id}
-        title={task.title}
-        subtitle={`${classroom?.title ?? ''} · ${t('common.due')}: ${formatDate(task.dueDate, locale)}`}
+        title={text(task.title)}
+        subtitle={`${classroom ? text(classroom.title) : ''} · ${t('common.due')}: ${formatDate(task.dueDate, locale)}`}
         backHref={`/teacher/courses/${task.classId}`}
       />
 
@@ -101,7 +103,7 @@ export default function SubmissionTrackingPage() {
         {/* Task details */}
         <div className="bg-white rounded-xl border shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('common.details')}</h2>
-          <p className="text-gray-600 text-sm whitespace-pre-wrap">{task.description || '—'}</p>
+          <p className="text-gray-600 text-sm whitespace-pre-wrap">{text(task.description) || '—'}</p>
           {task.attachments.length > 0 && (
             <div className="mt-4">
               <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">

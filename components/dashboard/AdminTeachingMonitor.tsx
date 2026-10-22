@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Bell, Star } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import { api, ApiError } from '@/lib/api/client'
 
 interface AdminTeachingMonitorProps {
@@ -12,6 +13,7 @@ interface AdminTeachingMonitorProps {
 
 export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: AdminTeachingMonitorProps) {
   const { t } = useI18n()
+  const text = useContentText()
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<
     Awaited<ReturnType<typeof api.admin.teachingProgress>>['progress'] | null
@@ -65,7 +67,7 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
     <div id={id} className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">{t('charts.monitorTitle')}</h2>
-        <p className="text-sm text-slate-500">{t('charts.teacherSubtitle')}</p>
+        <p className="meta-secondary text-sm text-slate-500">{t('charts.teacherSubtitle')}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -88,7 +90,7 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
         <div className="border-b px-4 py-3">
           <h3 className="text-sm font-semibold text-slate-800">{t('charts.planByClass')}</h3>
         </div>
-        <div className="divide-y">
+        <div className="compact-list divide-y">
           {progress.classes.length === 0 ? (
             <p className="p-6 text-center text-sm text-slate-400">{t('charts.noClasses')}</p>
           ) : (
@@ -99,8 +101,8 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
                 className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-slate-900">{c.title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="truncate font-medium text-slate-900">{text(c.title)}</p>
+                  <p className="meta-secondary truncate text-xs text-slate-500">
                     {t('charts.teacherPrefixLine', { name: c.teacherName })} · {c.teacherEmail}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -147,12 +149,12 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
             {overview.sessionEvals.length === 0 ? (
               <p className="p-6 text-center text-sm text-slate-400">{t('common.noData')}</p>
             ) : (
-              <div className="divide-y">
+              <div className="compact-list divide-y">
                 {overview.sessionEvals.map((s) => (
-                  <div key={s.classId} className="flex items-center justify-between px-4 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{s.title}</p>
-                      <p className="text-xs text-slate-500">{s.teacherName}</p>
+                  <div key={s.classId} className="flex items-center justify-between gap-2 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">{s.title}</p>
+                      <p className="meta-secondary truncate text-xs text-slate-500">{s.teacherName}</p>
                     </div>
                     <p className="inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
                       <Star className="h-4 w-4 fill-current" />
@@ -172,14 +174,14 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
             {overview.courseEvals.length === 0 ? (
               <p className="p-6 text-center text-sm text-slate-400">{t('charts.noRounds')}</p>
             ) : (
-              <div className="divide-y">
+              <div className="compact-list divide-y">
                 {overview.courseEvals.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between px-4 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">
+                  <div key={e.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">
                         {e.title} · {e.kind === 'midterm' ? t('charts.midterm') : t('charts.finalTerm')}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="meta-secondary truncate text-xs text-slate-500">
                         {e.teacherName} · {e.responseCount}/{e.enrollmentCount} · {e.status}
                       </p>
                     </div>

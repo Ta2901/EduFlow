@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Play, Radio, Video, Plus, Film } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 import type { OnlineSession, SessionRecording } from '@/lib/types'
 import { formatDateTime, formatFileSize } from '@/lib/format'
@@ -12,12 +13,6 @@ interface OnlineSessionPanelProps {
   classId: string
   isTeacher: boolean
   id?: string
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Chưa bắt đầu',
-  live: 'Đang diễn ra',
-  ended: 'Đã kết thúc',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -31,6 +26,9 @@ export default function OnlineSessionPanel({
   isTeacher,
   id = 'online-sessions',
 }: OnlineSessionPanelProps) {
+  const { t, locale } = useI18n()
+  const statusLabel = (status: string) =>
+    status === 'live' ? t('student.uiStatusLive') : status === 'ended' ? t('student.uiStatusEnded') : t('student.uiScheduled')
   const [sessions, setSessions] = useState<OnlineSession[]>([])
   const [recordings, setRecordings] = useState<(SessionRecording & { sessionTitle: string })[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +41,7 @@ export default function OnlineSessionPanel({
       setSessions(data.sessions)
       setRecordings(data.recordings)
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không tải được dữ liệu')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiOnlineLoadFail'))
     } finally {
       setLoading(false)
     }
@@ -61,12 +59,12 @@ export default function OnlineSessionPanel({
     setCreating(true)
     try {
       const { session } = await api.edu.createOnlineSession(classId, { title: title.trim() })
-      toast.success('Đã tạo buổi học online')
+      toast.success(t('student.uiOnlineCreated'))
       setTitle('')
       await load()
       window.location.href = `/online/${session.id}`
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Tạo buổi học thất bại')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiOnlineCreateFail'))
     } finally {
       setCreating(false)
     }
@@ -75,10 +73,10 @@ export default function OnlineSessionPanel({
   const handleStart = async (sessionId: string) => {
     try {
       await api.edu.updateOnlineSession(classId, sessionId, 'start')
-      toast.success('Đã bắt đầu buổi học — học sinh được thông báo')
+      toast.success(t('student.uiOnlineStarted'))
       await load()
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không thể bắt đầu')
+      toast.error(err instanceof ApiError ? err.message : t('student.uiOnlineStartFail'))
     }
   }
 
@@ -87,7 +85,7 @@ export default function OnlineSessionPanel({
   if (loading) {
     return (
       <p id={id} className="py-6 text-center text-sm text-gray-500">
-        Đang tải...
+        {t('student.uiOnlineLoading')}
       </p>
     )
   }
@@ -95,9 +93,9 @@ export default function OnlineSessionPanel({
   return (
     <div id={id} className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Lớp học online</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{t('student.uiOnlineTitle')}</h3>
         <p className="text-sm text-gray-500">
-          Video call, chia sẻ màn hình, chat và ghi hình bài giảng trong từng buổi học.
+          {t('student.uiOnlineBody')}
         </p>
       </div>
 
@@ -110,7 +108,7 @@ export default function OnlineSessionPanel({
             <div className="flex items-center gap-2">
               <Radio className="h-5 w-5 text-green-600" />
               <div>
-                <p className="font-semibold text-green-900">Đang có buổi học trực tuyến</p>
+                <p className="font-semibold text-green-900">{t('student.uiOnlineLive')}</p>
                 <p className="text-sm text-green-700">{liveSession.title}</p>
               </div>
             </div>
@@ -120,7 +118,7 @@ export default function OnlineSessionPanel({
               className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
               <Video className="mr-1.5 h-4 w-4" />
-              Vào lớp ngay
+              {t('student.uiJoinLive')}
             </Link>
           </div>
         </div>
@@ -132,13 +130,13 @@ export default function OnlineSessionPanel({
           onSubmit={handleCreate}
           className="rounded-lg border bg-primary-50/40 p-4"
         >
-          <p className="mb-2 text-sm font-medium text-gray-900">Tạo buổi học online mới</p>
+          <p className="mb-2 text-sm font-medium text-gray-900">{t('student.uiNewOnline')}</p>
           <div className="flex flex-wrap gap-2">
             <input
               id={`${id}-title`}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ví dụ: Tiết 3 — Phương trình bậc hai"
+              placeholder={t('student.uiOnlinePlaceholder')}
               className="min-w-[200px] flex-1 rounded-lg border px-3 py-2 text-sm"
               required
             />
@@ -149,17 +147,17 @@ export default function OnlineSessionPanel({
               className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
             >
               <Plus className="mr-1.5 h-4 w-4" />
-              Tạo & vào phòng
+              {t('student.uiCreateEnter')}
             </button>
           </div>
         </form>
       )}
 
       <div id={`${id}-list`}>
-        <h4 className="mb-2 font-medium text-gray-900">Danh sách buổi học</h4>
+        <h4 className="mb-2 font-medium text-gray-900">{t('student.uiSessionList')}</h4>
         {sessions.length === 0 ? (
           <p className="rounded-lg border border-dashed py-8 text-center text-sm text-gray-500">
-            {isTeacher ? 'Chưa có buổi học online.' : 'Giáo viên chưa mở buổi học online.'}
+            {isTeacher ? t('student.uiOnlineEmptyTeacher') : t('student.uiOnlineEmptyStudent')}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -172,12 +170,14 @@ export default function OnlineSessionPanel({
                 <div>
                   <p className="font-medium text-gray-900">{s.title}</p>
                   <p className="text-xs text-gray-500">
-                    {s.startedAt ? `Bắt đầu: ${formatDateTime(s.startedAt)}` : `Tạo: ${formatDateTime(s.createdAt)}`}
+                    {s.startedAt
+                      ? t('student.uiStartedAt', { time: formatDateTime(s.startedAt, locale) })
+                      : t('student.uiCreatedAt', { time: formatDateTime(s.createdAt, locale) })}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[s.status]}`}>
-                    {STATUS_LABELS[s.status]}
+                    {statusLabel(s.status)}
                   </span>
                   {isTeacher && s.status === 'scheduled' && (
                     <button
@@ -187,7 +187,7 @@ export default function OnlineSessionPanel({
                       className="inline-flex items-center rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800"
                     >
                       <Play className="mr-1 h-3 w-3" />
-                      Bắt đầu
+                      {t('student.uiStart')}
                     </button>
                   )}
                   <Link
@@ -196,7 +196,7 @@ export default function OnlineSessionPanel({
                     className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
                   >
                     <Video className="mr-1 h-3.5 w-3.5" />
-                    {s.status === 'ended' ? 'Xem lại' : 'Vào phòng'}
+                    {s.status === 'ended' ? t('student.uiReview') : t('student.uiEnterRoom')}
                   </Link>
                 </div>
               </li>
@@ -209,7 +209,7 @@ export default function OnlineSessionPanel({
         <div id={`${id}-recordings`}>
           <h4 className="mb-2 flex items-center font-medium text-gray-900">
             <Film className="mr-1.5 h-4 w-4" />
-            Bản ghi bài giảng
+            {t('student.uiRecordings')}
           </h4>
           <ul className="space-y-2">
             {recordings.map((r) => (
@@ -222,7 +222,7 @@ export default function OnlineSessionPanel({
                   <p className="text-sm font-medium text-gray-900">{r.title}</p>
                   <p className="text-xs text-gray-500">
                     {r.sessionTitle} · {formatFileSize(r.fileSize)}
-                    {r.duration ? ` · ${Math.floor(r.duration / 60)} phút` : ''}
+                    {r.duration ? ` · ${t('student.uiMinutes', { count: Math.floor(r.duration / 60) })}` : ''}
                   </p>
                 </div>
                 <a
@@ -232,7 +232,7 @@ export default function OnlineSessionPanel({
                   rel="noopener noreferrer"
                   className="text-xs font-medium text-violet-700 hover:underline"
                 >
-                  Xem / Tải về
+                  {t('student.uiWatch')}
                 </a>
               </li>
             ))}

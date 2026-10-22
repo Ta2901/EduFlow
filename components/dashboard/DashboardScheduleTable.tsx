@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { CalendarClock, ClipboardList } from 'lucide-react'
 import type { ClassRoom, Task } from '@/lib/types'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import { formatDate } from '@/lib/format'
 import { useScheduleOverviewStore } from '@/lib/stores/scheduleOverviewStore'
 
@@ -24,6 +25,7 @@ export default function DashboardScheduleTable({
   id = 'dashboard-schedule',
 }: DashboardScheduleTableProps) {
   const { t, locale } = useI18n()
+  const text = useContentText()
   const load = useScheduleOverviewStore((s) => s.load)
   const slots = useScheduleOverviewStore((s) => s.slots)
   const loading = useScheduleOverviewStore((s) => s.isLoading && !s.isLoaded)
@@ -69,19 +71,19 @@ export default function DashboardScheduleTable({
         const diff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         return {
           task: t,
-          classTitle: classroom?.title ?? '—',
+          classTitle: classroom?.title ? text(classroom.title) : '—',
           daysLeft: diff,
         }
       })
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 12)
-  }, [tasks, classes])
+  }, [tasks, classes, text])
 
   return (
     <div id={id} className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-gray-900">{t('schedule.title')}</h2>
-        <p className="text-sm text-gray-500">{t('schedule.subtitle')}</p>
+        <p className="meta-secondary text-sm text-gray-500">{t('schedule.subtitle')}</p>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
@@ -128,12 +130,12 @@ export default function DashboardScheduleTable({
                                     href={classHref(s.classId)}
                                     className="block rounded-md border border-primary-100 bg-primary-50/70 px-2 py-1.5 hover:bg-primary-50"
                                   >
-                                    <p className="font-medium text-primary-800">{s.subject}</p>
+                                    <p className="font-medium text-primary-800">{text(s.subject)}</p>
                                     <p className="text-[10px] text-gray-600 sm:text-xs">
                                       {s.startTime}–{s.endTime}
-                                      {s.room ? ` · ${s.room}` : ''}
+                                      <span className="meta-secondary">{s.room ? ` · ${s.room}` : ''}</span>
                                     </p>
-                                    <p className="truncate text-[10px] text-gray-500">{s.classTitle}</p>
+                                    <p className="meta-secondary truncate text-[10px] text-gray-500">{text(s.classTitle)}</p>
                                   </Link>
                                 ))}
                               </div>
@@ -162,12 +164,12 @@ export default function DashboardScheduleTable({
                 <thead>
                   <tr className="bg-gray-50 text-xs text-gray-600">
                     <th className="px-4 py-2 font-medium">{t('schedule.task')}</th>
-                    <th className="px-4 py-2 font-medium">{t('schedule.classOrSubject')}</th>
+                    <th className="meta-secondary px-4 py-2 font-medium">{t('schedule.classOrSubject')}</th>
                     <th className="px-4 py-2 font-medium">{t('schedule.due')}</th>
-                    <th className="px-4 py-2 font-medium">{t('schedule.remaining')}</th>
+                    <th className="meta-secondary px-4 py-2 font-medium">{t('schedule.remaining')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="compact-list divide-y divide-gray-100">
                   {upcomingDeadlines.map(({ task, classTitle, daysLeft }) => (
                     <tr key={task.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2.5">
@@ -176,14 +178,14 @@ export default function DashboardScheduleTable({
                           href={assignmentHref(task.id)}
                           className="font-medium text-gray-900 hover:text-primary-600"
                         >
-                          {task.title}
+                          {text(task.title)}
                         </Link>
                       </td>
-                      <td className="px-4 py-2.5 text-gray-600">{classTitle}</td>
+                      <td className="meta-secondary px-4 py-2.5 text-gray-600">{classTitle}</td>
                       <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">
                         {formatDate(task.dueDate, locale)}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="meta-secondary px-4 py-2.5">
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             daysLeft < 0

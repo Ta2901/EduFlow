@@ -1,3 +1,4 @@
+import { classWritesBlocked } from '../classStatus'
 import { prisma } from '../prisma'
 import type { AttendanceStatus, ScheduleSlot } from '../types'
 import type { SessionPayload } from './session'
@@ -106,6 +107,8 @@ export async function createScheduleSlot(
     where: { id: classId, teacherId },
   })
   if (!classroom) throw new Error('Không có quyền')
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
 
   if (input.dayOfWeek < 1 || input.dayOfWeek > 7) {
     throw new Error('Thứ trong tuần không hợp lệ')

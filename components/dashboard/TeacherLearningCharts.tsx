@@ -15,6 +15,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import type { ClassRoom, Task } from '@/lib/types'
 
 interface TeacherLearningChartsProps {
@@ -31,6 +32,7 @@ export default function TeacherLearningCharts({
   id = 'teacher-learning-charts',
 }: TeacherLearningChartsProps) {
   const { t } = useI18n()
+  const text = useContentText()
   const classBars = useMemo(() => {
     return classes.map((c) => {
       const classTasks = tasks.filter((t) => t.classId === c.id)
@@ -44,16 +46,17 @@ export default function TeacherLearningCharts({
         late += s.late
       }
       const rate = total === 0 ? 0 : Math.round((submitted / total) * 100)
+      const label = text(c.title)
       return {
-        name: c.title.length > 12 ? `${c.title.slice(0, 12)}…` : c.title,
-        fullName: c.title,
+        name: label.length > 12 ? `${label.slice(0, 12)}…` : label,
+        fullName: label,
         students: c.students.length,
         tasks: classTasks.length,
         submitRate: rate,
         late,
       }
     })
-  }, [classes, tasks, getSubmissionStats])
+  }, [classes, tasks, getSubmissionStats, text])
 
   const submissionPie = useMemo(() => {
     let submitted = 0
@@ -78,15 +81,17 @@ export default function TeacherLearningCharts({
       .map((t) => {
         const s = getSubmissionStats(t.id)
         const classroom = classes.find((c) => c.id === t.classId)
+        const label = text(t.title)
+        const classLabel = classroom ? text(classroom.title) : ''
         return {
-          name: t.title.length > 16 ? `${t.title.slice(0, 16)}…` : t.title,
-          fullName: `${t.title} · ${classroom?.title ?? ''}`,
+          name: label.length > 16 ? `${label.slice(0, 16)}…` : label,
+          fullName: classLabel ? `${label} · ${classLabel}` : label,
           submitted: s.submitted,
           missing: Math.max(0, s.total - s.submitted),
           late: s.late,
         }
       })
-  }, [tasks, classes, getSubmissionStats])
+  }, [tasks, classes, getSubmissionStats, text])
 
   if (classes.length === 0) {
     return (
@@ -103,10 +108,10 @@ export default function TeacherLearningCharts({
     <div id={id} className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-gray-900">{t('charts.teacherTitle')}</h2>
-        <p className="text-sm text-gray-500">{t('charts.teacherSubtitle')}</p>
+        <p className="meta-secondary text-sm text-gray-500">{t('charts.teacherSubtitle')}</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 max-sm:[&>*:nth-child(n+2)]:hidden">
         <div id={`${id}-status`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.allSubmissions')}</h3>
           {submissionPie.length === 0 ? (

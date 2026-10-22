@@ -166,7 +166,7 @@ export default function PracticeSetPanel({
     <div id={id} className="space-y-4">
       <div>
         <h3 className="font-semibold text-gray-900">Bài tập · Spaced Repetition</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="meta-secondary mt-1 text-sm text-gray-500">
           Trắc nghiệm (tạo tay, file, hoặc AI). Học sinh chỉ chọn đáp án; AI tự đánh giá mức nhớ
           (Quá dễ / Tốt / Khó / Quên) rồi giãn cách lần gặp tiếp (Leitner 5 hộp). Đáp án xáo mỗi lượt.
         </p>

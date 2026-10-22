@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { api, ApiError } from '@/lib/api/client'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import StatDetailPanel from '@/components/dashboard/StatDetailPanel'
 import { formatDateTime } from '@/lib/format'
 import toast from 'react-hot-toast'
@@ -60,6 +61,7 @@ interface AdminWorkChartsProps {
 
 export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkChartsProps) {
   const { t, locale } = useI18n()
+  const text = useContentText()
   const [stats, setStats] = useState<WorkStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -127,11 +129,15 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
 
   const classBars = useMemo(() => {
     if (!stats) return []
-    return stats.byClass.slice(0, 10).map((c) => ({
-      ...c,
-      name: c.title.length > 12 ? `${c.title.slice(0, 12)}…` : c.title,
-    }))
-  }, [stats])
+    return stats.byClass.slice(0, 10).map((c) => {
+      const label = text(c.title)
+      return {
+        ...c,
+        title: label,
+        name: label.length > 12 ? `${label.slice(0, 12)}…` : label,
+      }
+    })
+  }, [stats, text])
 
   const detail = useMemo(() => {
     if (!stats || !selection) return { title: '', items: [] as WorkItem[] }
@@ -213,7 +219,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   {
                     id: row.classId,
                     kind: 'class_summary',
-                    title: row.title,
+                    title: text(row.title),
                     subtitle: t('charts.teacherPrefixLine', { name: row.teacherName }),
                     meta: t('charts.classSummaryMeta', {
                       students: row.students,
@@ -229,7 +235,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
       }
     }
     return { title: '', items: [] }
-  }, [stats, selection, t])
+  }, [stats, selection, t, text])
 
   const workStatusLabel = (key?: string, fallback?: string) => {
     if (key === 'not_submitted') return t('status.submission.not_submitted')

@@ -11,6 +11,7 @@ interface ScheduleOverviewState {
   isLoaded: boolean
   isLoading: boolean
   load: (classIds: string[], opts?: { force?: boolean }) => Promise<void>
+  reset: () => void
 }
 
 export const useScheduleOverviewStore = create<ScheduleOverviewState>((set, get) => ({
@@ -19,6 +20,9 @@ export const useScheduleOverviewStore = create<ScheduleOverviewState>((set, get)
   classIdsKey: '',
   isLoaded: false,
   isLoading: false,
+
+  reset: () =>
+    set({ slots: [], liveByClass: {}, classIdsKey: '', isLoaded: false, isLoading: false }),
 
   load: async (classIds, opts) => {
     const key = [...classIds].sort().join(',')

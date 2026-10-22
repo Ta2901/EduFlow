@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { Bell, KeyRound, X } from 'lucide-react'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import {
   attendanceRateLabel,
   formatPeriodDay,
@@ -283,6 +284,7 @@ function ClassTable({
   onOpenClass: (classId: string) => void
 }) {
   const { t, locale } = useI18n()
+  const text = useContentText()
   if (classes.length === 0) return <Empty />
   return (
     <div className="overflow-x-auto">
@@ -301,8 +303,8 @@ function ClassTable({
           {classes.map((classroom) => (
             <tr key={classroom.id} id={`${id}-row-${classroom.id}`} className={highlight(classroom.id)}>
               <td className="px-4 py-3">
-                <p className="font-medium text-slate-900">{classroom.title}</p>
-                {classroom.description && <p className="text-xs text-slate-500">{classroom.description}</p>}
+                <p className="font-medium text-slate-900">{text(classroom.title)}</p>
+                {classroom.description && <p className="text-xs text-slate-500">{text(classroom.description)}</p>}
               </td>
               <td className="px-4 py-3 text-slate-700">
                 <p>{classroom.teacherName}</p>
@@ -345,6 +347,7 @@ function WarningList({
   reasonLabel: (reason: AdminTeacherWarning['reason']) => string
 }) {
   const { t } = useI18n()
+  const text = useContentText()
   if (warnings.length === 0) return <Empty />
   return (
     <ul className="divide-y">
@@ -362,27 +365,27 @@ function WarningList({
               </span>
             </p>
             <p className="text-xs text-slate-500">
-              {warning.classTitle} · {warning.teacherEmail}
+              {text(warning.classTitle)} · {warning.teacherEmail}
             </p>
             <p className="mt-1 text-xs text-slate-600">
               {warning.reason === 'behind'
                 ? t('admin.inboxBehind', {
                     teacher: warning.teacherName,
-                    classTitle: warning.classTitle,
+                    classTitle: text(warning.classTitle),
                     rate: warning.progressRate,
                     overdue: warning.overdue,
                   })
                 : warning.reason === 'no_plan'
-                  ? t('admin.inboxNoPlan', { teacher: warning.teacherName, classTitle: warning.classTitle })
+                  ? t('admin.inboxNoPlan', { teacher: warning.teacherName, classTitle: text(warning.classTitle) })
                   : warning.reason === 'low_session_rating'
                     ? t('admin.inboxLowSession', {
                         teacher: warning.teacherName,
-                        classTitle: warning.classTitle,
+                        classTitle: text(warning.classTitle),
                         rating: warning.rating ?? 0,
                       })
                     : t('admin.inboxLowCourse', {
                         teacher: warning.teacherName,
-                        classTitle: warning.classTitle,
+                        classTitle: text(warning.classTitle),
                         rating: warning.rating ?? 0,
                         kind: warning.courseKind === 'final' ? t('charts.finalTerm') : t('charts.midterm'),
                       })}
@@ -416,6 +419,7 @@ function ReportList({
   onOpenClass: (classId: string) => void
 }) {
   const { t } = useI18n()
+  const text = useContentText()
   if (reports.length === 0) return <Empty />
   return (
     <ul className="divide-y">
@@ -423,7 +427,7 @@ function ReportList({
         <li key={report.id} id={`${id}-row-${report.id}`} className={`px-4 py-3 ${highlight(report.id)}`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-medium text-slate-900">{report.classTitle}</p>
+              <p className="font-medium text-slate-900">{text(report.classTitle)}</p>
               <p className="text-xs text-slate-500">
                 {t('role.teacher')}: {report.teacherName} · {t('admin.inboxClassCode')} {report.classCode} ·{' '}
                 {t('admin.students')} {report.studentCount}

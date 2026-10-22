@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { roleDashboardPath } from '@/lib/format'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
@@ -26,8 +27,12 @@ export default function TeacherAuthGuard({ children }: { children: React.ReactNo
         await hydrate()
       }
       const user = useAuthStore.getState().currentUser
-      if (!user || user.role !== 'teacher') {
+      if (!user) {
         router.replace('/login')
+        return
+      }
+      if (user.role !== 'teacher') {
+        router.replace(roleDashboardPath(user.role))
         return
       }
 

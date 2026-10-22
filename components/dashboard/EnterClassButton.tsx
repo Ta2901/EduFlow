@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Video } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import {
   findNextClassOccurrence,
   type NextClassOccurrence,
@@ -23,6 +24,7 @@ export default function EnterClassButton({
   id = 'student-enter-class',
 }: EnterClassButtonProps) {
   const { t } = useI18n()
+  const text = useContentText()
   const router = useRouter()
   const load = useScheduleOverviewStore((s) => s.load)
   const slots = useScheduleOverviewStore((s) => s.slots)
@@ -54,7 +56,7 @@ export default function EnterClassButton({
       : `/student/courses/${next.classId}`
     : null
 
-  const label = nextLabel(next, Boolean(next && liveByClass[next.classId]), t)
+  const label = nextLabel(next, Boolean(next && liveByClass[next.classId]), t, text)
 
   const handleClick = (e: React.MouseEvent) => {
     if (href) return
@@ -105,14 +107,16 @@ export default function EnterClassButton({
 function nextLabel(
   next: NextClassOccurrence | null,
   hasLive: boolean,
-  t: (path: string, vars?: Record<string, string | number>) => string
+  t: (path: string, vars?: Record<string, string | number>) => string,
+  text: (value: string) => string
 ): string {
   if (!next) return t('student.noUpcomingShort')
   const day = t(`weekday.${next.dayOfWeek}`)
   const room = next.room ? ` · ${next.room}` : ''
   const live = hasLive ? ` · ${t('student.live')}` : ''
+  const subject = text(next.subject)
   if (next.isOngoing) {
-    return `${next.subject} · ${t('student.ongoing')}${room}${live}`
+    return `${subject} · ${t('student.ongoing')}${room}${live}`
   }
-  return `${next.subject} · ${day} ${next.startTime}${room}${live}`
+  return `${subject} · ${day} ${next.startTime}${room}${live}`
 }

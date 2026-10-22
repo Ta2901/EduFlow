@@ -52,7 +52,7 @@ export default function PageHeader({
               {title}
             </h1>
             {subtitle && (
-              <p id={`${id}-subtitle`} className="truncate text-xs text-gray-500 sm:text-sm">
+              <p id={`${id}-subtitle`} className="meta-secondary truncate text-xs text-gray-500 sm:text-sm">
                 {subtitle}
               </p>
             )}

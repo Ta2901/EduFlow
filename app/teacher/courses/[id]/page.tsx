@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Calendar, FileText, Plus, Copy, Paperclip, GraduationCap, CalendarDays, Video, ClipboardList, Timer } from 'lucide-react'
 import ClassHomeOverview from '@/components/class/ClassHomeOverview'
@@ -12,28 +12,45 @@ import PracticeSetPanel from '@/components/class/PracticeSetPanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
 import Link from 'next/link'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 import PageHeader from '@/components/layout/PageHeader'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { formatDate } from '@/lib/format'
+import ClassStatusBadge from '@/components/class/ClassStatusBadge'
+
+const COURSE_TABS = ['overview', 'plan', 'schedule', 'online', 'students', 'assignments', 'practice'] as const
 
 export default function CourseDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const courseId = params.id as string
   const currentUser = useAuthStore((s) => s.currentUser)!
   const { t, locale } = useI18n()
-  const initialTab = searchParams.get('tab') === 'plan' ? 'plan' : 'overview'
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const text = useContentText()
+  const tabParam = searchParams.get('tab')
+  const tabFromUrl = COURSE_TABS.includes(tabParam as (typeof COURSE_TABS)[number])
+    ? (tabParam as (typeof COURSE_TABS)[number])
+    : 'overview'
+  const [activeTab, setActiveTabState] = useState(tabFromUrl)
+  useEffect(() => {
+    setActiveTabState(tabFromUrl)
+  }, [tabFromUrl])
+  const setActiveTab = (id: string) => {
+    setActiveTabState(id)
+    const next = new URLSearchParams(searchParams.toString())
+    if (id === 'overview') next.delete('tab')
+    else next.set('tab', id)
+    const qs = next.toString()
+    router.replace(qs ? `?${qs}` : '?', { scroll: false })
+  }
 
-  const getClassById = useEduStore((s) => s.getClassById)
-  const getTasksByClass = useEduStore((s) => s.getTasksByClass)
+  const classroom = useEduStore((s) => s.classes.find((c) => c.id === courseId))
+  const assignments = useEduStore((s) => s.tasks.filter((task) => task.classId === courseId))
   const getSubmissionStats = useEduStore((s) => s.getSubmissionStats)
-
-  const classroom = getClassById(courseId)
-  const assignments = getTasksByClass(courseId)
 
   if (!classroom) {
     return (
@@ -43,7 +60,20 @@ export default function CourseDetailPage() {
     )
   }
 
+  const canShareCode = classroom.status === 'published'
+  const isCancelled = classroom.status === 'cancelled'
+
   const copyCode = async () => {
+    if (!canShareCode) {
+      toast.error(
+        classroom.status === 'draft'
+          ? t('student.uiDraftNote')
+          : classroom.status === 'archived'
+            ? t('student.uiArchivedNote')
+            : t('student.uiCancelledNote')
+      )
+      return
+    }
     await navigator.clipboard.writeText(classroom.classCode)
     toast.success(t('common.copiedCode', { code: classroom.classCode }))
   }
@@ -63,18 +93,22 @@ export default function CourseDetailPage() {
       <PageHeader
         id="teacher-course-header"
         userId={currentUser.id}
-        title={classroom.title}
+        title={text(classroom.title)}
         subtitle={`${t('common.classCode')}: ${classroom.classCode}`}
         backHref="/teacher/dashboard"
         action={
-          <Link
-            id="teacher-course-assign"
-            href={`/teacher/classes/${courseId}/assignments/new`}
-            className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            <span className="hidden sm:inline">{t('nav.assignments')}</span>
-          </Link>
+          isCancelled ? (
+            <ClassStatusBadge status={classroom.status} />
+          ) : (
+            <Link
+              id="teacher-course-assign"
+              href={`/teacher/classes/${courseId}/assignments/new`}
+              className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              <span className="hidden sm:inline">{t('nav.assignments')}</span>
+            </Link>
+          )
         }
       />
 
@@ -86,21 +120,22 @@ export default function CourseDetailPage() {
           className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
         >
           <Copy className="mr-1 h-4 w-4" />
-          {t('common.copy')}: <span className="ml-1 font-mono font-bold">{classroom.classCode}</span>
+          {canShareCode ? t('common.copy') : t('common.classCode')}:{' '}
+          <span className="ml-1 font-mono font-bold">{classroom.classCode}</span>
         </button>
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{classroom.title}</h2>
-          <p className="text-gray-600 mb-4">{classroom.description || t('common.noData')}</p>
-          <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-4">
+          <h2 className="meta-secondary mb-2 text-2xl font-bold text-gray-900">{text(classroom.title)}</h2>
+          <p className="meta-secondary mb-4 text-gray-600">{text(classroom.description) || t('common.noData')}</p>
+          <div className="mb-4 flex flex-wrap gap-4 text-sm text-gray-500">
             <div className="flex items-center">
               <Users className="h-4 w-4 mr-1" />
               {t('common.studentCount', { count: classroom.students.length })}
             </div>
-            <div className="flex items-center">
+            <div className="meta-secondary flex items-center">
               <FileText className="h-4 w-4 mr-1" />
               {t('common.itemCount', { count: assignments.length })}
             </div>
-            <div className="flex items-center">
+            <div className="meta-secondary flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
               {formatDate(classroom.createdAt, locale)}
             </div>
@@ -158,7 +193,7 @@ export default function CourseDetailPage() {
             )}
 
             {activeTab === 'plan' && (
-              <TeachingPlanPanel id="teacher-course-plan" classId={courseId} isTeacher />
+              <TeachingPlanPanel id="teacher-course-plan" classId={courseId} isTeacher={!isCancelled} />
             )}
 
             {activeTab === 'schedule' && (
@@ -166,12 +201,12 @@ export default function CourseDetailPage() {
                 id="teacher-course-schedule"
                 classId={courseId}
                 students={classroom.students}
-                isTeacher
+                isTeacher={!isCancelled}
               />
             )}
 
             {activeTab === 'online' && (
-              <OnlineSessionPanel id="teacher-course-online" classId={courseId} isTeacher />
+              <OnlineSessionPanel id="teacher-course-online" classId={courseId} isTeacher={!isCancelled} />
             )}
 
             {activeTab === 'students' && (
@@ -228,14 +263,16 @@ export default function CourseDetailPage() {
               <div id="teacher-course-assignments" className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">{t('common.assignment')}</h3>
-                  <Link
-                    id="teacher-course-create-assignment"
-                    href={`/teacher/classes/${courseId}/assignments/new`}
-                    className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('nav.assignments')}
-                  </Link>
+                  {!isCancelled && (
+                    <Link
+                      id="teacher-course-create-assignment"
+                      href={`/teacher/classes/${courseId}/assignments/new`}
+                      className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t('nav.assignments')}
+                    </Link>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -248,7 +285,7 @@ export default function CourseDetailPage() {
                         initial={false}
                         className="border rounded-lg p-6 hover:shadow-md transition-shadow"
                       >
-                        <h4 className="text-sm font-medium text-gray-900 mb-2">{assignment.title}</h4>
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">{text(assignment.title)}</h4>
                         <p className="text-xs text-gray-500 line-clamp-2 mb-3">{assignment.description}</p>
                         <div className="space-y-2 text-xs text-gray-500 mb-3">
                           <div className="flex justify-between">
@@ -283,20 +320,22 @@ export default function CourseDetailPage() {
                 {assignments.length === 0 && (
                   <p className="text-center text-gray-500 py-8">
                     {t('charts.noAssigned')}{' '}
-                    <Link
-                      id="teacher-course-first-assignment"
-                      href={`/teacher/classes/${courseId}/assignments/new`}
-                      className="text-primary-600"
-                    >
-                      {t('nav.assignments')}
-                    </Link>
+                    {!isCancelled && (
+                      <Link
+                        id="teacher-course-first-assignment"
+                        href={`/teacher/classes/${courseId}/assignments/new`}
+                        className="text-primary-600"
+                      >
+                        {t('nav.assignments')}
+                      </Link>
+                    )}
                   </p>
                 )}
               </div>
             )}
 
             {activeTab === 'practice' && (
-              <PracticeSetPanel id="teacher-course-practice" classId={courseId} canEdit />
+              <PracticeSetPanel id="teacher-course-practice" classId={courseId} canEdit={!isCancelled} />
             )}
           </div>
         </div>

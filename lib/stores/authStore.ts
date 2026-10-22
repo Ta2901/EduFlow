@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { api, ApiError } from '../api/client'
 import type { SessionUser, UserRole } from '../types'
+import { useEduStore } from './eduStore'
+import { useNotificationStore } from './notificationStore'
+import { useScheduleOverviewStore } from './scheduleOverviewStore'
 
 interface RegisterInput {
   fullName: string
@@ -96,6 +99,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       await api.auth.logout()
     } finally {
       set({ currentUser: null })
+      useEduStore.getState().reset()
+      useNotificationStore.getState().reset()
+      useScheduleOverviewStore.getState().reset()
     }
   },
 }))

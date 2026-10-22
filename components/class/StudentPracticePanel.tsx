@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 
 type Attempt = Awaited<ReturnType<typeof api.edu.startPractice>>['attempt']
@@ -22,6 +23,7 @@ export default function StudentPracticePanel({
   classId,
   id = 'student-practice',
 }: StudentPracticePanelProps) {
+  const { t } = useI18n()
   const [sets, setSets] = useState<Awaited<ReturnType<typeof api.edu.listPracticeSets>>['sets']>([])
   const [attempt, setAttempt] = useState<Attempt | null>(null)
   const [index, setIndex] = useState(0)
@@ -44,7 +46,7 @@ export default function StudentPracticePanel({
       const { sets: rows } = await api.edu.listPracticeSets(classId)
       setSets(rows)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Không tải được bài luyện tập')
+      toast.error(e instanceof ApiError ? e.message : t('student.uiPracticeLoadFail'))
     } finally {
       setLoading(false)
     }
@@ -71,7 +73,7 @@ export default function StudentPracticePanel({
       setAiResult(null)
       shownAt.current = Date.now()
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Không bắt đầu được')
+      toast.error(e instanceof ApiError ? e.message : t('student.uiPracticeStartFail'))
     }
   }
 
@@ -80,7 +82,7 @@ export default function StudentPracticePanel({
     const q = attempt.questions[index]
     const optionId = picks[q.id]
     if (!optionId) {
-      toast.error('Chọn một đáp án')
+      toast.error(t('student.uiPickAnswer'))
       return
     }
     setBusy(true)
@@ -104,11 +106,8 @@ export default function StudentPracticePanel({
         nextLabel: res.nextLabel,
       })
       setPhase('result')
-      if (res.sessionComplete) {
-        setAttempt(res.attempt as Attempt)
-      }
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'AI không đánh giá được')
+      toast.error(e instanceof ApiError ? e.message : t('student.uiPracticeAiFail'))
     } finally {
       setBusy(false)
     }
@@ -117,7 +116,8 @@ export default function StudentPracticePanel({
   const goNext = () => {
     if (!attempt) return
     if (attempt.status !== 'in_progress') {
-      void load()
+      setPhase('pick')
+      setAiResult(null)
       return
     }
     const nextIdx = index + 1
@@ -134,12 +134,12 @@ export default function StudentPracticePanel({
   if (loading) {
     return (
       <div id={id} className="rounded-xl border bg-white p-5 text-sm text-gray-500 shadow-sm">
-        Đang tải bài luyện tập…
+        {t('student.uiPracticeLoading')}
       </div>
     )
   }
 
-  if (attempt && attempt.status === 'in_progress') {
+  if (attempt && (attempt.status === 'in_progress' || (phase === 'result' && aiResult))) {
     const q = attempt.questions[index]
     if (!q) return null
     return (
@@ -147,11 +147,11 @@ export default function StudentPracticePanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold text-gray-900">{attempt.title}</h2>
           <span className="rounded-lg bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800">
-            AI ôn ngắt quãng · {index + 1}/{attempt.questions.length}
+            {t('student.uiPracticeBadge', { current: index + 1, total: attempt.questions.length })}
           </span>
         </div>
         <p className="mt-2 text-xs text-gray-500">
-          Bạn chỉ chọn đáp án. AI tự đánh giá mức nhớ và hẹn lịch ôn lần sau.
+          {t('student.uiPracticePickHint')}
         </p>
         <p className="mt-4 font-medium text-gray-900">{q.prompt}</p>
         <div className="mt-3 space-y-2">
@@ -187,7 +187,7 @@ export default function StudentPracticePanel({
             onClick={() => void checkAndEvaluate()}
             className="mt-4 rounded-lg bg-primary-600 px-4 py-2 text-sm text-white disabled:opacity-60"
           >
-            {busy ? 'AI đang đánh giá…' : 'Kiểm tra'}
+            {busy ? t('student.uiAiChecking') : t('student.uiCheck')}
           </button>
         )}
 
@@ -196,7 +196,7 @@ export default function StudentPracticePanel({
             <p className="font-semibold">AI: {aiResult.ratingLabel}</p>
             <p>{aiResult.reason}</p>
             <p className="text-xs opacity-80">
-              Hộp Leitner {aiResult.box}/5 · lần ôn tiếp theo sau {aiResult.nextLabel}
+              {t('student.uiLeitner', { box: aiResult.box, when: aiResult.nextLabel })}
             </p>
             {q.explanation && <p className="text-xs text-gray-600">{q.explanation}</p>}
             <button
@@ -204,7 +204,7 @@ export default function StudentPracticePanel({
               onClick={goNext}
               className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white"
             >
-              {index + 1 >= attempt.questions.length ? 'Xem kết quả phiên' : 'Câu tiếp'}
+              {index + 1 >= attempt.questions.length ? t('student.uiSeeResult') : t('student.uiNextQ')}
             </button>
           </div>
         )}
@@ -217,10 +217,10 @@ export default function StudentPracticePanel({
       <div id={id} className="rounded-xl border bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-gray-900">{attempt.title}</h2>
         <p className="mt-2 text-lg font-bold text-green-700">
-          Phiên ôn: {attempt.score}/{attempt.total} đúng
+          {t('student.uiSessionScore', { score: attempt.score ?? 0, total: attempt.total ?? 0 })}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          AI đã xếp lại lịch từng thẻ. Thẻ yếu sẽ gặp sớm; thẻ chắc sẽ giãn ra (1→3→7→14→30 ngày).
+          {t('student.uiPracticePlan')}
         </p>
         <button
           type="button"
@@ -230,7 +230,7 @@ export default function StudentPracticePanel({
           }}
           className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white"
         >
-          Về danh sách ôn tập
+          {t('student.uiPracticeBack')}
         </button>
       </div>
     )
@@ -238,12 +238,12 @@ export default function StudentPracticePanel({
 
   return (
     <div id={id} className="rounded-xl border bg-white p-5 shadow-sm">
-      <h2 className="font-semibold text-gray-900">Ôn tập ngắt quãng (AI)</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Chỉ ôn thẻ đến hạn. AI chấm mức nhớ từ đáp án và thời gian suy nghĩ, rồi tự tối ưu lần test sau.
+      <h2 className="font-semibold text-gray-900">{t('student.uiPracticeTitle')}</h2>
+      <p className="meta-secondary mt-1 text-sm text-gray-500">
+        {t('student.uiPracticeIntro')}
       </p>
       {sets.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-400">Giáo viên chưa tạo bài luyện tập</p>
+        <p className="mt-4 text-sm text-gray-400">{t('student.uiPracticeEmpty')}</p>
       ) : (
         <ul className="mt-4 divide-y">
           {sets.map((s) => (
@@ -251,17 +251,22 @@ export default function StudentPracticePanel({
               <div>
                 <p className="font-medium text-gray-900">{s.title}</p>
                 <p className="text-xs text-gray-500">
-                  {s.questionCount} câu · đến hạn {s.dueCount ?? 0} · mới {s.newCount ?? 0} · hộp 5:{' '}
-                  {s.masteredCount ?? 0}
-                  {s.myAttempts ? ` · đã ôn ${s.myAttempts} phiên` : ''}
+                  {t('student.uiPracticeMeta', {
+                    count: s.questionCount,
+                    due: s.dueCount ?? 0,
+                    fresh: s.newCount ?? 0,
+                    mastered: s.masteredCount ?? 0,
+                  })}
+                  {s.myAttempts ? ` · ${t('student.uiPracticeAttempts', { count: s.myAttempts })}` : ''}
                 </p>
               </div>
               <button
                 type="button"
+                disabled={(s.dueCount ?? 0) === 0 && (s.newCount ?? 0) === 0}
                 onClick={() => void start(s.id)}
-                className="rounded-lg bg-primary-600 px-3 py-1.5 text-sm text-white"
+                className="rounded-lg bg-primary-600 px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Ôn thẻ đến hạn
+                {(s.dueCount ?? 0) === 0 ? t('student.uiPracticeTitle') : t('student.uiReviewDue')}
               </button>
             </li>
           ))}

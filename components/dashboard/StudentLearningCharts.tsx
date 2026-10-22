@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import type { ClassRoom, Submission, Task } from '@/lib/types'
 import { useI18n } from '@/components/i18n/LanguageProvider'
+import { useContentText } from '@/components/i18n/useContentText'
 
 const STATUS_COLORS: Record<string, string> = {
   not_submitted: '#f59e0b',
@@ -38,6 +39,7 @@ export default function StudentLearningCharts({
   id = 'student-learning-charts',
 }: StudentLearningChartsProps) {
   const { t } = useI18n()
+  const text = useContentText()
   const statusData = useMemo(() => {
     const counts = {
       not_submitted: 0,
@@ -78,15 +80,16 @@ export default function StudentLearningCharts({
           ? graded.reduce((sum, s) => sum + ((s.grade ?? 0) / (s.maxGrade || 10)) * 10, 0) /
             graded.length
           : 0
+      const label = text(c.title)
       return {
-        name: c.title.length > 14 ? `${c.title.slice(0, 14)}…` : c.title,
-        fullName: c.title,
+        name: label.length > 14 ? `${label.slice(0, 14)}…` : label,
+        fullName: label,
         submitted,
         pending: classSubs.filter((s) => s.status === 'not_submitted').length,
         avgScore: Number(avg.toFixed(1)),
       }
     })
-  }, [classes, tasks, submissions])
+  }, [classes, tasks, submissions, text])
 
   const completionRate =
     submissions.length === 0
@@ -111,7 +114,7 @@ export default function StudentLearningCharts({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">{t('charts.studentTitle')}</h2>
-          <p className="text-sm text-gray-500">{t('charts.studentSubtitle')}</p>
+          <p className="meta-secondary text-sm text-gray-500">{t('charts.studentSubtitle')}</p>
         </div>
         <div
           id={`${id}-completion`}
@@ -121,7 +124,7 @@ export default function StudentLearningCharts({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 max-sm:[&>*:nth-child(n+2)]:hidden">
         <div id={`${id}-status`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.submissionStatus')}</h3>
           {statusData.length === 0 ? (

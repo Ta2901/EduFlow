@@ -173,7 +173,7 @@ export default function DashboardShell({
           <div id={`${pid}-header-mobile-titles`} className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-gray-900 sm:text-base">{headerTitle}</p>
             {headerSubtitle && (
-              <p className="truncate text-xs text-gray-500">{headerSubtitle}</p>
+              <p className="hidden truncate text-xs text-gray-500 min-[961px]:block">{headerSubtitle}</p>
             )}
           </div>
           <div id={`${pid}-header-mobile-actions`} className="flex min-w-0 shrink items-center gap-1">
@@ -233,7 +233,9 @@ export default function DashboardShell({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div id={`${pid}-header-desktop-titles`} className="min-w-0">
                 <h1 className="truncate text-xl font-bold text-gray-900 lg:text-2xl">{headerTitle}</h1>
-                {headerSubtitle && <p className="text-sm text-gray-600">{headerSubtitle}</p>}
+                {headerSubtitle && (
+                  <p className="hidden text-sm text-gray-600 min-[961px]:block">{headerSubtitle}</p>
+                )}
               </div>
               <div id={`${pid}-header-desktop-actions`} className="flex shrink-0 items-center gap-2">
                 <RoleUserBadge id={`${pid}-badge-desktop`} roleShort={roleShort} userName={userName} />
