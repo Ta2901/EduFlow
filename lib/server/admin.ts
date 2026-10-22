@@ -400,15 +400,6 @@ export async function getAdminWorkStats(session: SessionPayload) {
     else if (statusKey === 'not_submitted') studentSummary.not_submitted += 1
     else if (statusKey === 'late') studentSummary.late += 1
     else studentSummary.submitted += 1
-    const statusLabel =
-      statusKey === 'graded'
-        ? 'Đã chấm'
-        : statusKey === 'not_submitted'
-          ? 'Chưa nộp'
-          : statusKey === 'late'
-            ? 'Nộp muộn'
-            : 'Đã nộp'
-
     studentItems.push({
       id: sub.id,
       kind: 'student_submission',
@@ -416,12 +407,11 @@ export async function getAdminWorkStats(session: SessionPayload) {
       subtitle: `${classroom.title} · ${sub.student.email}`,
       meta:
         sub.grade != null
-          ? `Điểm ${sub.grade}/${sub.maxGrade ?? 10}`
+          ? `score:${sub.grade}/${sub.maxGrade ?? 10}`
           : sub.submittedAt
-            ? `Nộp: ${sub.submittedAt.toISOString()}`
+            ? `submitted:${sub.submittedAt.toISOString()}`
             : undefined,
       statusKey,
-      statusLabel,
       studentId: sub.studentId,
       classId: classroom.id,
       teacherId: classroom.teacherId,
@@ -448,12 +438,9 @@ export async function getAdminWorkStats(session: SessionPayload) {
       id: `grade-${sub.id}`,
       kind: 'teacher_grading',
       title: `${classroom.teacher.fullName} · ${sub.task.title}`,
-      subtitle: `HS: ${sub.student.fullName} · ${classroom.title}`,
-      meta: isGraded
-        ? `Đã chấm ${sub.grade}/${sub.maxGrade ?? 10}`
-        : 'Chờ chấm điểm',
+      subtitle: `${sub.student.fullName} · ${classroom.title}`,
+      meta: isGraded ? `graded:${sub.grade}/${sub.maxGrade ?? 10}` : 'pending',
       statusKey: isGraded ? 'graded' : 'pending_grade',
-      statusLabel: isGraded ? 'Đã chấm' : 'Chờ chấm',
       teacherId: classroom.teacherId,
       studentId: sub.studentId,
       classId: classroom.id,

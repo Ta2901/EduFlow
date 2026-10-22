@@ -6,7 +6,7 @@ import { Eye, EyeOff, BookOpen, User, Lock, Mail, Phone, School } from 'lucide-r
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import LanguageSwitcher, { VersionBadge } from '@/components/i18n/LanguageSwitcher'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import { useI18n } from '@/components/i18n/LanguageProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -83,13 +83,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <div id="auth-register" className="relative flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 px-4 py-8 sm:px-6">
-      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
-        <div className="flex items-center gap-2">
-          <LanguageSwitcher id="auth-register-language" />
-          <ThemeToggle id="auth-register-theme-toggle" />
-        </div>
+    <div id="auth-register" className="flex min-h-screen w-full flex-col bg-gradient-to-br from-primary-50 to-secondary-50">
+      <div className="flex justify-end gap-2 px-4 pt-4 sm:px-6">
+        <LanguageSwitcher id="auth-register-language" />
+        <ThemeToggle id="auth-register-theme-toggle" />
       </div>
+      <div className="flex flex-1 items-start justify-center px-4 py-8 sm:items-center sm:px-6">
       <div className="w-full max-w-md space-y-6 sm:space-y-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -101,7 +100,6 @@ export default function RegisterPage() {
             <div className="flex items-center">
               <BookOpen className="h-12 w-12 text-primary-600" />
               <span className="ml-2 text-2xl font-bold text-gray-900">EduFlow</span>
-              <VersionBadge className="ml-2" />
             </div>
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">{t('auth.registerTitle')}</h2>
@@ -363,6 +361,7 @@ export default function RegisterPage() {
           </div>
         </motion.form>
         )}
+      </div>
       </div>
     </div>
   )

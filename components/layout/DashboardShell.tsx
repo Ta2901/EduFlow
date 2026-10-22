@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, LogOut, Menu, User, X, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
-import LanguageSwitcher, { VersionBadge } from '@/components/i18n/LanguageSwitcher'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import { useI18n } from '@/components/i18n/LanguageProvider'
 import ChatHeaderButton from '@/components/layout/ChatHeaderButton'
 import NotificationBell from '@/components/notifications/NotificationBell'
@@ -80,7 +80,6 @@ export default function DashboardShell({
         >
           <BookOpen className="h-7 w-7 text-primary-600" />
           <span className="font-bold text-gray-900">EduFlow</span>
-          <VersionBadge className="ml-1.5" />
         </Link>
         <button
           id={`${pid}-sidebar-close`}
@@ -97,7 +96,6 @@ export default function DashboardShell({
         <Link id={`${pid}-logo`} href="/" className="flex items-center gap-2">
           <BookOpen className="h-7 w-7 text-primary-600" />
           <span className="font-bold text-gray-900">EduFlow</span>
-          <VersionBadge className="ml-1.5" />
         </Link>
       </div>
 
@@ -178,7 +176,7 @@ export default function DashboardShell({
               <p className="truncate text-xs text-gray-500">{headerSubtitle}</p>
             )}
           </div>
-          <div id={`${pid}-header-mobile-actions`} className="flex shrink-0 items-center gap-1.5">
+          <div id={`${pid}-header-mobile-actions`} className="flex min-w-0 shrink items-center gap-1">
             <RoleUserBadgeCompact
               id={`${pid}-badge-mobile`}
               roleShort={roleShort}
@@ -192,7 +190,7 @@ export default function DashboardShell({
               />
             )}
             <NotificationBell userId={userId} id={`${pid}-notifications-mobile`} />
-            <LanguageSwitcher id={`${pid}-language-mobile`} />
+            <LanguageSwitcher id={`${pid}-language-mobile`} compact />
             <ThemeToggle id={`${pid}-theme-mobile`} />
           </div>
         </div>

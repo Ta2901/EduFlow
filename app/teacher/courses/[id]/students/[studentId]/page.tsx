@@ -26,18 +26,16 @@ import {
   YAxis,
   Legend,
 } from 'recharts'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import PageHeader from '@/components/layout/PageHeader'
 import { api, ApiError } from '@/lib/api/client'
 import { useAuthStore } from '@/lib/stores/authStore'
 import type { StudentClassProgress } from '@/lib/types'
 import {
   ATTENDANCE_STATUS_COLORS,
-  ATTENDANCE_STATUS_LABELS,
   formatDate,
   formatDateTime,
   SUBMISSION_STATUS_COLORS,
-  SUBMISSION_STATUS_LABELS,
-  WEEKDAY_LABELS,
 } from '@/lib/format'
 
 export default function TeacherStudentProgressPage() {
@@ -45,6 +43,7 @@ export default function TeacherStudentProgressPage() {
   const classId = params.id as string
   const studentId = params.studentId as string
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t, locale } = useI18n()
 
   const [progress, setProgress] = useState<StudentClassProgress | null>(null)
   const [error, setError] = useState('')
@@ -60,7 +59,7 @@ export default function TeacherStudentProgressPage() {
         if (!cancelled) setProgress(data)
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof ApiError ? e.message : 'Không tải được tiến trình')
+          setError(e instanceof ApiError ? e.message : t('charts.loadStatsFailed'))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -70,7 +69,7 @@ export default function TeacherStudentProgressPage() {
     return () => {
       cancelled = true
     }
-  }, [classId, studentId])
+  }, [classId, studentId, t])
 
   if (loading) {
     return (
@@ -86,10 +85,10 @@ export default function TeacherStudentProgressPage() {
         <PageHeader
           id="teacher-student-progress-error-header"
           userId={currentUser.id}
-          title="Tiến trình học sinh"
+          title={t('charts.studentTitle')}
           backHref={`/teacher/courses/${classId}`}
         />
-        <p className="p-8 text-center text-sm text-red-600">{error || 'Không có dữ liệu'}</p>
+        <p className="p-8 text-center text-sm text-red-600">{error || t('common.noData')}</p>
       </div>
     )
   }
@@ -97,15 +96,15 @@ export default function TeacherStudentProgressPage() {
   const { student, classroom, summary, tasks, attendanceHistory } = progress
 
   const submissionPie = [
-    { name: 'Đã nộp', value: summary.submitted, color: '#22c55e' },
-    { name: 'Chưa nộp', value: summary.notSubmitted, color: '#f59e0b' },
-    { name: 'Nộp muộn', value: summary.late, color: '#ef4444' },
+    { name: t('status.submission.submitted'), value: summary.submitted, color: '#22c55e' },
+    { name: t('status.submission.not_submitted'), value: summary.notSubmitted, color: '#f59e0b' },
+    { name: t('status.submission.late'), value: summary.late, color: '#ef4444' },
   ].filter((d) => d.value > 0)
 
   const attendancePie = [
-    { name: 'Có mặt', value: summary.attendance.present, color: '#22c55e' },
-    { name: 'Muộn', value: summary.attendance.late, color: '#f59e0b' },
-    { name: 'Vắng', value: summary.attendance.absent, color: '#ef4444' },
+    { name: t('status.attendance.present'), value: summary.attendance.present, color: '#22c55e' },
+    { name: t('status.attendance.late'), value: summary.attendance.late, color: '#f59e0b' },
+    { name: t('status.attendance.absent'), value: summary.attendance.absent, color: '#ef4444' },
   ].filter((d) => d.value > 0)
 
   const scoreBars = tasks
@@ -123,7 +122,7 @@ export default function TeacherStudentProgressPage() {
         id="teacher-student-progress-header"
         userId={currentUser.id}
         title={student.fullName}
-        subtitle={`${classroom.title} · Tiến trình học tập`}
+        subtitle={`${classroom.title} · ${t('charts.studentTitle')}`}
         backHref={`/teacher/courses/${classId}`}
       />
 
@@ -141,7 +140,7 @@ export default function TeacherStudentProgressPage() {
                   {student.email}
                 </span>
                 {student.memberCode && (
-                  <span className="font-mono text-primary-700">Mã: {student.memberCode}</span>
+                  <span className="font-mono text-primary-700">{t('common.code')}: {student.memberCode}</span>
                 )}
                 {student.phone && (
                   <span className="inline-flex items-center gap-1">
@@ -150,7 +149,7 @@ export default function TeacherStudentProgressPage() {
                   </span>
                 )}
                 {progress.joinedAt && (
-                  <span>Tham gia: {formatDate(progress.joinedAt)}</span>
+                  <span>{t('common.joined')}: {formatDate(progress.joinedAt, locale)}</span>
                 )}
               </div>
             </div>
@@ -160,25 +159,25 @@ export default function TeacherStudentProgressPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             {
-              label: 'Hoàn thành nộp bài',
+              label: t('charts.completionLabel'),
               value: `${summary.completionRate}%`,
               icon: CheckCircle,
               color: 'bg-green-500',
             },
             {
-              label: 'Điểm TB (/10)',
+              label: t('charts.scorePerTen'),
               value: summary.averageScore == null ? '—' : String(summary.averageScore),
               icon: Award,
               color: 'bg-blue-500',
             },
             {
-              label: 'Chưa nộp',
+              label: t('status.submission.not_submitted'),
               value: String(summary.notSubmitted),
               icon: Clock,
               color: 'bg-amber-500',
             },
             {
-              label: 'Chuyên cần',
+              label: t('charts.attendanceTitle'),
               value: `${summary.attendance.presentRate}%`,
               icon: ClipboardList,
               color: 'bg-violet-500',
@@ -196,9 +195,9 @@ export default function TeacherStudentProgressPage() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">Tình trạng nộp bài</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.submissionStatus')}</h3>
             {submissionPie.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">Chưa có bài tập</p>
+              <p className="py-8 text-center text-sm text-gray-400">{t('charts.noTasks')}</p>
             ) : (
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
@@ -225,9 +224,9 @@ export default function TeacherStudentProgressPage() {
           </div>
 
           <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">Chuyên cần</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.attendanceTitle')}</h3>
             {attendancePie.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">Chưa có điểm danh</p>
+              <p className="py-8 text-center text-sm text-gray-400">{t('common.noData')}</p>
             ) : (
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
@@ -254,9 +253,9 @@ export default function TeacherStudentProgressPage() {
           </div>
 
           <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">Điểm theo bài</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">{t('charts.byAssignment')}</h3>
             {scoreBars.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">Chưa có điểm</p>
+              <p className="py-8 text-center text-sm text-gray-400">{t('charts.noScores')}</p>
             ) : (
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
@@ -265,7 +264,7 @@ export default function TeacherStudentProgressPage() {
                     <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                     <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
                     <Tooltip />
-                    <Bar dataKey="score" name="Điểm /10" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="score" name={t('charts.scorePerTen')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -276,19 +275,19 @@ export default function TeacherStudentProgressPage() {
         <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b px-4 py-3">
             <FileText className="h-4 w-4 text-primary-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Bài tập trong lớp</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('charts.tasks')}</h3>
           </div>
           {tasks.length === 0 ? (
-            <p className="p-6 text-sm text-gray-500">Chưa giao bài tập nào.</p>
+            <p className="p-6 text-sm text-gray-500">{t('charts.noAssigned')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-600">
                   <tr>
-                    <th className="px-4 py-2 font-medium">Bài tập</th>
-                    <th className="px-4 py-2 font-medium">Hạn nộp</th>
-                    <th className="px-4 py-2 font-medium">Trạng thái</th>
-                    <th className="px-4 py-2 font-medium">Điểm</th>
+                    <th className="px-4 py-2 font-medium">{t('common.assignment')}</th>
+                    <th className="px-4 py-2 font-medium">{t('common.due')}</th>
+                    <th className="px-4 py-2 font-medium">{t('common.status')}</th>
+                    <th className="px-4 py-2 font-medium">{t('common.grade')}</th>
                     <th className="px-4 py-2 font-medium" />
                   </tr>
                 </thead>
@@ -299,17 +298,17 @@ export default function TeacherStudentProgressPage() {
                       <tr key={task.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium text-gray-900">{task.title}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-600">
-                          {formatDate(task.dueDate)}
+                          {formatDate(task.dueDate, locale)}
                         </td>
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-xs ${SUBMISSION_STATUS_COLORS[status]}`}
                           >
-                            {SUBMISSION_STATUS_LABELS[status]}
+                            {t(`status.submission.${status}`)}
                           </span>
                           {submission?.submittedAt && (
                             <p className="mt-1 text-[10px] text-gray-400">
-                              {formatDateTime(submission.submittedAt)}
+                              {formatDateTime(submission.submittedAt, locale)}
                             </p>
                           )}
                         </td>
@@ -324,7 +323,7 @@ export default function TeacherStudentProgressPage() {
                             href={`/teacher/assignments/${task.id}/submissions`}
                             className="text-xs font-medium text-primary-600 hover:text-primary-700"
                           >
-                            Chấm bài
+                            {t('charts.gradeAction')}
                           </Link>
                         </td>
                       </tr>
@@ -339,30 +338,30 @@ export default function TeacherStudentProgressPage() {
         <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b px-4 py-3">
             <ClipboardList className="h-4 w-4 text-violet-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Lịch sử điểm danh</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('charts.attendanceTitle')}</h3>
           </div>
           {attendanceHistory.length === 0 ? (
-            <p className="p-6 text-sm text-gray-500">Chưa có buổi điểm danh.</p>
+            <p className="p-6 text-sm text-gray-500">{t('common.noData')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-600">
                   <tr>
-                    <th className="px-4 py-2 font-medium">Ngày</th>
-                    <th className="px-4 py-2 font-medium">Môn / tiết</th>
-                    <th className="px-4 py-2 font-medium">Thời gian</th>
-                    <th className="px-4 py-2 font-medium">Trạng thái</th>
+                    <th className="px-4 py-2 font-medium">{t('common.due')}</th>
+                    <th className="px-4 py-2 font-medium">{t('schedule.classOrSubject')}</th>
+                    <th className="px-4 py-2 font-medium">{t('common.period')}</th>
+                    <th className="px-4 py-2 font-medium">{t('common.status')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {attendanceHistory.map((row) => (
                     <tr key={row.id}>
-                      <td className="px-4 py-2.5 whitespace-nowrap">{row.sessionDate}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{formatDate(row.sessionDate, locale)}</td>
                       <td className="px-4 py-2.5">
                         {row.subject}
                         <span className="text-gray-500">
                           {' '}
-                          · {WEEKDAY_LABELS[row.dayOfWeek]} · Tiết {row.period}
+                          · {t(`weekday.${row.dayOfWeek}`)} · {t('common.periodN', { n: row.period })}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap text-gray-600">
@@ -372,7 +371,7 @@ export default function TeacherStudentProgressPage() {
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs ${ATTENDANCE_STATUS_COLORS[row.status]}`}
                         >
-                          {ATTENDANCE_STATUS_LABELS[row.status]}
+                          {t(`status.attendance.${row.status}`)}
                         </span>
                       </td>
                     </tr>

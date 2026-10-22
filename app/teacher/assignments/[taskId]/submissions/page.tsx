@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
@@ -21,13 +22,13 @@ import {
   formatDateTime,
   formatFileSize,
   SUBMISSION_STATUS_COLORS,
-  SUBMISSION_STATUS_LABELS,
 } from '@/lib/format'
 
 export default function SubmissionTrackingPage() {
   const params = useParams()
   const taskId = params.taskId as string
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t, locale } = useI18n()
 
   const getTaskById = useEduStore((s) => s.getTaskById)
   const getClassById = useEduStore((s) => s.getClassById)
@@ -51,7 +52,7 @@ export default function SubmissionTrackingPage() {
   if (!task) {
     return (
       <div id="teacher-submissions-not-found" className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Không tìm thấy bài tập</p>
+        <p className="text-gray-600">{t('common.notFound')}</p>
       </div>
     )
   }
@@ -64,7 +65,7 @@ export default function SubmissionTrackingPage() {
         id="teacher-submissions-header"
         userId={currentUser.id}
         title={task.title}
-        subtitle={`${classroom?.title ?? ''} · Hạn: ${formatDate(task.dueDate)}`}
+        subtitle={`${classroom?.title ?? ''} · ${t('common.due')}: ${formatDate(task.dueDate, locale)}`}
         backHref={`/teacher/courses/${task.classId}`}
       />
 
@@ -73,25 +74,25 @@ export default function SubmissionTrackingPage() {
         <div id="teacher-submissions-stats" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-xl border shadow-sm">
             <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
-              <Users className="h-4 w-4" /> Tổng học sinh
+              <Users className="h-4 w-4" /> {t('charts.students')}
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
           <div className="bg-white p-4 rounded-xl border shadow-sm">
             <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
-              <CheckCircle className="h-4 w-4" /> Đã nộp
+              <CheckCircle className="h-4 w-4" /> {t('status.submission.submitted')}
             </div>
             <p className="text-2xl font-bold text-green-700">{stats.submitted}</p>
           </div>
           <div className="bg-white p-4 rounded-xl border shadow-sm">
             <div className="flex items-center gap-2 text-orange-600 text-sm mb-1">
-              <Clock className="h-4 w-4" /> Nộp muộn
+              <Clock className="h-4 w-4" /> {t('status.submission.late')}
             </div>
             <p className="text-2xl font-bold text-orange-700">{stats.late}</p>
           </div>
           <div className="bg-white p-4 rounded-xl border shadow-sm">
             <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <AlertCircle className="h-4 w-4" /> Chưa nộp
+              <AlertCircle className="h-4 w-4" /> {t('status.submission.not_submitted')}
             </div>
             <p className="text-2xl font-bold text-gray-700">{notSubmitted}</p>
           </div>
@@ -99,12 +100,12 @@ export default function SubmissionTrackingPage() {
 
         {/* Task details */}
         <div className="bg-white rounded-xl border shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Chi tiết bài tập</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('common.details')}</h2>
           <p className="text-gray-600 text-sm whitespace-pre-wrap">{task.description || '—'}</p>
           {task.attachments.length > 0 && (
             <div className="mt-4">
               <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <Paperclip className="h-4 w-4" /> Tệp đính kèm
+                <Paperclip className="h-4 w-4" /> {t('common.attachments', { count: task.attachments.length })}
               </p>
               <ul className="space-y-2">
                 {task.attachments.map((att) => (
@@ -130,9 +131,9 @@ export default function SubmissionTrackingPage() {
         {/* Submissions table */}
         <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
           <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">Trạng thái nộp bài</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('charts.submissionStatus')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              {stats.submitted}/{stats.total} học sinh đã nộp
+              {t('common.submittedOf', { submitted: stats.submitted, total: stats.total })}
             </p>
           </div>
 
@@ -141,16 +142,16 @@ export default function SubmissionTrackingPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Học sinh
+                    {t('role.student')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Trạng thái
+                    {t('common.status')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Thời gian nộp
+                    {t('charts.submitted')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Điểm / Nhận xét
+                    {t('common.grade')}
                   </th>
                 </tr>
               </thead>
@@ -189,11 +190,11 @@ export default function SubmissionTrackingPage() {
                             SUBMISSION_STATUS_COLORS[sub.status]
                           }`}
                         >
-                          {SUBMISSION_STATUS_LABELS[sub.status]}
+                          {t(`status.submission.${sub.status}`)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {sub.submittedAt ? formatDateTime(sub.submittedAt) : '—'}
+                        {sub.submittedAt ? formatDateTime(sub.submittedAt, locale) : '—'}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {sub.grade != null ? (
@@ -215,7 +216,7 @@ export default function SubmissionTrackingPage() {
                             }}
                             className="text-primary-600 hover:text-primary-700 text-xs font-medium"
                           >
-                            Chấm điểm
+                            {t('charts.gradeAction')}
                           </button>
                         ) : (
                           '—'
@@ -323,7 +324,7 @@ export default function SubmissionTrackingPage() {
 
             {sortedSubmissions.length === 0 && (
               <p className="p-8 text-center text-gray-500 text-sm">
-                Chưa có học sinh trong lớp. Học sinh sẽ xuất hiện khi tham gia bằng mã lớp.
+                {t('charts.noStudents')}
               </p>
             )}
           </div>

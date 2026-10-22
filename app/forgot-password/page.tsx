@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Eye, EyeOff, KeyRound, Mail, Phone, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
-import LanguageSwitcher, { VersionBadge } from '@/components/i18n/LanguageSwitcher'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import { useI18n } from '@/components/i18n/LanguageProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { api, ApiError } from '@/lib/api/client'
@@ -85,20 +85,17 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div id="auth-forgot" className="relative flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 px-4 py-8 sm:px-6">
-      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
-        <div className="flex items-center gap-2">
-          <LanguageSwitcher id="auth-forgot-language" />
-          <ThemeToggle id="auth-forgot-theme-toggle" />
-        </div>
+    <div id="auth-forgot" className="flex min-h-screen w-full flex-col bg-gradient-to-br from-primary-50 to-secondary-50">
+      <div className="flex justify-end gap-2 px-4 pt-4 sm:px-6">
+        <LanguageSwitcher id="auth-forgot-language" />
+        <ThemeToggle id="auth-forgot-theme-toggle" />
       </div>
-
+      <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Link id="auth-forgot-logo" href="/" className="inline-flex items-center justify-center">
             <BookOpen className="h-10 w-10 text-primary-600" />
             <span className="ml-2 text-2xl font-bold text-gray-900">EduFlow</span>
-            <VersionBadge className="ml-2" />
           </Link>
           <h1 className="mt-4 text-2xl font-bold text-gray-900">{t('auth.forgotTitle')}</h1>
           <p className="mt-2 text-sm text-gray-600">{t('auth.forgotSubtitle')}</p>
@@ -280,6 +277,7 @@ export default function ForgotPasswordPage() {
             {t('common.login')}
           </Link>
         </p>
+      </div>
       </div>
     </div>
   )

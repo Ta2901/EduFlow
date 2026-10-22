@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import PageHeader from '@/components/layout/PageHeader'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -23,12 +24,12 @@ import {
   formatDateTime,
   formatFileSize,
   SUBMISSION_STATUS_COLORS,
-  SUBMISSION_STATUS_LABELS,
 } from '@/lib/format'
 export default function StudentAssignmentPage() {
   const params = useParams()
   const taskId = params.id as string
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t, locale } = useI18n()
   const getTaskById = useEduStore((s) => s.getTaskById)
   const getClassById = useEduStore((s) => s.getClassById)
   const getStudentSubmission = useEduStore((s) => s.getStudentSubmission)
@@ -45,7 +46,7 @@ export default function StudentAssignmentPage() {
   if (!task) {
     return (
       <div id="student-assignment-not-found" className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Không tìm thấy bài tập</p>
+        <p className="text-gray-600">{t('common.notFound')}</p>
       </div>
     )
   }
@@ -95,7 +96,7 @@ export default function StudentAssignmentPage() {
         backHref={classroom ? `/student/courses/${classroom.id}` : '/student/dashboard'}
         action={
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${SUBMISSION_STATUS_COLORS[submission.status]}`}>
-            {SUBMISSION_STATUS_LABELS[submission.status]}
+            {t(`status.submission.${submission.status}`)}
           </span>
         }
       />
@@ -103,16 +104,16 @@ export default function StudentAssignmentPage() {
       <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
         {/* F-05: Assignment details */}
         <div className="bg-white rounded-xl border p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Chi tiết bài tập</h2>
+          <h2 className="font-semibold text-gray-900">{t('common.details')}</h2>
           <p className="text-gray-600 whitespace-pre-wrap">{task.description || '—'}</p>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Clock className="h-4 w-4" />
-            Hạn nộp: <strong>{formatDate(task.dueDate)}</strong>
+            {t('common.due')}: <strong>{formatDate(task.dueDate, locale)}</strong>
           </div>
           {task.attachments.length > 0 && (
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <Paperclip className="h-4 w-4" /> Tệp từ giáo viên
+                <Paperclip className="h-4 w-4" /> {t('common.attachments', { count: task.attachments.length })}
               </p>
               <ul className="space-y-1">
                 {task.attachments.map((att) => (
@@ -137,21 +138,21 @@ export default function StudentAssignmentPage() {
           <div className="bg-white rounded-xl border p-6">
             <h2 className="font-semibold mb-3 flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              Trạng thái nộp bài
+              {t('charts.submissionStatus')}
             </h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Trạng thái</dt>
+                <dt className="text-gray-500">{t('common.status')}</dt>
                 <dd>
                   <span className={`px-2 py-0.5 rounded-full text-xs ${SUBMISSION_STATUS_COLORS[submission.status]}`}>
-                    {SUBMISSION_STATUS_LABELS[submission.status]}
+                    {t(`status.submission.${submission.status}`)}
                   </span>
                 </dd>
               </div>
               {submission.submittedAt && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Thời gian nộp</dt>
-                  <dd className="text-gray-900">{formatDateTime(submission.submittedAt)}</dd>
+                  <dt className="text-gray-500">{t('charts.submitted')}</dt>
+                  <dd className="text-gray-900">{formatDateTime(submission.submittedAt, locale)}</dd>
                 </div>
               )}
             </dl>
@@ -189,7 +190,7 @@ export default function StudentAssignmentPage() {
           >
             <h2 className="font-semibold text-green-900 mb-4 flex items-center gap-2">
               <Award className="h-5 w-5" />
-              Điểm & nhận xét từ giáo viên
+              {t('status.notification.feedback')}
             </h2>
             <div className="flex items-baseline gap-2 mb-4">
               <span className="text-4xl font-bold text-green-700">{submission.grade}</span>
@@ -204,7 +205,7 @@ export default function StudentAssignmentPage() {
               </div>
             )}
             {submission.gradedAt && (
-              <p className="text-xs text-green-700 mt-3">Chấm lúc: {formatDateTime(submission.gradedAt)}</p>
+              <p className="text-xs text-green-700 mt-3">{t('charts.graded')}: {formatDateTime(submission.gradedAt, locale)}</p>
             )}
           </motion.div>
         )}
@@ -218,7 +219,7 @@ export default function StudentAssignmentPage() {
         {/* Submit form */}
         {canSubmit && (
           <form id="student-assignment-submit-form" onSubmit={handleSubmit} className="bg-white rounded-xl border p-6 space-y-4">
-            <h2 className="font-semibold">Nộp bài tập</h2>
+            <h2 className="font-semibold">{t('nav.submissions')}</h2>
             <div>
               <label htmlFor="student-assignment-content" className="block text-sm font-medium text-gray-700 mb-2">
                 Nội dung bài làm
@@ -233,7 +234,7 @@ export default function StudentAssignmentPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tệp đính kèm</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('common.attachments', { count: pendingFiles.length })}</label>
               <label className="flex items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
                 <Upload className="h-6 w-6 text-gray-400 mr-2" />
                 <span className="text-sm text-gray-600">Chọn tệp nộp bài</span>

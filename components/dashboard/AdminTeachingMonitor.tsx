@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, Star } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 
 interface AdminTeachingMonitorProps {
@@ -10,6 +11,7 @@ interface AdminTeachingMonitorProps {
 }
 
 export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: AdminTeachingMonitorProps) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<
     Awaited<ReturnType<typeof api.admin.teachingProgress>>['progress'] | null
@@ -26,11 +28,11 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
       setProgress(p.progress)
       setOverview(e.overview)
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Không tải được giám sát giảng dạy')
+      toast.error(err instanceof ApiError ? err.message : t('charts.loadStatsFailed'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void load()
@@ -40,10 +42,10 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
     setReminding(classId)
     try {
       const res = await api.admin.remindTeacher({ teacherId, classId })
-      toast.success(`Đã nhắc GV lớp 「${title}」`)
+      toast.success(t('charts.reminded', { title }))
       void res
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Không gửi được nhắc nhở')
+      toast.error(e instanceof ApiError ? e.message : t('charts.remindFailed'))
     } finally {
       setReminding(null)
     }
@@ -52,7 +54,7 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
   if (loading) {
     return (
       <div id={id} className="rounded-xl border bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
-        Đang tải giám sát tiến độ giảng dạy…
+        {t('charts.loadingStats')}
       </div>
     )
   }
@@ -62,18 +64,16 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
   return (
     <div id={id} className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Tiến độ giảng dạy & đánh giá</h2>
-        <p className="text-sm text-slate-500">
-          Theo dõi kế hoạch GV, nhắc nhở khi chậm — xem điểm đánh giá từ học sinh
-        </p>
+        <h2 className="text-lg font-semibold text-slate-900">{t('charts.monitorTitle')}</h2>
+        <p className="text-sm text-slate-500">{t('charts.teacherSubtitle')}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
         {[
-          { label: 'Lớp đang mở', value: progress.summary.classes },
-          { label: 'Có kế hoạch', value: progress.summary.withPlan },
-          { label: 'Chậm tiến độ', value: progress.summary.behind, warn: true },
-          { label: 'Chưa có kế hoạch', value: progress.summary.noPlan },
+          { label: t('charts.openClasses'), value: progress.summary.classes },
+          { label: t('charts.withPlan'), value: progress.summary.withPlan },
+          { label: t('charts.behind'), value: progress.summary.behind, warn: true },
+          { label: t('charts.noPlan'), value: progress.summary.noPlan },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-white p-4 shadow-sm">
             <p className="text-sm text-slate-500">{s.label}</p>
@@ -86,11 +86,11 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
 
       <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
         <div className="border-b px-4 py-3">
-          <h3 className="text-sm font-semibold text-slate-800">Kế hoạch theo lớp</h3>
+          <h3 className="text-sm font-semibold text-slate-800">{t('charts.planByClass')}</h3>
         </div>
         <div className="divide-y">
           {progress.classes.length === 0 ? (
-            <p className="p-6 text-center text-sm text-slate-400">Chưa có lớp</p>
+            <p className="p-6 text-center text-sm text-slate-400">{t('charts.noClasses')}</p>
           ) : (
             progress.classes.map((c) => (
               <div
@@ -101,18 +101,23 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
                 <div className="min-w-0">
                   <p className="font-medium text-slate-900">{c.title}</p>
                   <p className="text-xs text-slate-500">
-                    GV: {c.teacherName} · {c.teacherEmail}
+                    {t('charts.teacherPrefixLine', { name: c.teacherName })} · {c.teacherEmail}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
                     {!c.hasPlan
-                      ? 'Chưa lập kế hoạch'
-                      : `Tiến độ ${c.progressRate}% · ${c.done}/${c.total} buổi · chậm ${c.overdue}`}
+                      ? t('charts.noPlanYet')
+                      : t('charts.progressLine', {
+                          rate: c.progressRate,
+                          done: c.done,
+                          total: c.total,
+                          overdue: c.overdue,
+                        })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {c.hasPlan && c.behind && (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                      Chậm kế hoạch
+                      {t('charts.behindBadge')}
                     </span>
                   )}
                   {(c.behind || !c.hasPlan) && (
@@ -123,7 +128,7 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
                       className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
                     >
                       <Bell className="h-3.5 w-3.5" />
-                      Nhắc GV
+                      {t('charts.remind')}
                     </button>
                   )}
                 </div>
@@ -137,10 +142,10 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
             <div className="border-b px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Đánh giá sau buổi học</h3>
+              <h3 className="text-sm font-semibold text-slate-800">{t('status.notification.session_eval')}</h3>
             </div>
             {overview.sessionEvals.length === 0 ? (
-              <p className="p-6 text-center text-sm text-slate-400">Chưa có dữ liệu</p>
+              <p className="p-6 text-center text-sm text-slate-400">{t('common.noData')}</p>
             ) : (
               <div className="divide-y">
                 {overview.sessionEvals.map((s) => (
@@ -162,17 +167,17 @@ export default function AdminTeachingMonitor({ id = 'admin-teaching-monitor' }: 
 
           <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
             <div className="border-b px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Đánh giá giữa kỳ / cuối kỳ</h3>
+              <h3 className="text-sm font-semibold text-slate-800">{t('status.notification.course_eval')}</h3>
             </div>
             {overview.courseEvals.length === 0 ? (
-              <p className="p-6 text-center text-sm text-slate-400">Chưa mở đợt nào</p>
+              <p className="p-6 text-center text-sm text-slate-400">{t('charts.noRounds')}</p>
             ) : (
               <div className="divide-y">
                 {overview.courseEvals.map((e) => (
                   <div key={e.id} className="flex items-center justify-between px-4 py-3">
                     <div>
                       <p className="text-sm font-medium text-slate-900">
-                        {e.title} · {e.kind === 'midterm' ? 'Giữa kỳ' : 'Cuối kỳ'}
+                        {e.title} · {e.kind === 'midterm' ? t('charts.midterm') : t('charts.finalTerm')}
                       </p>
                       <p className="text-xs text-slate-500">
                         {e.teacherName} · {e.responseCount}/{e.enrollmentCount} · {e.status}

@@ -33,6 +33,22 @@ html.dark {
   color-scheme: dark;
 }
 
+html.locale-pending body {
+  visibility: hidden;
+}
+
+html[data-locale='th'] {
+  line-height: 1.75;
+}
+
+html[data-locale='ko'],
+html[data-locale='ja'],
+html[data-locale='zh-Hans'],
+html[data-locale='zh-Hant'],
+html[data-locale='lzh'] {
+  line-height: 1.65;
+}
+
 body {
   width: 100%;
   max-width: 100%;

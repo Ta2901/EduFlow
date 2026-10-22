@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Calendar, Clock, MapPin, Plus, Trash2, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 import type { AttendanceStatus, ClassStudent, ScheduleSlot } from '@/lib/types'
 import {
   ATTENDANCE_STATUS_COLORS,
-  ATTENDANCE_STATUS_LABELS,
   toSchoolDayOfWeek,
   todayDateInputValue,
-  WEEKDAY_LABELS,
 } from '@/lib/format'
 
 interface ClassSchedulePanelProps {
@@ -36,6 +35,7 @@ export default function ClassSchedulePanel({
   currentStudentId,
   id = 'class-schedule',
 }: ClassSchedulePanelProps) {
+  const { t } = useI18n()
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
@@ -72,11 +72,11 @@ export default function ClassSchedulePanel({
       const { slots: data } = await api.edu.listSchedule(classId)
       setSlots(data)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Không tải được thời khóa biểu')
+      toast.error(e instanceof ApiError ? e.message : t('charts.loadStatsFailed'))
     } finally {
       setLoading(false)
     }
-  }, [classId])
+  }, [classId, t])
 
   const loadAttendance = useCallback(
     async (slotId: string, date: string) => {
@@ -204,7 +204,7 @@ export default function ClassSchedulePanel({
   if (loading) {
     return (
       <p id={id} className="py-8 text-center text-sm text-gray-500">
-        Đang tải thời khóa biểu...
+        {t('schedule.loading')}
       </p>
     )
   }
@@ -213,12 +213,8 @@ export default function ClassSchedulePanel({
     <div id={id} className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Thời khóa biểu</h3>
-          <p className="text-sm text-gray-500">
-            {isTeacher
-              ? 'Thiết lập tiết học và điểm danh theo ngày'
-              : 'Xem lịch học và kết quả điểm danh của bạn'}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-900">{t('schedule.timetable')}</h3>
+          <p className="text-sm text-gray-500">{t('schedule.subtitle')}</p>
         </div>
         {isTeacher && (
           <button
@@ -228,7 +224,7 @@ export default function ClassSchedulePanel({
             className="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Thêm tiết
+            {t('common.period')}
           </button>
         )}
       </div>
@@ -239,10 +235,10 @@ export default function ClassSchedulePanel({
           onSubmit={handleAddSlot}
           className="rounded-lg border border-primary-100 bg-primary-50/40 p-4"
         >
-          <p className="mb-3 text-sm font-medium text-gray-900">Thêm tiết học mới</p>
+          <p className="mb-3 text-sm font-medium text-gray-900">{t('common.period')}</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block text-sm">
-              <span className="text-gray-600">Thứ</span>
+              <span className="text-gray-600">{t('common.day')}</span>
               <select
                 id={`${id}-day`}
                 className="mt-1 w-full rounded-lg border px-3 py-2"
@@ -251,13 +247,13 @@ export default function ClassSchedulePanel({
               >
                 {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                   <option key={d} value={d}>
-                    {WEEKDAY_LABELS[d]}
+                    {t(`weekday.${d}`)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm">
-              <span className="text-gray-600">Tiết</span>
+              <span className="text-gray-600">{t('common.period')}</span>
               <select
                 id={`${id}-period`}
                 className="mt-1 w-full rounded-lg border px-3 py-2"
@@ -266,13 +262,13 @@ export default function ClassSchedulePanel({
               >
                 {PERIOD_PRESETS.map((p) => (
                   <option key={p.period} value={p.period}>
-                    Tiết {p.period}
+                    {t('common.periodN', { n: p.period })}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm sm:col-span-2 lg:col-span-1">
-              <span className="text-gray-600">Môn học</span>
+              <span className="text-gray-600">{t('common.subject')}</span>
               <input
                 id={`${id}-subject`}
                 required
@@ -337,22 +333,22 @@ export default function ClassSchedulePanel({
 
       {slots.length === 0 ? (
         <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-500">
-          {isTeacher ? 'Chưa có tiết học. Nhấn "Thêm tiết" để tạo thời khóa biểu.' : 'Giáo viên chưa cập nhật thời khóa biểu.'}
+          {t('schedule.empty')}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border px-2 py-2 text-left font-medium text-gray-600">Thứ</th>
-                <th className="border px-2 py-2 text-left font-medium text-gray-600">Tiết học</th>
+                <th className="border px-2 py-2 text-left font-medium text-gray-600">{t('common.day')}</th>
+                <th className="border px-2 py-2 text-left font-medium text-gray-600">{t('common.period')}</th>
               </tr>
             </thead>
             <tbody>
               {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                 <tr key={day}>
                   <td className="border px-2 py-2 align-top font-medium text-gray-800 whitespace-nowrap">
-                    {WEEKDAY_LABELS[day]}
+                    {t(`weekday.${day}`)}
                   </td>
                   <td className="border px-2 py-2">
                     {slotsByDay[day].length === 0 ? (
@@ -370,7 +366,7 @@ export default function ClassSchedulePanel({
                             }`}
                           >
                             <p className="font-medium text-gray-900">
-                              Tiết {slot.period}: {slot.subject}
+                              {t('common.periodN', { n: slot.period })}: {slot.subject}
                             </p>
                             <p className="mt-0.5 flex items-center text-xs text-gray-500">
                               <Clock className="mr-1 h-3 w-3" />
@@ -391,7 +387,7 @@ export default function ClassSchedulePanel({
                                     onClick={() => setSelectedSlotId(slot.id)}
                                     className="rounded bg-primary-600 px-2 py-0.5 text-xs text-white hover:bg-primary-700"
                                   >
-                                    Điểm danh
+                                    {t('charts.attendanceTitle')}
                                   </button>
                                   <button
                                     id={`${id}-slot-${slot.id}-delete`}
@@ -431,10 +427,10 @@ export default function ClassSchedulePanel({
               />
             </label>
             <div className="text-sm text-gray-600">
-              <Calendar className="mb-1 inline h-4 w-4" /> Tiết trong ngày:{' '}
+              <Calendar className="mb-1 inline h-4 w-4" /> {t('common.today')}:{' '}
               {todaySlots.length > 0
-                ? todaySlots.map((s) => `Tiết ${s.period}`).join(', ')
-                : 'Không có tiết theo TKB'}
+                ? todaySlots.map((s) => t('common.periodN', { n: s.period })).join(', ')
+                : t('schedule.empty')}
             </div>
           </div>
 
@@ -452,7 +448,7 @@ export default function ClassSchedulePanel({
                       : 'bg-white hover:bg-gray-100'
                   }`}
                 >
-                  Tiết {s.period} — {s.subject}
+                  {t('common.periodN', { n: s.period })} — {s.subject}
                 </button>
               ))}
             </div>
@@ -464,10 +460,10 @@ export default function ClassSchedulePanel({
                 <div>
                   <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                     <UserCheck className="h-5 w-5 text-primary-600" />
-                    Điểm danh: {selectedSlot.subject} (Tiết {selectedSlot.period})
+                    {t('charts.attendanceTitle')}: {selectedSlot.subject} ({t('common.periodN', { n: selectedSlot.period })})
                   </h4>
                   <p className="text-xs text-gray-500">
-                    {WEEKDAY_LABELS[selectedSlot.dayOfWeek]} · {sessionDate} · {selectedSlot.startTime}–
+                    {t(`weekday.${selectedSlot.dayOfWeek}`)} · {sessionDate} · {selectedSlot.startTime}–
                     {selectedSlot.endTime}
                   </p>
                 </div>
@@ -478,7 +474,7 @@ export default function ClassSchedulePanel({
                     onClick={() => markAll('present')}
                     className="rounded border border-green-300 bg-green-50 px-2 py-1 text-xs text-green-800"
                   >
-                    Tất cả có mặt
+                    {t('status.attendance.present')}
                   </button>
                   <button
                     id={`${id}-mark-all-absent`}
@@ -486,13 +482,13 @@ export default function ClassSchedulePanel({
                     onClick={() => markAll('absent')}
                     className="rounded border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-800"
                   >
-                    Tất cả vắng
+                    {t('status.attendance.absent')}
                   </button>
                 </div>
               </div>
 
               {students.length === 0 ? (
-                <p className="text-sm text-gray-500">Chưa có học sinh trong lớp.</p>
+                <p className="text-sm text-gray-500">{t('charts.noStudents')}</p>
               ) : (
                 <ul className="space-y-2">
                   {students.map((student) => {
@@ -520,7 +516,7 @@ export default function ClassSchedulePanel({
                                   : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                               }`}
                             >
-                              {ATTENDANCE_STATUS_LABELS[st]}
+                              {t(`status.attendance.${st}`)}
                             </button>
                           ))}
                         </div>
@@ -537,7 +533,7 @@ export default function ClassSchedulePanel({
                 onClick={handleSaveAttendance}
                 className="mt-4 w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 sm:w-auto sm:px-8"
               >
-                {saving ? 'Đang lưu...' : 'Lưu điểm danh'}
+                {saving ? t('common.saving') : t('charts.attendanceTitle')}
               </button>
             </div>
           )}
@@ -550,7 +546,7 @@ export default function ClassSchedulePanel({
 
       {!isTeacher && studentHistory.length > 0 && (
         <div id={`${id}-history`} className="rounded-xl border bg-white p-4">
-          <h4 className="mb-3 font-semibold text-gray-900">Lịch sử điểm danh của bạn</h4>
+          <h4 className="mb-3 font-semibold text-gray-900">{t('charts.attendanceTitle')}</h4>
           <ul className="divide-y">
             {studentHistory.slice(0, 20).map((h) => (
               <li
@@ -560,14 +556,14 @@ export default function ClassSchedulePanel({
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {h.subject} — Tiết {h.period}
+                    {h.subject} — {t('common.periodN', { n: h.period })}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {WEEKDAY_LABELS[h.dayOfWeek]} · {h.sessionDate} · {h.startTime}–{h.endTime}
+                    {t(`weekday.${h.dayOfWeek}`)} · {h.sessionDate} · {h.startTime}–{h.endTime}
                   </p>
                 </div>
                 <span className={`rounded-full border px-2 py-0.5 text-xs ${ATTENDANCE_STATUS_COLORS[h.status]}`}>
-                  {ATTENDANCE_STATUS_LABELS[h.status]}
+                  {t(`status.attendance.${h.status}`)}
                 </span>
               </li>
             ))}

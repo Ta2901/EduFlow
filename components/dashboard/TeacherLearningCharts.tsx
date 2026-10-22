@@ -94,7 +94,7 @@ export default function TeacherLearningCharts({
         id={id}
         className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-gray-500"
       >
-        Chưa có lớp để thống kê. Tạo lớp và giao bài để xem biểu đồ.
+        {t('teacher.noClasses')}
       </div>
     )
   }

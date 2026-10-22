@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { BookOpen, Users, Award, Smartphone, Monitor, Globe, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import LanguageSwitcher, { VersionBadge } from '@/components/i18n/LanguageSwitcher'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import { useI18n } from '@/components/i18n/LanguageProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -66,13 +66,12 @@ export default function HomePage() {
     <div id="landing" className="min-h-screen w-full max-w-[100vw] overflow-x-clip bg-gradient-to-br from-primary-50 to-secondary-50">
       <header id="landing-header" className="sticky top-0 z-30 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-14 items-center justify-between sm:h-16">
+          <div className="flex min-h-14 items-center justify-between gap-3 py-2 sm:min-h-16">
             <Link id="landing-logo" href="/" className="flex items-center">
               <BookOpen className="h-7 w-7 text-primary-600 sm:h-8 sm:w-8" />
               <span className="ml-2 text-lg font-bold text-gray-900 sm:text-xl">EduFlow</span>
-              <VersionBadge className="ml-2" />
             </Link>
-            <nav id="landing-nav" className="hidden items-center gap-6 md:flex">
+            <nav id="landing-nav" className="hidden max-w-[75%] flex-wrap items-center justify-end gap-x-4 gap-y-2 md:flex">
               <a id="landing-nav-features" href="#features" className="text-sm text-gray-600 hover:text-primary-600">{t('nav.features')}</a>
               <a id="landing-nav-responsive" href="#responsive" className="text-sm text-gray-600 hover:text-primary-600">{t('nav.responsive')}</a>
               {!isReady ? (
@@ -128,7 +127,7 @@ export default function HomePage() {
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
-              <LanguageSwitcher id="landing-language-mobile" />
+              <LanguageSwitcher id="landing-language-mobile" compact />
               <ThemeToggle id="landing-theme-toggle-mobile" />
             </div>
           </div>
@@ -197,11 +196,11 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:mb-6 sm:text-4xl md:text-5xl lg:text-6xl">
+            <h1 className="mb-4 text-balance break-words text-3xl font-bold text-gray-900 sm:mb-6 sm:text-4xl md:text-5xl lg:text-6xl">
               {t('landing.heroTitle')}
               <span className="text-primary-600"> {t('landing.heroAccent')}</span>
             </h1>
-            <p className="mx-auto mb-6 max-w-3xl text-base text-gray-600 sm:mb-8 sm:text-lg md:text-xl">
+            <p className="mx-auto mb-6 max-w-3xl text-balance text-base text-gray-600 sm:mb-8 sm:text-lg md:text-xl">
               {t('landing.heroBody')}
             </p>
           </motion.div>

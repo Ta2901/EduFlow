@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { Paperclip } from 'lucide-react'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
-import { formatDate, SUBMISSION_STATUS_COLORS, SUBMISSION_STATUS_LABELS } from '@/lib/format'
+import { formatDate, SUBMISSION_STATUS_COLORS } from '@/lib/format'
 import ClassSchedulePanel from '@/components/class/ClassSchedulePanel'
 import OnlineSessionPanel from '@/components/online/OnlineSessionPanel'
 import StudentEvalPanel from '@/components/class/StudentEvalPanel'
@@ -17,6 +18,7 @@ export default function StudentCoursePage() {
   const searchParams = useSearchParams()
   const courseId = params.id as string
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t, locale } = useI18n()
   const getClassById = useEduStore((s) => s.getClassById)
   const getTasksByClass = useEduStore((s) => s.getTasksByClass)
   const getStudentSubmission = useEduStore((s) => s.getStudentSubmission)
@@ -31,7 +33,7 @@ export default function StudentCoursePage() {
   if (!classroom) {
     return (
       <div id="student-course-not-found" className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600">
-        Không tìm thấy lớp học
+        {t('common.notFound')}
       </div>
     )
   }
@@ -42,7 +44,7 @@ export default function StudentCoursePage() {
         id="student-course-header"
         userId={currentUser.id}
         title={classroom.title}
-        subtitle={`Mã lớp: ${classroom.classCode}`}
+        subtitle={`${t('common.classCode')}: ${classroom.classCode}`}
         backHref="/student/dashboard"
       />
 
@@ -78,10 +80,10 @@ export default function StudentCoursePage() {
 
         <div id="student-course-assignments" className="overflow-hidden rounded-xl border bg-white shadow-sm">
           <div className="border-b px-5 py-4">
-            <h2 className="font-semibold text-gray-900">Bài tập ({tasks.length})</h2>
+            <h2 className="font-semibold text-gray-900">{t('common.assignment')} ({tasks.length})</h2>
           </div>
           {tasks.length === 0 ? (
-            <p className="p-8 text-center text-sm text-gray-500">Giáo viên chưa giao bài tập</p>
+            <p className="p-8 text-center text-sm text-gray-500">{t('charts.noAssigned')}</p>
           ) : (
             <div className="divide-y">
               {tasks.map((task) => {
@@ -97,23 +99,23 @@ export default function StudentCoursePage() {
                       <div className="min-w-0">
                         <h3 className="font-medium text-gray-900">{task.title}</h3>
                         <p className="mt-1 line-clamp-2 text-sm text-gray-500">{task.description}</p>
-                        <p className="mt-2 text-xs text-gray-400">Hạn: {formatDate(task.dueDate)}</p>
+                        <p className="mt-2 text-xs text-gray-400">{t('common.due')}: {formatDate(task.dueDate, locale)}</p>
                         {task.attachments.length > 0 && (
                           <p className="mt-1 flex items-center text-xs text-primary-600">
                             <Paperclip className="mr-1 h-3 w-3" />
-                            {task.attachments.length} tệp từ GV
+                            {t('common.attachments', { count: task.attachments.length })}
                           </p>
                         )}
                       </div>
                       {sub && (
                         <span className={`shrink-0 rounded-full px-2 py-1 text-xs ${SUBMISSION_STATUS_COLORS[sub.status]}`}>
-                          {SUBMISSION_STATUS_LABELS[sub.status]}
+                          {t(`status.submission.${sub.status}`)}
                         </span>
                       )}
                     </div>
                     {sub?.grade != null && (
                       <p className="mt-2 text-sm font-medium text-green-700">
-                        Điểm: {sub.grade}/{sub.maxGrade ?? 10}
+                        {t('charts.scoreLine', { grade: sub.grade, max: sub.maxGrade ?? 10 })}
                       </p>
                     )}
                   </Link>

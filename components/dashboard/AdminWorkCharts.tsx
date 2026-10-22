@@ -15,6 +15,7 @@ import {
   YAxis,
 } from 'recharts'
 import { api, ApiError } from '@/lib/api/client'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import StatDetailPanel from '@/components/dashboard/StatDetailPanel'
 import { formatDateTime } from '@/lib/format'
 import toast from 'react-hot-toast'
@@ -58,6 +59,7 @@ interface AdminWorkChartsProps {
 }
 
 export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkChartsProps) {
+  const { t, locale } = useI18n()
   const [stats, setStats] = useState<WorkStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -68,12 +70,12 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
       const { stats: data } = await api.admin.workStats()
       setStats(data)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Không tải được thống kê công việc')
+      toast.error(e instanceof ApiError ? e.message : t('charts.loadStatsFailed'))
       setStats(null)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void load()
@@ -83,21 +85,21 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
     if (!stats) return []
     const s = stats.student.summary
     return [
-      { key: 'not_submitted', name: 'Chưa nộp', value: s.not_submitted, color: STUDENT_COLORS.not_submitted },
-      { key: 'submitted', name: 'Đã nộp', value: s.submitted, color: STUDENT_COLORS.submitted },
-      { key: 'late', name: 'Nộp muộn', value: s.late, color: STUDENT_COLORS.late },
-      { key: 'graded', name: 'Đã chấm', value: s.graded, color: STUDENT_COLORS.graded },
+      { key: 'not_submitted', name: t('status.submission.not_submitted'), value: s.not_submitted, color: STUDENT_COLORS.not_submitted },
+      { key: 'submitted', name: t('status.submission.submitted'), value: s.submitted, color: STUDENT_COLORS.submitted },
+      { key: 'late', name: t('status.submission.late'), value: s.late, color: STUDENT_COLORS.late },
+      { key: 'graded', name: t('charts.graded'), value: s.graded, color: STUDENT_COLORS.graded },
     ].filter((d) => d.value > 0)
-  }, [stats])
+  }, [stats, t])
 
   const teacherPie = useMemo(() => {
     if (!stats) return []
-    const t = stats.teacher.summary
+    const summary = stats.teacher.summary
     return [
-      { key: 'pending_grade', name: 'Chờ chấm', value: t.pending_grade, color: TEACHER_COLORS.pending_grade },
-      { key: 'graded', name: 'Đã chấm', value: t.graded, color: TEACHER_COLORS.graded },
+      { key: 'pending_grade', name: t('charts.pendingGrade'), value: summary.pending_grade, color: TEACHER_COLORS.pending_grade },
+      { key: 'graded', name: t('charts.graded'), value: summary.graded, color: TEACHER_COLORS.graded },
     ].filter((d) => d.value > 0)
-  }, [stats])
+  }, [stats, t])
 
   const teacherBars = useMemo(() => {
     if (!stats) return []
@@ -136,88 +138,129 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
 
     if (selection.source === 'student_status') {
       const items = stats.student.items.filter((i) => i.statusKey === selection.key)
-      return { title: `Học sinh · ${selection.label}`, items }
+      return { title: t('charts.detailTitle', { role: t('role.student'), name: selection.label }), items }
     }
     if (selection.source === 'teacher_status') {
       const items = stats.teacher.items.filter((i) => i.statusKey === selection.key)
-      return { title: `Giáo viên · ${selection.label}`, items }
+      return { title: t('charts.detailTitle', { role: t('role.teacher'), name: selection.label }), items }
     }
     if (selection.source === 'teacher_bar') {
-      const t = stats.teachersOverview.find((x) => x.teacherId === selection.teacherId)
+      const row = stats.teachersOverview.find((x) => x.teacherId === selection.teacherId)
       const items = stats.teacher.items.filter((i) => i.teacherId === selection.teacherId)
       return {
-        title: `Giáo viên · ${selection.label}`,
+        title: t('charts.detailTitle', { role: t('role.teacher'), name: selection.label }),
         items:
           items.length > 0
             ? items
-            : t
+            : row
               ? [
                   {
-                    id: t.teacherId,
+                    id: row.teacherId,
                     kind: 'teacher_summary',
-                    title: t.fullName,
-                    subtitle: t.email,
-                    meta: `${t.classes} lớp · ${t.tasks} bài · chờ chấm ${t.pendingGrade} · đã chấm ${t.graded} (${t.gradeRate}%)`,
-                    statusLabel: `${t.gradeRate}% hoàn thành chấm`,
-                    teacherId: t.teacherId,
+                    title: row.fullName,
+                    subtitle: row.email,
+                    meta: t('charts.teacherSummaryMeta', {
+                      classes: row.classes,
+                      tasks: row.tasks,
+                      pending: row.pendingGrade,
+                      graded: row.graded,
+                      rate: row.gradeRate,
+                    }),
+                    statusLabel: t('charts.gradeDone', { rate: row.gradeRate }),
+                    teacherId: row.teacherId,
                   },
                 ]
               : [],
       }
     }
     if (selection.source === 'student_bar') {
-      const s = stats.studentsOverview.find((x) => x.studentId === selection.studentId)
+      const row = stats.studentsOverview.find((x) => x.studentId === selection.studentId)
       const items = stats.student.items.filter((i) => i.studentId === selection.studentId)
       return {
-        title: `Học sinh · ${selection.label}`,
+        title: t('charts.detailTitle', { role: t('role.student'), name: selection.label }),
         items:
           items.length > 0
             ? items
-            : s
+            : row
               ? [
                   {
-                    id: s.studentId,
+                    id: row.studentId,
                     kind: 'student_summary',
-                    title: s.fullName,
-                    subtitle: s.email,
-                    meta: `${s.classes} lớp · ${s.total} BT · hoàn thành ${s.completionRate}%`,
-                    statusLabel: `${s.completionRate}%`,
-                    studentId: s.studentId,
+                    title: row.fullName,
+                    subtitle: row.email,
+                    meta: t('charts.studentSummaryMeta', {
+                      classes: row.classes,
+                      total: row.total,
+                      rate: row.completionRate,
+                    }),
+                    statusLabel: `${row.completionRate}%`,
+                    studentId: row.studentId,
                   },
                 ]
               : [],
       }
     }
     if (selection.source === 'class_bar') {
-      const c = stats.byClass.find((x) => x.classId === selection.classId)
+      const row = stats.byClass.find((x) => x.classId === selection.classId)
       const items = stats.student.items.filter((i) => i.classId === selection.classId)
       return {
-        title: `Lớp · ${selection.label}`,
+        title: t('charts.detailTitle', { role: t('common.classLabel'), name: selection.label }),
         items:
           items.length > 0
             ? items
-            : c
+            : row
               ? [
                   {
-                    id: c.classId,
+                    id: row.classId,
                     kind: 'class_summary',
-                    title: c.title,
-                    subtitle: `GV: ${c.teacherName}`,
-                    meta: `${c.students} HS · ${c.tasks} bài · nộp ${c.submitRate}% · chấm ${c.gradeRate}%`,
-                    statusLabel: `Nộp ${c.submitRate}%`,
-                    classId: c.classId,
+                    title: row.title,
+                    subtitle: t('charts.teacherPrefixLine', { name: row.teacherName }),
+                    meta: t('charts.classSummaryMeta', {
+                      students: row.students,
+                      tasks: row.tasks,
+                      submit: row.submitRate,
+                      grade: row.gradeRate,
+                    }),
+                    statusLabel: `${t('charts.submitWork')} ${row.submitRate}%`,
+                    classId: row.classId,
                   },
                 ]
               : [],
       }
     }
     return { title: '', items: [] }
-  }, [stats, selection])
+  }, [stats, selection, t])
+
+  const workStatusLabel = (key?: string, fallback?: string) => {
+    if (key === 'not_submitted') return t('status.submission.not_submitted')
+    if (key === 'submitted') return t('status.submission.submitted')
+    if (key === 'late') return t('status.submission.late')
+    if (key === 'graded') return t('charts.graded')
+    if (key === 'pending_grade') return t('charts.pendingGrade')
+    return fallback || ''
+  }
+
+  const workMeta = (meta?: string) => {
+    if (!meta) return null
+    if (meta.startsWith('score:')) {
+      const [grade, max] = meta.slice(6).split('/')
+      return t('charts.scoreLine', { grade, max })
+    }
+    if (meta.startsWith('graded:')) {
+      const [grade, max] = meta.slice(7).split('/')
+      return t('charts.gradedLine', { grade, max })
+    }
+    if (meta.startsWith('submitted:')) {
+      return t('charts.submittedAt', { time: formatDateTime(meta.slice(10), locale) })
+    }
+    if (meta === 'pending') return t('charts.pendingGrade')
+    return meta
+  }
 
   if (loading) {
     return (
       <div id={id} className="rounded-xl border bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
-        Đang tải thống kê hoàn thành công việc…
+        {t('charts.loadingStats')}
       </div>
     )
   }
@@ -225,7 +268,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
   if (!stats) {
     return (
       <div id={id} className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">
-        Không có dữ liệu thống kê.
+        {t('charts.noStats')}
       </div>
     )
   }
@@ -249,27 +292,25 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
     <div id={id} className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Hoàn thành công việc</h2>
-          <p className="text-sm text-slate-500">
-            Click vào từng phần biểu đồ để xem danh sách chi tiết
-          </p>
+          <h2 className="text-lg font-semibold text-slate-900">{t('charts.workTitle')}</h2>
+          <p className="text-sm text-slate-500">{t('charts.workHint')}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-medium">
           <span className="rounded-lg bg-violet-50 px-3 py-1.5 text-violet-700">
-            HS nộp bài: {studentDoneRate}%
+            {t('charts.studentSubmitBadge', { rate: studentDoneRate })}
           </span>
           <span className="rounded-lg bg-sky-50 px-3 py-1.5 text-sky-700">
-            GV chấm bài: {teacherDoneRate}%
+            {t('charts.teacherGradeBadge', { rate: teacherDoneRate })}
           </span>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div id={`${id}-student-pie`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-1 text-sm font-semibold text-slate-800">Học sinh · tình trạng bài tập</h3>
-          <p className="mb-3 text-xs text-slate-400">Nhấn một phần để xem danh sách</p>
+          <h3 className="mb-1 text-sm font-semibold text-slate-800">{t('charts.studentPieTitle')}</h3>
+          <p className="mb-3 text-xs text-slate-400">{t('charts.clickSlice')}</p>
           {studentPie.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-400">Chưa có bài nộp</p>
+            <p className="py-12 text-center text-sm text-slate-400">{t('charts.noSubmissions')}</p>
           ) : (
             <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
@@ -307,10 +348,10 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
         </div>
 
         <div id={`${id}-teacher-pie`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-1 text-sm font-semibold text-slate-800">Giáo viên · tiến độ chấm bài</h3>
-          <p className="mb-3 text-xs text-slate-400">Nhấn một phần để xem danh sách</p>
+          <h3 className="mb-1 text-sm font-semibold text-slate-800">{t('charts.teacherPieTitle')}</h3>
+          <p className="mb-3 text-xs text-slate-400">{t('charts.clickSlice')}</p>
           {teacherPie.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-400">Chưa có bài cần chấm</p>
+            <p className="py-12 text-center text-sm text-slate-400">{t('charts.noToGrade')}</p>
           ) : (
             <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
@@ -350,10 +391,10 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
 
       <div className="grid gap-4 xl:grid-cols-2">
         <div id={`${id}-teachers`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-1 text-sm font-semibold text-slate-800">Giáo viên · chờ chấm / đã chấm</h3>
-          <p className="mb-3 text-xs text-slate-400">Click cột để xem công việc của GV</p>
+          <h3 className="mb-1 text-sm font-semibold text-slate-800">{t('charts.teachersBarTitle')}</h3>
+          <p className="mb-3 text-xs text-slate-400">{t('charts.clickTeacher')}</p>
           {teacherBars.length === 0 ? (
-            <p className="py-10 text-center text-sm text-slate-400">Chưa có giáo viên</p>
+            <p className="py-10 text-center text-sm text-slate-400">{t('charts.noTeachers')}</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -364,7 +405,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   <Tooltip
                     formatter={(value: number, name: string) => [
                       value,
-                      name === 'pendingGrade' ? 'Chờ chấm' : name === 'graded' ? 'Đã chấm' : name,
+                      name === 'pendingGrade' ? t('charts.pendingGrade') : name === 'graded' ? t('charts.graded') : name,
                     ]}
                     labelFormatter={(_, payload) => {
                       const p = payload?.[0]?.payload as (typeof teacherBars)[0] | undefined
@@ -374,7 +415,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   <Legend />
                   <Bar
                     dataKey="pendingGrade"
-                    name="Chờ chấm"
+                    name={t('charts.pendingGrade')}
                     fill="#f59e0b"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
@@ -390,7 +431,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   />
                   <Bar
                     dataKey="graded"
-                    name="Đã chấm"
+                    name={t('charts.graded')}
                     fill="#22c55e"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
@@ -411,10 +452,10 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
         </div>
 
         <div id={`${id}-students`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-          <h3 className="mb-1 text-sm font-semibold text-slate-800">Học sinh · tỷ lệ hoàn thành (%)</h3>
-          <p className="mb-3 text-xs text-slate-400">Click cột để xem bài tập của HS</p>
+          <h3 className="mb-1 text-sm font-semibold text-slate-800">{t('charts.studentsBarTitle')}</h3>
+          <p className="mb-3 text-xs text-slate-400">{t('charts.clickStudent')}</p>
           {studentBars.length === 0 ? (
-            <p className="py-10 text-center text-sm text-slate-400">Chưa có học sinh</p>
+            <p className="py-10 text-center text-sm text-slate-400">{t('charts.noStudents')}</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -424,8 +465,8 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                   <Tooltip
                     formatter={(value: number, name: string) => {
-                      if (name === 'completionRate') return [`${value}%`, 'Hoàn thành']
-                      if (name === 'notSubmitted') return [value, 'Chưa nộp']
+                      if (name === 'completionRate') return [`${value}%`, t('charts.completion')]
+                      if (name === 'notSubmitted') return [value, t('status.submission.not_submitted')]
                       return [value, name]
                     }}
                     labelFormatter={(_, payload) => {
@@ -436,7 +477,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   <Legend />
                   <Bar
                     dataKey="completionRate"
-                    name="Hoàn thành %"
+                    name={t('charts.completionPct')}
                     fill="#8b5cf6"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
@@ -452,7 +493,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   />
                   <Bar
                     dataKey="notSubmitted"
-                    name="Chưa nộp"
+                    name={t('status.submission.not_submitted')}
                     fill="#f59e0b"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
@@ -474,10 +515,10 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
       </div>
 
       <div id={`${id}-classes`} className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <h3 className="mb-1 text-sm font-semibold text-slate-800">Theo lớp · tỷ lệ nộp / chấm (%)</h3>
-        <p className="mb-3 text-xs text-slate-400">Click cột để xem danh sách bài trong lớp</p>
+        <h3 className="mb-1 text-sm font-semibold text-slate-800">{t('charts.classesBarTitle')}</h3>
+        <p className="mb-3 text-xs text-slate-400">{t('charts.clickClass')}</p>
         {classBars.length === 0 ? (
-          <p className="py-10 text-center text-sm text-slate-400">Chưa có lớp học</p>
+          <p className="py-10 text-center text-sm text-slate-400">{t('charts.noClasses')}</p>
         ) : (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -488,17 +529,17 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     `${value}%`,
-                    name === 'submitRate' ? 'Nộp bài' : 'Chấm bài',
+                    name === 'submitRate' ? t('charts.submitWork') : t('charts.gradeWork'),
                   ]}
                   labelFormatter={(_, payload) => {
                     const p = payload?.[0]?.payload as (typeof classBars)[0] | undefined
-                    return p ? `${p.title} · GV ${p.teacherName}` : ''
+                    return p ? `${p.title} · ${p.teacherName}` : ''
                   }}
                 />
                 <Legend />
                 <Bar
                   dataKey="submitRate"
-                  name="Nộp bài %"
+                  name={t('charts.submitPct')}
                   fill="#3b82f6"
                   radius={[4, 4, 0, 0]}
                   cursor="pointer"
@@ -514,7 +555,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                 />
                 <Bar
                   dataKey="gradeRate"
-                  name="Chấm bài %"
+                  name={t('charts.gradePct')}
                   fill="#14b8a6"
                   radius={[4, 4, 0, 0]}
                   cursor="pointer"
@@ -540,7 +581,7 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
           title={detail.title}
           count={detail.items.length}
           onClose={() => setSelection(null)}
-          emptyMessage="Không có mục nào trong nhóm này."
+          emptyMessage={t('charts.detailEmpty')}
         >
           <ul className="divide-y rounded-lg border">
             {detail.items.map((item) => (
@@ -549,17 +590,13 @@ export default function AdminWorkCharts({ id = 'admin-work-charts' }: AdminWorkC
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900">{item.title}</p>
                     <p className="mt-0.5 text-xs text-slate-500">{item.subtitle}</p>
-                    {item.meta ? (
-                      <p className="mt-1 text-xs text-slate-400">
-                        {item.meta.startsWith('Nộp:')
-                          ? `Nộp: ${formatDateTime(item.meta.replace(/^Nộp:\s*/, ''))}`
-                          : item.meta}
-                      </p>
+                    {workMeta(item.meta) ? (
+                      <p className="mt-1 text-xs text-slate-400">{workMeta(item.meta)}</p>
                     ) : null}
                   </div>
-                  {item.statusLabel ? (
+                  {workStatusLabel(item.statusKey, item.statusLabel) ? (
                     <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-                      {item.statusLabel}
+                      {workStatusLabel(item.statusKey, item.statusLabel)}
                     </span>
                   ) : null}
                 </div>

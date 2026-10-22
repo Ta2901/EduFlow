@@ -101,7 +101,7 @@ export default function StudentLearningCharts({
         id={id}
         className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-gray-500"
       >
-        Chưa có dữ liệu học tập để vẽ biểu đồ. Tham gia lớp để bắt đầu theo dõi tiến trình.
+        {t('charts.noStats')} {t('student.joinToGetTasks')}
       </div>
     )
   }
@@ -117,7 +117,7 @@ export default function StudentLearningCharts({
           id={`${id}-completion`}
           className="rounded-lg bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700"
         >
-          Hoàn thành nộp bài: {completionRate}%
+          {t('charts.completionLabel')}: {completionRate}%
         </div>
       </div>
 

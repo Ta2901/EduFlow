@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Users, Hash } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import PageHeader from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
@@ -12,6 +13,7 @@ import { useEduStore } from '@/lib/stores/eduStore'
 export default function JoinClassPage() {
   const router = useRouter()
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t } = useI18n()
   const joinClassByCode = useEduStore((s) => s.joinClassByCode)
   const [code, setCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -42,7 +44,7 @@ export default function JoinClassPage() {
 
   return (
     <div id="student-join" className="min-h-screen bg-gray-50 text-gray-900">
-      <PageHeader id="student-join-header" userId={currentUser.id} title="Tham gia lớp học" backHref="/student/dashboard" />
+      <PageHeader id="student-join-header" userId={currentUser.id} title={t('common.joinClass')} backHref="/student/dashboard" />
 
       <motion.form
         id="student-join-form"
@@ -61,7 +63,7 @@ export default function JoinClassPage() {
 
           <div>
             <label htmlFor="student-join-code" className="mb-2 block text-sm font-medium text-gray-700">
-              Mã lớp <span className="text-red-500">*</span>
+              {t('common.classCode')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -92,7 +94,7 @@ export default function JoinClassPage() {
               disabled={isLoading}
               className="flex-1 rounded-lg bg-primary-600 py-3 font-medium text-white hover:bg-primary-700 disabled:opacity-50"
             >
-              {isLoading ? 'Đang tham gia...' : 'Tham gia lớp'}
+              {isLoading ? t('common.loading') : t('common.joinClass')}
             </button>
           </div>
         </div>

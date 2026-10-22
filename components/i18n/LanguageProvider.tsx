@@ -28,6 +28,13 @@ function applyLocale(locale: Locale) {
   const root = document.documentElement
   root.lang = localeOption(locale).htmlLang
   root.dataset.locale = locale
+  root.classList.remove('locale-pending')
+}
+
+function writeLocaleCookie(locale: Locale, mode: LocaleMode) {
+  const maxAge = 'max-age=31536000'
+  document.cookie = `${LOCALE_STORAGE_KEY}=${encodeURIComponent(locale)};path=/;${maxAge};SameSite=Lax`
+  document.cookie = `${LOCALE_MODE_KEY}=${mode};path=/;${maxAge};SameSite=Lax`
 }
 
 function readInitial(): { locale: Locale; mode: LocaleMode } {
@@ -42,11 +49,19 @@ function readInitial(): { locale: Locale; mode: LocaleMode } {
   return { locale: matchDeviceLocale(deviceLanguages()), mode: 'device' }
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('vi')
-  const [localeMode, setLocaleMode] = useState<LocaleMode>('device')
-  const localeRef = useRef<Locale>('vi')
-  const modeRef = useRef<LocaleMode>('device')
+export function LanguageProvider({
+  children,
+  initialLocale = 'vi',
+  initialMode = 'device',
+}: {
+  children: React.ReactNode
+  initialLocale?: Locale
+  initialMode?: LocaleMode
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale)
+  const [localeMode, setLocaleMode] = useState<LocaleMode>(initialMode)
+  const localeRef = useRef<Locale>(initialLocale)
+  const modeRef = useRef<LocaleMode>(initialMode)
 
   const announce = useCallback((next: Locale) => {
     const user = useAuthStore.getState().currentUser
@@ -71,6 +86,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLocaleState(next.locale)
     setLocaleMode(next.mode)
     applyLocale(next.locale)
+    writeLocaleCookie(next.locale, next.mode)
   }, [])
 
   useEffect(() => {
@@ -80,6 +96,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (localeRef.current === next) return
       localeRef.current = next
       localStorage.setItem(LOCALE_STORAGE_KEY, next)
+      writeLocaleCookie(next, 'device')
       applyLocale(next)
       setLocaleState(next)
     }
@@ -94,6 +111,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       modeRef.current = 'manual'
       localStorage.setItem(LOCALE_STORAGE_KEY, next)
       localStorage.setItem(LOCALE_MODE_KEY, 'manual')
+      writeLocaleCookie(next, 'manual')
       applyLocale(next)
       setLocaleState(next)
       setLocaleMode('manual')
@@ -109,6 +127,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localeRef.current = next
     localStorage.setItem(LOCALE_MODE_KEY, 'device')
     localStorage.setItem(LOCALE_STORAGE_KEY, next)
+    writeLocaleCookie(next, 'device')
     applyLocale(next)
     setLocaleState(next)
     setLocaleMode('device')

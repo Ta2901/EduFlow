@@ -313,7 +313,7 @@ function LanguageList({
           type="button"
           aria-pressed={localeMode === 'device'}
           onClick={onDevice}
-          className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm ${
+          className={`flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border px-4 py-3 text-left text-sm ${
             localeMode === 'device'
               ? 'border-primary-500 bg-primary-50 text-primary-800'
               : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50'
@@ -331,7 +331,7 @@ function LanguageList({
               type="button"
               aria-pressed={active}
               onClick={() => onPick(option.id)}
-              className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm ${
+              className={`flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border px-4 py-3 text-left text-sm ${
                 active
                   ? 'border-primary-500 bg-primary-50 text-primary-800'
                   : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50'

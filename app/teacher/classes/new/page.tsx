@@ -7,12 +7,14 @@ import Link from 'next/link'
 import PageHeader from '@/components/layout/PageHeader'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 
 export default function CreateClassPage() {
   const router = useRouter()
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t } = useI18n()
   const createClass = useEduStore((s) => s.createClass)
 
   const [title, setTitle] = useState('')
@@ -44,14 +46,14 @@ export default function CreateClassPage() {
     if (!createdCode) return
     await navigator.clipboard.writeText(createdCode)
     setCopied(true)
-    toast.success('Đã sao chép mã lớp')
+    toast.success(t('common.copiedCode', { code: createdCode }))
     setTimeout(() => setCopied(false), 2000)
   }
 
   if (createdCode) {
     return (
       <div id="teacher-class-created" className="min-h-screen bg-gray-50 text-gray-900">
-        <PageHeader id="teacher-class-created-header" userId={currentUser.id} title="Lớp đã được tạo" backHref="/teacher/dashboard" />
+        <PageHeader id="teacher-class-created-header" userId={currentUser.id} title={t('admin.classCreated')} backHref="/teacher/dashboard" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -67,7 +69,7 @@ export default function CreateClassPage() {
             </p>
 
             <div className="bg-primary-50 border-2 border-dashed border-primary-200 rounded-xl p-6 mb-6">
-              <p className="text-sm text-primary-700 mb-2 font-medium">Mã lớp học</p>
+              <p className="text-sm text-primary-700 mb-2 font-medium">{t('common.classCode')}</p>
               <p className="text-4xl font-bold tracking-widest text-primary-600 font-mono">
                 {createdCode}
               </p>
@@ -78,11 +80,11 @@ export default function CreateClassPage() {
               >
                 {copied ? (
                   <>
-                    <Check className="h-4 w-4 mr-2" /> Đã sao chép
+                    <Check className="h-4 w-4 mr-2" /> {t('common.copy')}
                   </>
                 ) : (
                   <>
-                    <Copy className="h-4 w-4 mr-2" /> Sao chép mã
+                    <Copy className="h-4 w-4 mr-2" /> {t('common.copy')}
                   </>
                 )}
               </button>
@@ -116,7 +118,7 @@ export default function CreateClassPage() {
 
   return (
     <div id="teacher-class-new" className="min-h-screen bg-gray-50 text-gray-900">
-      <PageHeader id="teacher-class-new-header" userId={currentUser.id} title="Tạo lớp học mới" backHref="/teacher/dashboard" />
+      <PageHeader id="teacher-class-new-header" userId={currentUser.id} title={t('common.createClass')} backHref="/teacher/dashboard" />
       <motion.form
         id="teacher-class-new-form"
         initial={{ opacity: 0, y: 20 }}
@@ -134,7 +136,7 @@ export default function CreateClassPage() {
 
           <div>
             <label htmlFor="teacher-class-new-title" className="block text-sm font-medium text-gray-700 mb-2">
-              Tên lớp <span className="text-red-500">*</span>
+              {t('admin.className')} <span className="text-red-500">*</span>
             </label>
             <input
               id="teacher-class-new-title"
@@ -148,7 +150,7 @@ export default function CreateClassPage() {
 
           <div>
             <label htmlFor="teacher-class-new-description" className="block text-sm font-medium text-gray-700 mb-2">
-              Mô tả
+              {t('admin.description')}
             </label>
             <textarea
               id="teacher-class-new-description"

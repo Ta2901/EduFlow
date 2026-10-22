@@ -6,6 +6,7 @@ import { ArrowLeft, Paperclip, X, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
 import { formatFileSize } from '@/lib/format'
@@ -15,6 +16,7 @@ export default function CreateAssignmentPage() {
   const classId = params.classId as string
   const router = useRouter()
   const currentUser = useAuthStore((s) => s.currentUser)!
+  const { t } = useI18n()
   const getClassById = useEduStore((s) => s.getClassById)
   const createTask = useEduStore((s) => s.createTask)
 
@@ -29,7 +31,7 @@ export default function CreateAssignmentPage() {
   if (!classroom) {
     return (
       <div id="teacher-assignment-new-not-found" className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Không tìm thấy lớp học</p>
+        <p className="text-gray-600">{t('common.notFound')}</p>
       </div>
     )
   }
@@ -106,7 +108,7 @@ export default function CreateAssignmentPage() {
         <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
           <div>
             <label htmlFor="teacher-assignment-new-title" className="block text-sm font-medium text-gray-700 mb-2">
-              Tiêu đề <span className="text-red-500">*</span>
+              {t('common.assignment')} <span className="text-red-500">*</span>
             </label>
             <input
               id="teacher-assignment-new-title"
@@ -120,7 +122,7 @@ export default function CreateAssignmentPage() {
 
           <div>
             <label htmlFor="teacher-assignment-new-description" className="block text-sm font-medium text-gray-700 mb-2">
-              Mô tả bài tập
+              {t('admin.description')}
             </label>
             <textarea
               id="teacher-assignment-new-description"
@@ -134,7 +136,7 @@ export default function CreateAssignmentPage() {
 
           <div>
             <label htmlFor="teacher-assignment-new-due-date" className="block text-sm font-medium text-gray-700 mb-2">
-              Hạn nộp <span className="text-red-500">*</span>
+              {t('common.due')} <span className="text-red-500">*</span>
             </label>
             <input
               id="teacher-assignment-new-due-date"
@@ -149,7 +151,7 @@ export default function CreateAssignmentPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tệp đính kèm
+              {t('common.attachments', { count: selectedFiles.length })}
             </label>
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
               <Paperclip className="h-8 w-8 text-gray-400 mb-2" />
