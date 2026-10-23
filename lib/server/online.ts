@@ -1,4 +1,5 @@
 import { classWritesBlocked } from '../classStatus'
+import { normalizeMeetingUrl } from '../meetingUrl'
 import { notifySessionEvalOpen } from './evaluations'
 import { prisma } from '../prisma'
 import { generateUniqueClassCode } from '../utils/generateClassCode'
@@ -12,8 +13,10 @@ export interface OnlineSessionDto {
   scheduleSlotId?: string
   title: string
   roomCode: string
+  meetingUrl?: string
   status: OnlineSessionStatus
   teacherId: string
+  scheduledAt?: string
   startedAt?: string
   endedAt?: string
   createdAt: string
@@ -25,8 +28,10 @@ function mapSession(row: {
   scheduleSlotId: string | null
   title: string
   roomCode: string
+  meetingUrl: string | null
   status: string
   teacherId: string
+  scheduledAt: Date | null
   startedAt: Date | null
   endedAt: Date | null
   createdAt: Date
@@ -37,12 +42,21 @@ function mapSession(row: {
     scheduleSlotId: row.scheduleSlotId ?? undefined,
     title: row.title,
     roomCode: row.roomCode,
+    meetingUrl: row.meetingUrl ?? undefined,
     status: row.status as OnlineSessionStatus,
     teacherId: row.teacherId,
+    scheduledAt: row.scheduledAt?.toISOString(),
     startedAt: row.startedAt?.toISOString(),
     endedAt: row.endedAt?.toISOString(),
     createdAt: row.createdAt.toISOString(),
   }
+}
+
+function parseScheduledAt(raw?: string | null): Date | null {
+  if (raw == null || !String(raw).trim()) return null
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) throw new Error('Ngày giờ bắt đầu tiết học không hợp lệ')
+  return d
 }
 
 function mapMessage(row: {
@@ -141,7 +155,7 @@ export async function listOnlineSessions(classId: string, session: SessionPayloa
 export async function createOnlineSession(
   classId: string,
   teacherId: string,
-  input: { title: string; scheduleSlotId?: string }
+  input: { title: string; scheduleSlotId?: string; meetingUrl?: string; scheduledAt?: string }
 ) {
   const classroom = await prisma.class.findFirst({
     where: { id: classId, teacherId },
@@ -152,6 +166,8 @@ export async function createOnlineSession(
   if (writeBlocked) throw new Error(writeBlocked)
 
   if (!input.title.trim()) throw new Error('Vui lòng nhập tên buổi học')
+  const meetingUrl = normalizeMeetingUrl(input.meetingUrl ?? '')
+  const scheduledAt = parseScheduledAt(input.scheduledAt)
 
   if (input.scheduleSlotId) {
     const slot = await prisma.scheduleSlot.findFirst({
@@ -170,11 +186,52 @@ export async function createOnlineSession(
       scheduleSlotId: input.scheduleSlotId || null,
       title: input.title.trim(),
       roomCode: generateUniqueClassCode(existingCodes),
+      meetingUrl,
+      scheduledAt,
       teacherId,
       status: 'scheduled',
     },
   })
 
+  return mapSession(row)
+}
+
+export async function updateOnlineSessionDetails(
+  sessionId: string,
+  classId: string,
+  teacherId: string,
+  input: { title?: string; meetingUrl?: string; scheduledAt?: string | null }
+) {
+  const classroom = await prisma.class.findFirst({
+    where: { id: classId, teacherId },
+    select: { status: true },
+  })
+  if (!classroom) throw new Error('Không có quyền')
+  const writeBlocked = classWritesBlocked(classroom.status)
+  if (writeBlocked) throw new Error(writeBlocked)
+
+  const online = await prisma.onlineSession.findFirst({
+    where: { id: sessionId, classId, teacherId },
+  })
+  if (!online) throw new Error('Không tìm thấy buổi học')
+
+  const data: { title?: string; meetingUrl?: string | null; scheduledAt?: Date | null } = {}
+  if (input.title !== undefined) {
+    const title = input.title.trim()
+    if (!title) throw new Error('Vui lòng nhập tên buổi học')
+    data.title = title
+  }
+  if (input.meetingUrl !== undefined) {
+    data.meetingUrl = normalizeMeetingUrl(input.meetingUrl ?? '')
+  }
+  if (input.scheduledAt !== undefined) {
+    data.scheduledAt = parseScheduledAt(input.scheduledAt)
+  }
+
+  const row = await prisma.onlineSession.update({
+    where: { id: sessionId },
+    data,
+  })
   return mapSession(row)
 }
 

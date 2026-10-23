@@ -57,8 +57,10 @@ export interface OnlineSession {
   scheduleSlotId?: string
   title: string
   roomCode: string
+  meetingUrl?: string
   status: OnlineSessionStatus
   teacherId: string
+  scheduledAt?: string
   startedAt?: string
   endedAt?: string
   createdAt: string

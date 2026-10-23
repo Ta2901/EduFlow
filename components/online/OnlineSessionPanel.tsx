@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Play, Radio, Video, Plus, Film } from 'lucide-react'
+import { Play, Radio, Video, Plus, Film, ExternalLink, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useI18n } from '@/components/i18n/LanguageProvider'
 import { api, ApiError } from '@/lib/api/client'
 import type { OnlineSession, SessionRecording } from '@/lib/types'
-import { formatDateTime, formatFileSize } from '@/lib/format'
+import { formatDateTime, formatFileSize, toDatetimeLocalValue } from '@/lib/format'
+import { meetingProviderLabel } from '@/lib/meetingUrl'
 
 interface OnlineSessionPanelProps {
   classId: string
@@ -33,7 +34,14 @@ export default function OnlineSessionPanel({
   const [recordings, setRecordings] = useState<(SessionRecording & { sessionTitle: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
+  const [meetingUrl, setMeetingUrl] = useState('')
+  const [scheduledAt, setScheduledAt] = useState('')
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editMeetingUrl, setEditMeetingUrl] = useState('')
+  const [editScheduledAt, setEditScheduledAt] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -58,11 +66,16 @@ export default function OnlineSessionPanel({
     if (!title.trim()) return
     setCreating(true)
     try {
-      const { session } = await api.edu.createOnlineSession(classId, { title: title.trim() })
+      await api.edu.createOnlineSession(classId, {
+        title: title.trim(),
+        meetingUrl: meetingUrl.trim() || undefined,
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+      })
       toast.success(t('student.uiOnlineCreated'))
       setTitle('')
+      setMeetingUrl('')
+      setScheduledAt('')
       await load()
-      window.location.href = `/online/${session.id}`
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t('student.uiOnlineCreateFail'))
     } finally {
@@ -77,6 +90,33 @@ export default function OnlineSessionPanel({
       await load()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t('student.uiOnlineStartFail'))
+    }
+  }
+
+  const openEdit = (s: OnlineSession) => {
+    setEditingId(s.id)
+    setEditTitle(s.title)
+    setEditMeetingUrl(s.meetingUrl ?? '')
+    setEditScheduledAt(toDatetimeLocalValue(s.scheduledAt))
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingId || !editTitle.trim()) return
+    setSaving(true)
+    try {
+      await api.edu.updateOnlineSessionDetails(classId, editingId, {
+        title: editTitle.trim(),
+        meetingUrl: editMeetingUrl,
+        scheduledAt: editScheduledAt ? new Date(editScheduledAt).toISOString() : '',
+      })
+      toast.success(t('student.uiSessionUpdated'))
+      setEditingId(null)
+      await load()
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t('student.uiSessionUpdateFail'))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -112,14 +152,27 @@ export default function OnlineSessionPanel({
                 <p className="text-sm text-green-700">{liveSession.title}</p>
               </div>
             </div>
-            <Link
-              id={`${id}-join-live`}
-              href={`/online/${liveSession.id}`}
-              className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-            >
-              <Video className="mr-1.5 h-4 w-4" />
-              {t('student.uiJoinLive')}
-            </Link>
+            {liveSession.meetingUrl ? (
+              <a
+                id={`${id}-join-live`}
+                href={liveSession.meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+              >
+                <ExternalLink className="mr-1.5 h-4 w-4" />
+                {t('student.uiJoinMeeting', { provider: meetingProviderLabel(liveSession.meetingUrl) })}
+              </a>
+            ) : (
+              <Link
+                id={`${id}-join-live`}
+                href={`/online/${liveSession.id}`}
+                className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+              >
+                <Video className="mr-1.5 h-4 w-4" />
+                {t('student.uiJoinLive')}
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -131,15 +184,39 @@ export default function OnlineSessionPanel({
           className="rounded-lg border bg-primary-50/40 p-4"
         >
           <p className="mb-2 text-sm font-medium text-gray-900">{t('student.uiNewOnline')}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             <input
               id={`${id}-title`}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('student.uiOnlinePlaceholder')}
-              className="min-w-[200px] flex-1 rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
               required
             />
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-600">{t('student.uiMeetingLink')}</span>
+              <input
+                id={`${id}-meeting-url`}
+                type="text"
+                inputMode="url"
+                autoComplete="url"
+                value={meetingUrl}
+                onChange={(e) => setMeetingUrl(e.target.value)}
+                placeholder={t('student.uiMeetingLinkPh')}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-600">{t('student.uiScheduledStart')}</span>
+              <input
+                id={`${id}-scheduled-at`}
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </label>
+            <p className="text-xs text-gray-500">{t('student.uiMeetingLinkHint')}</p>
             <button
               id={`${id}-create-submit`}
               type="submit"
@@ -165,20 +242,91 @@ export default function OnlineSessionPanel({
               <li
                 key={s.id}
                 id={`${id}-item-${s.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                className="flex flex-wrap items-start justify-between gap-2 rounded-lg border p-3"
               >
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-gray-900">{s.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {s.startedAt
-                      ? t('student.uiStartedAt', { time: formatDateTime(s.startedAt, locale) })
-                      : t('student.uiCreatedAt', { time: formatDateTime(s.createdAt, locale) })}
-                  </p>
+                  <ul className="mt-1 space-y-0.5 text-xs text-gray-500">
+                    <li>{t('student.uiCreatedAt', { time: formatDateTime(s.createdAt, locale) })}</li>
+                    {s.scheduledAt && (
+                      <li>{t('student.uiScheduledAt', { time: formatDateTime(s.scheduledAt, locale) })}</li>
+                    )}
+                    <li>
+                      {s.startedAt
+                        ? t('student.uiStartedAt', { time: formatDateTime(s.startedAt, locale) })
+                        : t('student.uiStartedAt', { time: t('student.uiNotStartedYet') })}
+                    </li>
+                    {s.endedAt && (
+                      <li>{t('student.uiEndedAt', { time: formatDateTime(s.endedAt, locale) })}</li>
+                    )}
+                    {s.meetingUrl && <li>{meetingProviderLabel(s.meetingUrl)}</li>}
+                  </ul>
+                  {isTeacher && editingId === s.id && (
+                    <form
+                      id={`${id}-edit-form-${s.id}`}
+                      onSubmit={(e) => void handleSaveEdit(e)}
+                      className="mt-3 space-y-2 rounded-lg border bg-slate-50 p-3"
+                    >
+                      <input
+                        id={`${id}-edit-title-${s.id}`}
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                        required
+                      />
+                      <input
+                        id={`${id}-edit-meeting-${s.id}`}
+                        value={editMeetingUrl}
+                        onChange={(e) => setEditMeetingUrl(e.target.value)}
+                        placeholder={t('student.uiMeetingLinkPh')}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                      <label className="block">
+                        <span className="mb-1 block text-xs text-gray-600">{t('student.uiScheduledStart')}</span>
+                        <input
+                          id={`${id}-edit-scheduled-${s.id}`}
+                          type="datetime-local"
+                          value={editScheduledAt}
+                          onChange={(e) => setEditScheduledAt(e.target.value)}
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          id={`${id}-edit-save-${s.id}`}
+                          type="submit"
+                          disabled={saving}
+                          className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                        >
+                          {t('student.uiSaveChanges')}
+                        </button>
+                        <button
+                          id={`${id}-edit-cancel-${s.id}`}
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-700"
+                        >
+                          {t('student.uiClose')}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[s.status]}`}>
                     {statusLabel(s.status)}
                   </span>
+                  {isTeacher && (
+                    <button
+                      id={`${id}-edit-${s.id}`}
+                      type="button"
+                      onClick={() => (editingId === s.id ? setEditingId(null) : openEdit(s))}
+                      className="inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <Pencil className="mr-1 h-3 w-3" />
+                      {t('student.uiEditSession')}
+                    </button>
+                  )}
                   {isTeacher && s.status === 'scheduled' && (
                     <button
                       id={`${id}-start-${s.id}`}
@@ -189,6 +337,18 @@ export default function OnlineSessionPanel({
                       <Play className="mr-1 h-3 w-3" />
                       {t('student.uiStart')}
                     </button>
+                  )}
+                  {s.meetingUrl && s.status !== 'ended' && (
+                    <a
+                      id={`${id}-open-meeting-${s.id}`}
+                      href={s.meetingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-lg border border-primary-200 bg-white px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50"
+                    >
+                      <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                      {t('student.uiOpenMeeting', { provider: meetingProviderLabel(s.meetingUrl) })}
+                    </a>
                   )}
                   <Link
                     id={`${id}-enter-${s.id}`}

@@ -303,21 +303,6 @@ export default function LoginForm() {
           </p>
         </div>
       </motion.form>
-
-      <div id="auth-login-demo" className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="mb-2 text-sm font-medium text-blue-800">{t('auth.demoTitle')}</h3>
-        <div className="space-y-1 text-xs text-blue-700">
-          <p>
-            <strong>{t('role.adminShort')}:</strong> eduflow.admin / firstedu.eduflow
-          </p>
-          <p>
-            <strong>{t('auth.demoStudent')}</strong> student@eduflow.com / 100002 / password123
-          </p>
-          <p>
-            <strong>{t('auth.demoTeacher')}</strong> teacher@eduflow.com / 100001 / password123
-          </p>
-        </div>
-      </div>
     </>
   )
 }

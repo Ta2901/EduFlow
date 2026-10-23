@@ -39,8 +39,10 @@ export default function CourseDetailPage() {
   useEffect(() => {
     setActiveTabState(tabFromUrl)
   }, [tabFromUrl])
-  const setActiveTab = (id: string) => {
-    setActiveTabState(id)
+  const setActiveTab = (id: (typeof COURSE_TABS)[number] | string) => {
+    if (COURSE_TABS.includes(id as (typeof COURSE_TABS)[number])) {
+      setActiveTabState(id as (typeof COURSE_TABS)[number])
+    }
     const next = new URLSearchParams(searchParams.toString())
     if (id === 'overview') next.delete('tab')
     else next.set('tab', id)

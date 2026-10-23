@@ -2,6 +2,7 @@ import {
   endOnlineSession,
   getOnlineSession,
   startOnlineSession,
+  updateOnlineSessionDetails,
 } from '@/lib/server/online'
 import { assertCanWrite } from '@/lib/server/account'
 import { jsonError, jsonOk } from '@/lib/server/http'
@@ -49,6 +50,19 @@ export async function PATCH(
     }
     if (action === 'end') {
       const onlineSession = await endOnlineSession(params.sessionId, params.classId, session.userId)
+      return jsonOk({ session: onlineSession })
+    }
+    if (action === 'update') {
+      const onlineSession = await updateOnlineSessionDetails(
+        params.sessionId,
+        params.classId,
+        session.userId,
+        {
+          title: body.title !== undefined ? String(body.title) : undefined,
+          meetingUrl: body.meetingUrl !== undefined ? String(body.meetingUrl) : undefined,
+          scheduledAt: body.scheduledAt !== undefined ? (body.scheduledAt ? String(body.scheduledAt) : null) : undefined,
+        }
+      )
       return jsonOk({ session: onlineSession })
     }
     return jsonError('Hành động không hợp lệ', 400)

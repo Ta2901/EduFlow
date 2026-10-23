@@ -230,8 +230,10 @@ model OnlineSession {
   scheduleSlotId String?
   title          String
   roomCode       String    @unique
+  meetingUrl     String?
   status         String    @default("scheduled")
   teacherId      String
+  scheduledAt    DateTime?
   startedAt      DateTime?
   endedAt        DateTime?
   createdAt      DateTime  @default(now())

@@ -213,7 +213,7 @@ export const api = {
       }>(`/api/classes/${classId}/sessions`),
     createOnlineSession: (
       classId: string,
-      body: { title: string; scheduleSlotId?: string }
+      body: { title: string; scheduleSlotId?: string; meetingUrl?: string; scheduledAt?: string }
     ) =>
       request<{ session: OnlineSession }>(`/api/classes/${classId}/sessions`, {
         method: 'POST',
@@ -223,6 +223,15 @@ export const api = {
       request<{ session: OnlineSession }>(`/api/classes/${classId}/sessions/${sessionId}`, {
         method: 'PATCH',
         body: JSON.stringify({ action }),
+      }),
+    updateOnlineSessionDetails: (
+      classId: string,
+      sessionId: string,
+      body: { title: string; meetingUrl?: string; scheduledAt?: string }
+    ) =>
+      request<{ session: OnlineSession }>(`/api/classes/${classId}/sessions/${sessionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'update', ...body }),
       }),
     getOnlineSession: (sessionId: string) =>
       request<{ session: OnlineSession }>(`/api/online/${sessionId}`),

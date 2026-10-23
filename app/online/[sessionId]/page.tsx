@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, PhoneOff, Radio } from 'lucide-react'
+import { ArrowLeft, ExternalLink, PhoneOff, Radio } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useContentText } from '@/components/i18n/useContentText'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useEduStore } from '@/lib/stores/eduStore'
+import { formatDateTime } from '@/lib/format'
 import { api, ApiError } from '@/lib/api/client'
+import { meetingProviderLabel } from '@/lib/meetingUrl'
 import type { OnlineSession } from '@/lib/types'
 import JitsiMeeting from '@/components/online/JitsiMeeting'
 import SessionChat from '@/components/online/SessionChat'
@@ -107,6 +109,18 @@ export default function OnlineClassPage() {
         <Radio className="h-12 w-12 text-gray-300" />
         <h1 className="text-xl font-semibold text-gray-900">{onlineSession.title}</h1>
         <p className="text-gray-500">Giáo viên chưa bắt đầu buổi học. Vui lòng chờ thông báo.</p>
+        {onlineSession.meetingUrl && (
+          <a
+            id="online-session-waiting-meeting"
+            href={onlineSession.meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+          >
+            <ExternalLink className="mr-1.5 h-4 w-4" />
+            Tham gia {meetingProviderLabel(onlineSession.meetingUrl)}
+          </a>
+        )}
         <Link id="online-session-waiting-back" href={backHref} className="text-primary-600 hover:underline">
           Quay lại lớp
         </Link>
@@ -127,6 +141,14 @@ export default function OnlineClassPage() {
               {text(classroom.title)}
               {isLive && <span className="ml-2 text-green-600">● Đang live</span>}
               {isEnded && <span className="ml-2 text-gray-400">Đã kết thúc</span>}
+            </p>
+            <p className="mt-0.5 text-xs text-gray-400">
+              Tạo: {formatDateTime(onlineSession.createdAt)}
+              {onlineSession.scheduledAt ? ` · Giờ tiết: ${formatDateTime(onlineSession.scheduledAt)}` : ''}
+              {onlineSession.startedAt
+                ? ` · Bắt đầu: ${formatDateTime(onlineSession.startedAt)}`
+                : ' · Chưa bắt đầu'}
+              {onlineSession.endedAt ? ` · Kết thúc: ${formatDateTime(onlineSession.endedAt)}` : ''}
             </p>
           </div>
         </div>
@@ -157,7 +179,27 @@ export default function OnlineClassPage() {
 
       <main id="online-session-main" className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 p-4 lg:flex-row">
         <div className="flex min-h-0 flex-1 flex-col gap-4 lg:w-[68%]">
-          {!isEnded ? (
+          {!isEnded && onlineSession.meetingUrl ? (
+            <div
+              id="online-session-external"
+              className="flex min-h-[360px] flex-col items-center justify-center gap-4 rounded-lg border bg-white p-8 text-center"
+            >
+              <p className="text-sm text-gray-600">
+                Giáo viên dùng {meetingProviderLabel(onlineSession.meetingUrl)} cho buổi này.
+              </p>
+              <a
+                id="online-session-open-meeting"
+                href={onlineSession.meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Tham gia {meetingProviderLabel(onlineSession.meetingUrl)}
+              </a>
+              <p className="break-all text-xs text-gray-400">{onlineSession.meetingUrl}</p>
+            </div>
+          ) : !isEnded ? (
             <JitsiMeeting
               id="online-session-jitsi"
               roomCode={onlineSession.roomCode}
@@ -169,7 +211,7 @@ export default function OnlineClassPage() {
               Buổi học đã kết thúc. Xem bản ghi bài giảng bên dưới hoặc trong trang lớp.
             </div>
           )}
-          {isTeacher && isLive && (
+          {isTeacher && isLive && !onlineSession.meetingUrl && (
             <LessonRecorder
               id="online-session-recorder"
               classId={onlineSession.classId}

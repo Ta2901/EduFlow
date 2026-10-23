@@ -42,6 +42,8 @@ export async function POST(
     const onlineSession = await createOnlineSession(params.classId, session.userId, {
       title: String(body.title || ''),
       scheduleSlotId: body.scheduleSlotId ? String(body.scheduleSlotId) : undefined,
+      meetingUrl: body.meetingUrl ? String(body.meetingUrl) : undefined,
+      scheduledAt: body.scheduledAt ? String(body.scheduledAt) : undefined,
     })
     return jsonOk({ session: onlineSession }, 201)
   } catch (e) {
